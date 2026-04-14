@@ -18,5 +18,6 @@ cp .env.example .env
 npm run dev
 ```
 
+# Credits
 
-
+Gemini AI, for setting up and insight on the tools used here
