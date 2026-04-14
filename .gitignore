@@ -26,3 +26,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# backend files 
+.venv
+.cache
+__pycache__
+*.pyc 
+.mypy_cache
