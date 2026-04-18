@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import SessionPage from './pages/Session';
 
 function App() {
+	// We'll use react-router in order to develop our SPA 
 	return (
-		<div className="flex h-screen items-center justify-center">
-			<h1 className="text-2xl font-bold">WebMun Initialized</h1>	
-		</div>
-	)
+		<BrowserRouter>
+			<Routes>
+				<Route path="/commitees/:commiteeId/session" element={<SessionPage />} />
+			</Routes>
+		</BrowserRouter>
+	);
 }
 
 export default App
