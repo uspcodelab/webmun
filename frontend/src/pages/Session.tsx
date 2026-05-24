@@ -7,18 +7,52 @@ import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 
 export default function SessionPage() {
+    const speakers = [
+        { id: "fr", position: 1, countryName: "Franca", countryCode: "fr", speechTime: "01:53", isSpeaking: true },
+        { id: "br", position: 2, countryName: "Brasil", countryCode: "br", speechTime: "02:00" },
+        { id: "es", position: 3, countryName: "Espanha", countryCode: "es", speechTime: "02:00" },
+        { id: "br-3", position: 4, countryName: "Brasil", countryCode: "br", speechTime: "02:00" },
+    ]
+
+    const motions = [
+        {
+            id: "motion-1",
+            timestamp: "15:58",
+            title: "Mocao para debate moderado, de 3 discursos",
+            proposer: "Republica Francesa",
+            proposerCode: "fr",
+            priority: 2,
+        },
+        {
+            id: "motion-2",
+            timestamp: "16:02",
+            title: "Mocao para caucus nao moderado, de 10 minutos",
+            proposer: "Brasil",
+            proposerCode: "br",
+            priority: 3,
+        },
+        {
+            id: "motion-3",
+            timestamp: "16:05",
+            title: "Mocao para extensao de tempo de debate",
+            proposer: "Espanha",
+            proposerCode: "es",
+            priority: 3,
+        },
+    ]
+
     // id that matches the name given in the Route path, at App.tsx 
-    const { commiteeId } = useParams<{ committeeId: string }>();
+    const { committeeId } = useParams<{ committeeId: string }>();
 
     // extract what we need from the committee store
     const { sessionStart, setSessionStart } = useCommitteeStore();
 
-    const [status, setStatus] = useState("Connecting...");
-    const [uptime, setUptime] = useState(0);
+    const [, setStatus] = useState("Connecting...");
+    const [, setUptime] = useState(0);
 
     useEffect(() => {
         // Initialize WebSocket
-        const socket = new WebSocket(`ws://localhost:8000/committees/ws/${commiteeId}`);
+        const socket = new WebSocket(`ws://localhost:8000/committees/ws/${committeeId}`);
 
         socket.onopen = () => setStatus("Connected");
 
@@ -32,7 +66,7 @@ export default function SessionPage() {
         socket.onclose = () => setStatus("Disconnected");
 
         return () => socket.close(); // Cleanup on unmount
-    }, [commiteeId, setSessionStart, setStatus]);
+    }, [committeeId, setSessionStart, setStatus]);
 
     // Useeffect for local uptime timer 
     useEffect(() => {
@@ -62,8 +96,8 @@ export default function SessionPage() {
             <div className="flex flex-1 h-[82vh]">
                 <div className="flex-1 bg-neutral-100">[MAP PLACEHOLDER]</div>
                 <div className="fixed right-0 top-[10vh] h-[90vh] w-[20%] bg-white">
-                    <SpeakerList />
-                    <MotionsList />
+                    <SpeakerList speakers={speakers} />
+                    <MotionsList motions={motions} />
                 </div>
             </div>
             <BottomBar />
