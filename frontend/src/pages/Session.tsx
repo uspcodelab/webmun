@@ -5,6 +5,7 @@ import SpeakerList from "@/components/session/speaker-list"
 import MotionsList from "@/components/session/motions-list"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
+import DelegationMap from '@/components/session/delegation-map';
 
 export default function SessionPage() {
     const speakers = [
@@ -93,9 +94,15 @@ export default function SessionPage() {
 
 
             <TopBar />
-            <div className="flex flex-1 h-[82vh]">
-                <div className="flex-1 bg-neutral-100">[MAP PLACEHOLDER]</div>
-                <div className="fixed right-0 top-[10vh] h-[90vh] w-[20%] bg-white">
+            <div className="flex h-[82vh] w-full">
+                <div className="min-w-0 flex-1 bg-neutral-100">
+                    <DelegationMap
+                        semicircleCount={4}
+                        buttonsPerSemicircle={[6, 8, 10, 12]}
+                        presentDelegations={18}
+                    />
+                </div>
+                <div className="w-[20%] shrink-0 bg-white">
                     <SpeakerList speakers={speakers} />
                     <MotionsList motions={motions} />
                 </div>
