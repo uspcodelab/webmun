@@ -19,7 +19,7 @@ export default function TopBar() {
     return (<>
             <div className="flex h-[10vh] w-full items-center shadow-lg px-4 py-2 relative z-10 ">
                 <div className="flex h-full w-full flex-nowrap items-center gap-4 overflow-hidden">
-                    <img src="Images\branding\logo.png" alt="WebMun logo" className="h-full w-auto object-contain" />
+                    <img src="/Images/branding/logo.png" alt="WebMun logo" className="h-full w-auto object-contain" />
                     <h1>Conselho de Segurança</h1>
                     <Separator orientation="vertical" />
                     <Timer />
