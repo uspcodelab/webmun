@@ -4,13 +4,61 @@ This file describes the overall manager for websocket and states
 from fastapi import WebSocket
 from collections import defaultdict
 from pydantic import BaseModel
-from datetime import datetime 
+from datetime import datetime
+from typing import Literal
 
-# Represents the committee live state 
-class CommitteeLiveState(BaseModel):
-    committee_id: int
-    committee_name: str
-    start_time: datetime = None
+from .schemas import States, DelegateMotionPayload, DelegateQuestionPayload
+
+# Metadata that tracks the voting scheme currently in use
+class VotingContext(BaseModel):
+    target_type: Literal["PROCEDURAL", "SUBSTANTIVE"] = "PROCEDURAL"
+    motion_in_vote: int | None = None # Motion ID to be executed
+    voting_registry: dict[str, Literal["FAVOUR", "AGAINST", "ABSTAIN"]] = {}
+
+
+# Represents the session live state
+class SessionLiveState(BaseModel):
+    session_id: int
+    session_name: str | None = None
+    start_time: datetime
+
+    # General state for FSM engine
+    current_state: States = States.OPEN_SESSION
+    # gsl_queue_locker?
+
+    # Timer states
+    timer_is_running: bool = False
+    timer_expiration: datetime | None = None
+    timer_duration_seconds: int = 0
+
+    # Speakers
+    current_speaker: str | None = None
+    gsl_queue: list[str] = []
+    can_set_motion: bool = False # Can set motions during speaking time
+
+    # Context Data
+    # MotionSchema inherits it's type from Motions
+    _motion_id_counter = 0
+    _question_id_counter = 0
+    submitted_motions: list[DelegateMotionPayload] = []
+    submitted_questions: list[DelegateQuestionPayload] = []
+
+    # Agenda
+    agenda_topics: list[tuple[str, bool]] = []
+    active_topic_index: int | None = None
+
+    # Present delegations
+    present_delegations: list[str] = []
+
+    # Voting context
+    voting: VotingContext
+
+    # maps to present | present and voting styles
+    voting_choice: dict[str, Literal["PRESENT", "VOTING"]]
+
+# to be implemented later
+class WebSocketEnvelope(BaseModel):
+    pass
 
 class ConnectionManager:
     def __init__(self):
@@ -42,7 +90,7 @@ class ConnectionManager:
         
         message = {
                 "type": "STATE_UPDATE",
-                "payload": state.dict()
+                 "payload": state.dict()
         }
 
         for connection in self.active_connections[committee_id]:
