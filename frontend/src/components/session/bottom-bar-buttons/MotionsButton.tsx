@@ -262,16 +262,7 @@ export function MotionsMenu({
 
                     {showModeratedFields && (
                         <>
-                            <Field orientation="horizontal">
-                                <Checkbox
-                                    checked={unlimitedDiscourses}
-                                    onCheckedChange={(checked) => setUnlimitedDiscourses(checked === true)}
-                                />
-                                <FieldContent>
-                                    <FieldLabel>Discursos ilimitados</FieldLabel>
-                                    <FieldDescription>Marque para permitir um debate moderado sem limite de discursos.</FieldDescription>
-                                </FieldContent>
-                            </Field>
+                            
                             <Field>
                                 <FieldLabel>Quantos discursos?</FieldLabel>
                                 <Input
@@ -282,6 +273,7 @@ export function MotionsMenu({
                                     disabled={unlimitedDiscourses}
                                     onChange={(event) => setSpeechCount(event.target.value)}
                                 />
+                                <FieldDescription>Deixe em branco para permitir um debate moderado sem limite de discursos.</FieldDescription>
                             </Field>
                             <Field>
                                 <FieldLabel>Quantos minutos por discurso?</FieldLabel>
@@ -292,6 +284,7 @@ export function MotionsMenu({
                                     value={minutesPerSpeech}
                                     onChange={(event) => setMinutesPerSpeech(event.target.value)}
                                 />
+                                <FieldDescription>Deixe em branco para manter o tempo de discurso atual.</FieldDescription>
                             </Field>
                         </>
                     )}
