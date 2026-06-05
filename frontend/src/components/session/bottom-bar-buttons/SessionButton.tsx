@@ -8,6 +8,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Cog } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 
 export default function TestButton() {
@@ -24,12 +34,34 @@ export default function TestButton() {
         </DialogTrigger>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-                <DialogTitle>Sessao</DialogTitle>
-                <DialogDescription>Configure e acompanhe o estado da sessao.</DialogDescription>
-            </DialogHeader>
-            <div className="rounded-md border bg-white p-4 text-sm text-neutral-700">
-                Placeholder: Sessão menu (implement unique UI here)
-            </div>
+            <DialogTitle>Sessao</DialogTitle>
+            <DialogDescription>Configure e acompanhe o estado da sessao.</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border bg-white p-4 text-sm text-neutral-700">
+            <p>A sessão está: Aberta/Fehada</p>
+            <Button>Abrir/Fechar Sessão</Button>
+            <Separator className="my-4" />
+            <p>Quorum Atual: 10/20</p>
+            <Button>Chamar Quorum</Button>
+            <Separator className="my-4" />
+            <p>Estado do comitê: Debate</p>
+            <Select>
+              <SelectTrigger className="w-full max-w-48">
+                <SelectValue placeholder="Select a fruit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Mudar estado do comitê</SelectLabel>
+                  <SelectItem value="apple">Agenda</SelectItem>
+                  <SelectItem value="banana">Debate</SelectItem>
+                  <SelectItem value="blueberry">Crise</SelectItem>
+                  <SelectItem value="grape">Suspensão</SelectItem>
+                  <SelectItem value="pineapple">Votação</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Button className="mt-4">Mudar Estado do Comitê</Button>
+          </div>
         </DialogContent>
       </form>
     </Dialog >
