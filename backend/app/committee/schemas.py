@@ -15,7 +15,7 @@ class SessionStateSchema(BaseModel):
     current_speaker: int | None 
     timer_end: datetime | None 
 
-CommitteeCreationSchema.model_rebuild()
+SessionCreationSchema.model_rebuild()
 
 # The idea here is to send States to the clients using the States Enum, plus
 # their corresponding Schema, for exemple to open a session you would send

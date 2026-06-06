@@ -1,13 +1,16 @@
 # where engine lives
-from typing import Callable
+from typing import Callable, Any
 
-from .schemas import SessionEvent, DelegateEvents, ChairEvents
+from .schemas import *
 from .manager import SessionLiveState
 
-"""
-This will document the flow of states the debates will have. As Well as document an initial engine 
+class InvalidProceduralMove(Exception):
+    pass
 
-Creating a committee should automatically assign a chair as it's admin. Only Secretariats can create a session for a committee
+"""
+This will document the flow of states the debates will have. As well as document an initial engine 
+
+Creating a committee should assign a chair as it's admin. Only Secretariats can create a session for a committee
 
 OPEN_SESSION / SETUP: setup state. Websockets are already made, thus possible events are 
 - ChooseDelegation: made from Delegates from a list of possible ones (so a list of possible delegations should be present either in server/frontend)
@@ -53,51 +56,128 @@ FINISHED: when topics get empty automatically, or chair decides to close session
 This will give some insight into what should or should not be possible during each event
 """
 
-# Handlers for each event
-def handle_submit_motion(state: SessionLiveState, event: SessionEvent, sender: str, is_chair: bool):
-    pass
+# Dispatch tables: alternative to if else chains
+MOTIONS_ALLOWED: dict[States, set[Motions]] = {
+    States.INITIAL_DEBATE: {
+        Motions.CUSTOM_MOTION,
+    },
+    States.OPEN_GSL: {
+        Motions.CHANGE_DEBATE_TYPE,
+        Motions.POSTPONE_SESSION,
+        Motions.REOPEN_SESSION,
+        Motions.TOUR_DE_TABLE,
+        Motions.END_DEBATE,
+        Motions.VOTE_AMENDMENT,
+        Motions.VOTE_BY_ROLL_CALL,
+        Motions.CLOSE_SPEAKERS_LIST,
+        Motions.SPLIT_PROPOSAL ,
+        Motions.INTRODUCE_RESOLUTION_PROPOSAL,
+        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
+        Motions.CHANGE_TOPIC,
+        Motions.QUORUM ,
+        Motions.CUSTOM_MOTION,
+    },
+    States.CLOSED_GSL: {
+        Motions.REOPEN_SPEAKERS_LIST,
+        Motions.END_DEBATE,
+        Motions.VOTE_AMENDMENT,
+        Motions.VOTE_BY_ROLL_CALL,
+        Motions.INTRODUCE_RESOLUTION_PROPOSAL,
+        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
+        Motions.QUORUM,
+    },
+    States.MODERATED_CAUCUS: {
+        Motions.POSTPONE_SESSION,
+        Motions.END_DEBATE,
+        Motions.QUORUM,
+        Motions.CUSTOM_MOTION,
+    },
+    States.UNMODERATED_CAUCUS: {
+        Motions.POSTPONE_SESSION,
+        Motions.END_DEBATE,
+        Motions.QUORUM,
+    },
+}
+
+# Validations and helpers
+def generate_next_motion_id(state: SessionLiveState) -> int:
+    if not hasattr(state, "_motion_id_counter"):
+        state._motion_id_counter = 0
+    state._motion_id_counter += 1
+    return state._motion_id_counter
+
+# TODO: map more things to be needed here
+def validate_motion_payload(payload: DelegateMotionPayload, state: SessionLiveState) -> None:
+    """Should validate motion payload and correct it before submitting""" 
+    # can correct things
+    if payload.target_topic == None:
+        payload.target_topic = (
+            state.agenda_topics[state.active_topic_index][0] 
+            if state.active_topic_index is not None and 0 <= state.active_topic_index < len(state.agenda_topics) 
+            else None
+        )
+    
+    # can also raise error if there are missing fields
+    if payload.type in {States.MODERATED_CAUCUS} and payload.total_speaking_seconds == None:
+        raise InvalidProceduralMove("Cannot submit motion without speaking time")
+
+
+# -------------- HANDLERS --------------
+def handle_submit_motion(state: SessionLiveState, event: SubmitMotionEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    """Handles/Maps all possible states through a motion"""
+    if is_chair:
+        raise InvalidProceduralMove("Cannot submit delegate motions as Chair")
+    
+    # Extract payload (as DelegateMotionSchema)
+    payload = event.payload
+    current_state = state.current_state
+
+    # check if motion can be made for this state
+    if payload.type not in MOTIONS_ALLOWED.get(current_state, set()):
+        raise InvalidProceduralMove("Cannot submit this motion at this phase")
+
+    if current_state in {States.MODERATED_CAUCUS, States.UNMODERATED_CAUCUS} and not state.can_set_motion:
+        raise InvalidProceduralMove("Submitting motions during caucuses is disabled")
+    
+    validate_motion_payload(payload, state)
+
+    payload.id = generate_next_motion_id(state)
+    payload.delegate = sender
+    state.submitted_motions.append(payload)
+    
+    return state
+
 
 # defines the overall "interface" (as in golang?) for a function to be an EventHandler 
+# Iremos ignorar o Event dado ao SessionEvent, assumindo que ele está sendo feito. 
+# Podemos também remover o SessionEvent depois
 type EventHandler = Callable[
-        [SessionLiveState, SessionEvent, str, bool], # overall signature
+        [SessionLiveState, Any, str, bool], # overall signature
         SessionLiveState # Return type
         ]
 
 # TODO: check if list has all events, since it's generated by codex
 EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
       DelegateEvents.SUBMIT_MOTION: handle_submit_motion,
-      DelegateEvents.SUBMIT_QUESTION: handle_submit_question,
-      DelegateEvents.JOIN_QUEUE: handle_join_queue,
-      DelegateEvents.LEAVE_QUEUE: handle_leave_queue,
-      DelegateEvents.CAST_VOTE: handle_cast_vote,
-      DelegateEvents.CHOOSE_DELEGATION: handle_choose_delegation,
+      #DelegateEvents.SUBMIT_QUESTION: handle_submit_question,
+      #DelegateEvents.JOIN_QUEUE: handle_join_queue,
+      #DelegateEvents.LEAVE_QUEUE: handle_leave_queue,
+      #DelegateEvents.CAST_VOTE: handle_cast_vote,
+      #DelegateEvents.CHOOSE_DELEGATION: handle_choose_delegation,
 
-      ChairEvents.MANUAL_PHASE_SET: handle_set_phase,
-      ChairEvents.TOGGLE_TIMER: handle_toggle_timer,
-      ChairEvents.SET_VOTING_STATE: handle_set_voting,
-      ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
 }
 
-class SimulationEngine:
+class SessionEngine:
     # function to calculate new state over old one
     def dispatch(self, 
                  state: SessionLiveState,
                  event: SessionEvent,
                  sender: str, 
                  is_chair: bool) -> SessionLiveState:
+
+        handler = EVENT_HANDLERS.get(event.type)
+        if handler is None:
+            raise InvalidProceduralMove(f"Unsupported Type: {event.type}")
+        
+        return handler(state, event, sender, is_chair)
          
-
-"""
-    def _generate_next_motion_id(self, state: SessionLiveState) -> int:
-        if not hasattr(state, "_motion_id_counter"):
-            state._motion_id_counter = 0
-        state._motion_id_counter += 1
-        return state._motion_id_counter
-
-    def _generate_next_question_id(self, state: SessionLiveState) -> int:
-        if not hasattr(state, "_question_id_counter"):
-            state._question_id_counter = 0
-        state._question_id_counter += 1
-        return state._question_id_counter
-
-"""

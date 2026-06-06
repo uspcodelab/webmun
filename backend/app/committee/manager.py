@@ -23,7 +23,7 @@ class SessionLiveState(BaseModel):
     start_time: datetime
 
     # General state for FSM engine
-    current_state: States = States.OPEN_SESSION
+    current_state: States = States.SETUP
     # gsl_queue_locker?
 
     # Timer states
@@ -65,7 +65,7 @@ class ConnectionManager:
         # Initialize dictionary with room_name and list of connections
         self.active_connections: dict[int, list[WebSocket]] = defaultdict(list)
         # maps committee_id to current committee state 
-        self.room_states: dict[int, CommitteeLiveState] = {}
+        self.room_states: dict[int, SessionLiveState] = {}
 
     async def connect(self, websocket: WebSocket, committee_id: int):
         await websocket.accept()
