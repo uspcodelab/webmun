@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.committee.views import router as committee_router # Import different domains routers
+from app.session.views import router as committee_router # Import different domains routers
 
 app = FastAPI(title="WebMUN API")
 

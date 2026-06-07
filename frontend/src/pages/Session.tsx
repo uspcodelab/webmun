@@ -6,10 +6,12 @@ import MotionsList from "@/components/session/motions-list"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
-
-const socket = useRef<WebSocket>(null)
+import {type Events, type SubmitMotionEvent, Motions} from '../schemas/types.gen.ts'
 
 export default function SessionPage() {
+
+    const socketRef = useRef<WebSocket>(null);
+
     const speakers = [
         { id: "fr", position: 1, countryName: "Franca", countryCode: "fr", speechTime: "01:53", isSpeaking: true },
         { id: "br", position: 2, countryName: "Brasil", countryCode: "br", speechTime: "02:00" },
@@ -55,24 +57,35 @@ export default function SessionPage() {
 
     useEffect(() => {
         // Initialize WebSocket
-        socket.current = new WebSocket(`ws://localhost:8000/committees/ws/${committeeId}`);
+        const socket = new WebSocket(`ws://localhost:8000/committees/ws/0`);
 
-        socket.current.onopen = () => setStatus("Connected");
+        socketRef.current = socket;
 
-        socket.current.onmessage = (event) => {
+        socket.onopen = () => 
+            {
+                setStatus("Connected");
+                const evnt : SubmitMotionEvent = {
+                type: "SubmitMotionEvent",
+                payload: { type: Motions.CHANGE_DEBATE_TYPE }
+                }
+                socketRef.current?.send(JSON.stringify(evnt))
+            }
+
+        socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === "INITIAL_STATE") {
                 setSessionStart(data.payload.start_time);
             }
         };
 
-        socket.current.onclose = () => setStatus("Disconnected");
+        socket.onclose = () => setStatus("Disconnected");
 
-        return () => socket.current?.close(); // Cleanup on unmount
+        return () => socket.close(); // Cleanup on unmount
     }, [committeeId, setSessionStart, setStatus]);
 
     // Useeffect for local uptime timer 
     useEffect(() => {
+
         if (!sessionStart) return;
 
         // calculate timer
@@ -81,6 +94,7 @@ export default function SessionPage() {
             const now = new Date().getTime();
             setUptime(Math.floor((now - start) / 1000));
         }, 1000);
+
 
         return () => clearInterval(interval);
     }, [sessionStart]);
@@ -114,13 +128,19 @@ export default function SessionPage() {
 
     );
 }
-
 /*
 Função que manda uma mensagem para o servidor
-*/
-export function SendMesssage(type: string, content: string)
+
+export function SendMesssage(event: Events)
 {
-    const json = JSON.stringify({type:type, content:content});
-    if(socket.current) socket.current.send(json);
+    const json = JSON.stringify(event);
+    if(socket) socket.send(json);
     else throw new Error("socket not inicialized");
 }
+
+const evnt : SubmitMotionEvent = {
+    type: "SubmitMotionEvent",
+    payload: { type: Motions.CHANGE_DEBATE_TYPE }
+}
+SendMesssage(evnt)
+*/
