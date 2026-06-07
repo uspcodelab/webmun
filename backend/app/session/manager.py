@@ -10,9 +10,12 @@ from typing import Literal
 from .schemas import States, DelegateMotionPayload, DelegateQuestionPayload
 
 # Metadata that tracks the voting scheme currently in use
+# idea: Voting Events should change this here, and CastVote should register to this thing
 class VotingContext(BaseModel):
-    target_type: Literal["PROCEDURAL", "SUBSTANTIVE"] = "PROCEDURAL"
+    target_type: Literal["PROCEDURAL", "SUBSTANTIVE", "INFORMAL"]
     motion_in_vote: int | None = None # Motion ID to be executed
+    title: str | None = None 
+    return_state: States | None = None # If rejected, returns to this state.
     voting_registry: dict[str, Literal["FAVOUR", "AGAINST", "ABSTAIN"]] = {}
 
 

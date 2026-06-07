@@ -2,7 +2,7 @@
 from typing import Callable, Any
 
 from .schemas import *
-from .manager import SessionLiveState
+from .manager import SessionLiveState, VotingContext
 
 class InvalidProceduralMove(Exception):
     pass
@@ -61,9 +61,7 @@ This will give some insight into what should or should not be possible during ea
 
 # Dispatch tables: alternative to if else chains
 MOTIONS_ALLOWED: dict[States, set[Motions]] = {
-    States.INITIAL_DEBATE: {
-        Motions.CUSTOM_MOTION,
-    },
+    States.INITIAL_DEBATE: { Motions.CUSTOM_MOTION, },
     States.OPEN_GSL: {
         Motions.CHANGE_DEBATE_TYPE,
         Motions.POSTPONE_SESSION,
@@ -204,10 +202,19 @@ def handle_set_session(state: SessionLiveState, event: SetSessionEvent, sender: 
 def handle_set_timer(state: SessionLiveState, event: SetTimerEvent, sender: str, is_chair: bool) -> SessionLiveState:
     ...
 
-def handle_set_informal_voting(state: SessionLiveState, event: SetVotingEvent, sender: str, is_chair: bool) -> SessionLiveState:
+def handle_open_informal_voting(state: SessionLiveState, event: OpenInformalVotingEvent, sender: str, is_chair: bool) -> SessionLiveState:
     ...
 
+def handle_close_informal_voting(state: SessionLiveState, event: CloseInformalVotingEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+# handles changing to debate states, close debate, close gsl, voting procedures, close session, etc
+def handle_close_procedural_voting(state: SessionLiveState, event: CloseProceduralVotingEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+# handles setting state into VOTING_EXECUTION or rejecting the motion
 def handle_resolve_motion(state: SessionLiveState, event: ResolveMotionEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    # Suggested by codex: So handle_resolve_motion(... ACCEPT ...) should usually not immediately move to MODERATED_CAUCUS. It should create a voting context and move to VOTING_EXECUTION
     if not is_chair:
         raise InvalidProceduralMove("Not authorized")
 
@@ -218,7 +225,20 @@ def handle_resolve_motion(state: SessionLiveState, event: ResolveMotionEvent, se
     if motion is None:
         raise InvalidProceduralMove("Motion not found")
 
+    if payload.action == "ACCEPT":
+        # if accepted, move into VOTING_EXECUTION and enable CastVoteEvent from
+        state.voting = VotingContext(
+                target_type="PROCEDURAL",
+                motion_in_vote=motion.id,
+                return_state=state.current_state
+                voting_registry={},
+        )
 
+        state.current_state = States.VOTING_EXECUTION
+
+    state.submitted_motions.remove(motion)
+    return state
+    
 
 def handle_set_agenda(state: SessionLiveState, event: SetAgendaEvent, sender: str, is_chair: bool) -> SessionLiveState:
     ...
@@ -245,8 +265,11 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
       DelegateEvents.CHOOSE_DELEGATION: handle_choose_delegation,
 
       ChairEvents.OPEN_SESSION: handle_set_session,
-      ChairEvents.SET_TIMER: handle_set_timer,
-      ChairEvents.SET_INFORMAL_VOTING: handle_set_informal_voting,
+      ChairEvents.INCREASE_TIMER: handle_increase_timer,
+      ChairEvents.TOGGLE_TIMER: handle_toggle_timer,
+      ChairEvents.OPEN_INFORMAL_VOTING: handle_open_informal_voting,
+      ChairEvents.CLOSE_INFORMAL_VOTING: handle_close_informal_voting,
+      ChairEvents.CLOSE_PROCEDURAL_VOTING: handle_close_procedural_voting,
       ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
       ChairEvents.SET_AGENDA: handle_set_agenda, 
       ChairEvents.MANUAL_PHASE_SET: handle_manual_phase_set,
