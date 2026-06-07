@@ -9,7 +9,7 @@ router = APIRouter()
 
 # Create committee route, receives a contentbody following CommitteeCreationSchema's format
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
-async def create_commitee(committeeInfo: SessionCreationSchema, test: SessionEvent):
+async def create_commitee(committeeInfo: SessionCreationSchema, test: SessionEvent):#terrible workaround to FastApi only adding schemas that are on routes to the openapi schemas
     # Mock a committee being created
     create_session(committeeInfo.committee_id, committeeInfo.name)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -22,7 +22,7 @@ export type CastVoteEvent = {
     /**
      * Type
      */
-    type: 'Cast Substantive Vote';
+    type: 'CastVoteEvent';
     payload: DelegateVotingPayload;
 };
 
@@ -116,7 +116,7 @@ export type ChooseDelegateEvent = {
     /**
      * Type
      */
-    type: 'Choose Delegation';
+    type: 'ChooseDelegateEvent';
     payload: ChooseDelegatePayload;
 };
 
@@ -236,7 +236,7 @@ export type IncreaseTimerEvent = {
     /**
      * Type
      */
-    type: 'Increase Timer';
+    type: 'IncreaseTimerEvent';
     payload: ChairIncreaseTimerPayload;
 };
 
@@ -287,7 +287,7 @@ export type ResolveMotionEvent = {
     /**
      * Type
      */
-    type: 'Resolve Motion';
+    type: 'ResolveMotionEvent';
     payload: ChairResolveMotionPayload;
 };
 
@@ -312,7 +312,7 @@ export type SetAgendaEvent = {
     /**
      * Type
      */
-    type: 'Set Agenda';
+    type: 'SetAgendaEvent';
     payload: ChairSetAgendaPayload;
 };
 
@@ -323,7 +323,7 @@ export type SetPhaseEvent = {
     /**
      * Type
      */
-    type: 'Manual Phase Set';
+    type: 'SetPhaseEvent';
     payload: ChairSetPhasePayload;
 };
 
@@ -361,7 +361,7 @@ export type SetVotingEvent = {
     /**
      * Type
      */
-    type: 'Set Voting State';
+    type: 'SetVotingEvent';
     payload: ChairSetVotingPayload;
 };
 
@@ -372,7 +372,7 @@ export type SpeakerEvent = {
     /**
      * Type
      */
-    type: 'Force Speaker';
+    type: 'SpeakerEvent';
     payload: ChairForceSpeakerPayload;
 };
 
@@ -416,7 +416,7 @@ export type SubmitQuestionEvent = {
     /**
      * Type
      */
-    type: 'Submit Question';
+    type: 'SubmitQuestionEvent';
     payload: DelegateQuestionPayload;
 };
 
@@ -427,7 +427,7 @@ export type ToggleTimerEvent = {
     /**
      * Type
      */
-    type: 'Toggle Timer';
+    type: 'ToggleTimerEvent';
     payload: ChairToggleTimerPayload;
 };
 
@@ -466,7 +466,7 @@ export type YieldEvent = {
     /**
      * Type
      */
-    type: 'Yield Speaking';
+    type: 'YieldEvent';
     payload: DelegateYieldPayload;
 };
 
@@ -494,12 +494,3 @@ export type CreateCommiteeCommitteesPostResponses = {
 };
 
 export type CreateCommiteeCommitteesPostResponse = CreateCommiteeCommitteesPostResponses[keyof CreateCommiteeCommitteesPostResponses];
-
-
-/*
-NÃO ESTÁ SENDO GERADO AUTOMÁTICAMENTE AINDA
-*/
-export type Events = SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent
-    | SetQueueEvent | YieldEvent | SetSessionEvent | ToggleTimerEvent 
-    | IncreaseTimerEvent | SetVotingEvent | ResolveMotionEvent | SpeakerEvent 
-    | SetAgendaEvent | SetPhaseEvent
