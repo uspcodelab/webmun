@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCommitteeStore } from '../store/useCommitteeStore.ts'
 import SpeakerList from "@/components/session/speaker-list"
@@ -6,6 +6,8 @@ import MotionsList from "@/components/session/motions-list"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
+
+const socket = useRef<WebSocket>(null)
 
 export default function SessionPage() {
     const speakers = [
@@ -53,20 +55,20 @@ export default function SessionPage() {
 
     useEffect(() => {
         // Initialize WebSocket
-        const socket = new WebSocket(`ws://localhost:8000/committees/ws/${committeeId}`);
+        socket.current = new WebSocket(`ws://localhost:8000/committees/ws/${committeeId}`);
 
-        socket.onopen = () => setStatus("Connected");
+        socket.current.onopen = () => setStatus("Connected");
 
-        socket.onmessage = (event) => {
+        socket.current.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === "INITIAL_STATE") {
                 setSessionStart(data.payload.start_time);
             }
         };
 
-        socket.onclose = () => setStatus("Disconnected");
+        socket.current.onclose = () => setStatus("Disconnected");
 
-        return () => socket.close(); // Cleanup on unmount
+        return () => socket.current?.close(); // Cleanup on unmount
     }, [committeeId, setSessionStart, setStatus]);
 
     // Useeffect for local uptime timer 
@@ -111,4 +113,14 @@ export default function SessionPage() {
         </div>
 
     );
+}
+
+/*
+Função que manda uma mensagem para o servidor
+*/
+export function SendMesssage(type: string, content: string)
+{
+    const json = JSON.stringify({type:type, content:content});
+    if(socket.current) socket.current.send(json);
+    else throw new Error("socket not inicialized");
 }
