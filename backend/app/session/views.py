@@ -1,3 +1,6 @@
+# An adapter. Accepts HTTP/Websockets messages, validates envelopes, calls/attaches services and return/send errors
+# The 1st layer when connecting to clients
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Response, status
 import asyncio
 from app.session.schemas import SessionCreationSchema, SessionEvent

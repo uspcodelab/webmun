@@ -30,26 +30,29 @@ ROLL_CALL: roll call/ quorum count state. Possible events are:
 
 To user, INITIAL_DEBATE and OPEN_GSL should look mostly the same
 INITIAL_DEBATE: after roll call, if no agenda is set and/or no speaking time for GSL is set, go to this state. It's an initial speakers list. Possible events are: 
-    - Motions: subset - (POSTPONE, END, QUORUM, SETAGEND, SETSPEAKINGTIME) 
+    - Motions: subset - (POSTPONE, END, QUORUM, SETSPEAKINGTIME) 
+    - Special action: "Propose Topics"
     - QuestionEvent
     - Any Chair Event
-    - CastVoteEvent 
+    - CastInformalVoteEvent 
 Queue should not be open to speak. Delegates may only speak in motions
 
-OPEN_GSL: default state in general. Queue is open and automatic and all motions can be made. The topic is defaulted to the first one in the order of agenda_topics and index_topic.
+OPEN_GSL: default state in general. Queue is open and all motions can be made. The topic is defaulted to the first one in the order of agenda_topics and index_topic.
     - In particular, YieldEvent must be enabled and configured.
 
-Specific Debates: (Moderated, Unmoderated, Tour) Queue is not automatic, rather, it now serves as a list that Chair can accept someone.
-    - Motions may only be set if set_motions is enabled.
+Specific Debates: (Moderated, Unmoderated, Tour) Queue not enabled. Each delegation should raise their placard and popups a "selection" on map
+    - Motions may only be put if set_motions is enabled.
     - In particular, Unmoderated should not have a queue/motions enabled at all, but this may be implemented later 
 
-VOTIING_EXECUTION: may be to vote on a motion or on a specific resolution. Only after the chair enables voting on a motion. 
+BETWEEN_DEBATES: After each speak (From moderated or GSL), this temporary state (for up to 15 seconds) is enabled so chair can ask for new motions and check submitted ones. It should go into OPEN_GSL or MODERATED_CAUCUS, depending on which state is there
+
+VOTING_EXECUTION: Voting on a procedural motion.
 
 CLOSED_GSL: after a successfull 'Close Speakers List'. Queue is disabled.
 
-PRE_VOTING: ambiguous state after an "close debate" has either entered as a motion, or "move into voting procedures"
+VOTING_PREPARATION: ambiguous state after an "close debate" has either entered as a motion, or "move into voting procedures". Perhaps doesnt need to be added?
 
-VOTING_PROCEDURES: special case of voting on specific resolution
+VOTING_PROCEDURES: special case of voting on resolutions, etc. Substantive votes.
 
 FINISHED: when topics get empty automatically, or chair decides to close session. may be reverted.
 
@@ -64,7 +67,6 @@ MOTIONS_ALLOWED: dict[States, set[Motions]] = {
     States.OPEN_GSL: {
         Motions.CHANGE_DEBATE_TYPE,
         Motions.POSTPONE_SESSION,
-        Motions.REOPEN_SESSION,
         Motions.TOUR_DE_TABLE,
         Motions.END_DEBATE,
         Motions.VOTE_AMENDMENT,
@@ -85,6 +87,12 @@ MOTIONS_ALLOWED: dict[States, set[Motions]] = {
         Motions.INTRODUCE_RESOLUTION_PROPOSAL,
         Motions.INTRODUCE_AMENDMENT_PROPOSAL,
         Motions.QUORUM,
+        Motions.CUSTOM_MOTION,
+    },
+    States.VOTING_PREPARATION: {
+        Motions.VOTE_BY_ROLL_CALL, 
+        Motions.SPLIT_PROPOSAL, 
+        Motions.CUSTOM_MOTION
     },
     States.MODERATED_CAUCUS: {
         Motions.POSTPONE_SESSION,
@@ -97,7 +105,14 @@ MOTIONS_ALLOWED: dict[States, set[Motions]] = {
         Motions.END_DEBATE,
         Motions.QUORUM,
     },
+} 
+
+# maps the accepted motion into the next possible state
+ACCEPTING_MOTIONS: dict[Motions, States] = {
+    Motions. 
 }
+
+# we also need related events or automatic/internal cron job in order to change, for example, caucus to GSL
 
 # Validations and helpers
 def generate_next_motion_id(state: SessionLiveState) -> int:
@@ -105,6 +120,12 @@ def generate_next_motion_id(state: SessionLiveState) -> int:
         state._motion_id_counter = 0
     state._motion_id_counter += 1
     return state._motion_id_counter
+
+def generate_next_question_id(state: SessionLiveState) -> int:
+    if not hasattr(state, "_question_id_counter"):
+        state._question_id_counter = 0
+    state._question_id_counter += 1
+    return state._question_id_counter
 
 # TODO: map more things to be needed here
 def validate_motion_payload(payload: DelegateMotionPayload, state: SessionLiveState) -> None:
@@ -121,10 +142,15 @@ def validate_motion_payload(payload: DelegateMotionPayload, state: SessionLiveSt
     if payload.type in {States.MODERATED_CAUCUS} and payload.total_speaking_seconds == None:
         raise InvalidProceduralMove("Cannot submit motion without speaking time")
 
+def validate_question_payload(payload: DelegateQuestionPayload, state: SessionLiveState) -> None:
+    ...
+
 
 # -------------- HANDLERS --------------
 def handle_submit_motion(state: SessionLiveState, event: SubmitMotionEvent, sender: str, is_chair: bool) -> SessionLiveState:
     """Handles/Maps all possible states through a motion"""
+    
+    # TODO: change this so Chair can also catalog motions for delegations
     if is_chair:
         raise InvalidProceduralMove("Cannot submit delegate motions as Chair")
     
@@ -147,10 +173,63 @@ def handle_submit_motion(state: SessionLiveState, event: SubmitMotionEvent, send
     
     return state
 
+def handle_submit_question(state: SessionLiveState, event: SubmitQuestionEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    # TODO: change this so Chair can also catalog motions for delegations
+    if is_chair:
+        raise InvalidProceduralMove("Cannot submit delegate motions as Chair")
+    
+    # Extract payload (as DelegateMotionSchema)
+    payload = event.payload
 
-# defines the overall "interface" (as in golang?) for a function to be an EventHandler 
-# Iremos ignorar o Event dado ao SessionEvent, assumindo que ele está sendo feito. 
-# Podemos também remover o SessionEvent depois
+    validate_question_payload(payload, state)
+    payload.id = generate_next_question_id(state)
+    payload.delegate = sender
+    state.submitted_questions.append(payload)
+
+    return state
+
+def handle_set_queue(state: SessionLiveState, event: SetQueueEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+def handle_cast_vote(state: SessionLiveState, event: CastVoteEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+def handle_choose_delegation(state: SessionLiveState, event: ChooseDelegateEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+# Chair events
+def handle_set_session(state: SessionLiveState, event: SetSessionEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+def handle_set_timer(state: SessionLiveState, event: SetTimerEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+def handle_set_informal_voting(state: SessionLiveState, event: SetVotingEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+def handle_resolve_motion(state: SessionLiveState, event: ResolveMotionEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("Not authorized")
+
+    payload = event.payload 
+    # next() function with generator expression
+    motion = next((m for m in state.submitted_motions if m.id == payload.motion_id), None) 
+
+    if motion is None:
+        raise InvalidProceduralMove("Motion not found")
+
+
+
+def handle_set_agenda(state: SessionLiveState, event: SetAgendaEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+def handle_manual_phase_set(state: SessionLiveState, event: SetPhaseEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+def handle_choose_speaker(state: SessionLiveState, event: SpeakerEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+
+# Signature for events/handlers
 type EventHandler = Callable[
         [SessionLiveState, Any, str, bool], # overall signature
         SessionLiveState # Return type
@@ -159,12 +238,20 @@ type EventHandler = Callable[
 # TODO: check if list has all events, since it's generated by codex
 EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
       DelegateEvents.SUBMIT_MOTION: handle_submit_motion,
-      #DelegateEvents.SUBMIT_QUESTION: handle_submit_question,
-      #DelegateEvents.JOIN_QUEUE: handle_join_queue,
-      #DelegateEvents.LEAVE_QUEUE: handle_leave_queue,
-      #DelegateEvents.CAST_VOTE: handle_cast_vote,
-      #DelegateEvents.CHOOSE_DELEGATION: handle_choose_delegation,
+      DelegateEvents.SUBMIT_QUESTION: handle_submit_question,
+      DelegateEvents.JOIN_QUEUE: handle_set_queue, # TODO: collapse these two into only one
+      DelegateEvents.LEAVE_QUEUE: handle_set_queue,
+      DelegateEvents.CAST_VOTE: handle_cast_vote,
+      DelegateEvents.CHOOSE_DELEGATION: handle_choose_delegation,
 
+      ChairEvents.OPEN_SESSION: handle_set_session,
+      ChairEvents.SET_TIMER: handle_set_timer,
+      ChairEvents.SET_INFORMAL_VOTING: handle_set_informal_voting,
+      ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
+      ChairEvents.SET_AGENDA: handle_set_agenda, 
+      ChairEvents.MANUAL_PHASE_SET: handle_manual_phase_set,
+      ChairEvents.CLOSE_SESSION: handle_set_session,
+      ChairEvents.CHOOSE_SPEAKER: handle_choose_speaker,
 }
 
 class SessionEngine:

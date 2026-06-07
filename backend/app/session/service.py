@@ -17,6 +17,7 @@ uvicorn_logger = logging.getLogger("uvicorn.error")
 def handle_client_messages(data: str):
     obj = json.loads(data)
     type = globals().get(obj["type"]) #Get Corresponding Schema
+    # TODO: change this to use an event dispatch table or something related so IDE doesnt complain
     parsed = type.model_validate(obj) #Reason Json as correct Object
 
     uvicorn_logger.info(parsed) #Debugging
