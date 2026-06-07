@@ -46,13 +46,13 @@ class States(str, Enum):
 # ----------------------------- EVENTS
 # Events like this will also enable "Discriminated Unions" in Typescript
 class DelegateEvents(str, Enum):
-    SUBMIT_MOTION = 'Submit Motion'
-    SUBMIT_QUESTION = 'Submit Question'
-    JOIN_QUEUE = 'Join Speakers Queue'
-    LEAVE_QUEUE = 'Leave Speakers Queue'
-    CAST_VOTE = 'Cast Substantive Vote'
-    CHOOSE_DELEGATION = 'Choose Delegation'
-    YIELD_SPEAKING = 'Yield Speaking'
+    SUBMIT_MOTION = 'SubmitMotionEvent'
+    SUBMIT_QUESTION = 'SubmitQuestionEvent'
+    JOIN_QUEUE = 'Join Speakers Queue' #doesn't work anymore
+    LEAVE_QUEUE = 'Leave Speakers Queue' #doesn't work anymore
+    CAST_VOTE = 'CastVoteEvent'
+    CHOOSE_DELEGATION = 'ChooseDelegateEvent'
+    YIELD_SPEAKING = 'YieldEvent'
 
 class DebateTypes(str, Enum):
     SPEAKERS_LIST = 'Speakers List'
@@ -74,7 +74,7 @@ class Motions(str, Enum):
     INTRODUCE_AMENDMENT_PROPOSAL = 'Introduce Amendment Proposal'
     CHANGE_TOPIC = 'Change Topic'
     QUORUM = 'Quorum'
-    CUSTOM_MOTION = ''
+    CUSTOM_MOTION = '' #not implemented
 
 class DelegateMotionPayload(BaseModel):
     id: int | None = None # When Delegate Sends it, it's None
@@ -142,17 +142,17 @@ class YieldEvent(BaseModel):
 # -----------------------------------------------------------------------
 
 class ChairEvents(str, Enum):
-    OPEN_SESSION = 'Open Session' # Defines Session to be opened
-    TOGGLE_TIMER = 'Toggle Timer'
-    INCREASE_TIMER = 'Increase Timer'
-    SET_VOTING_STATE = 'Set Voting State'
-    RESOLVE_MOTION = 'Resolve Motion'
+    OPEN_SESSION = 'Open Session' # Defines Session to be opened, doesnt work anymore
+    TOGGLE_TIMER = 'ToggleTimerEvent'
+    INCREASE_TIMER = 'IncreaseTimerEvent'
+    SET_VOTING_STATE = 'SetVotingEvent'
+    RESOLVE_MOTION = 'ResolveMotionEvent'
 
     # Disruptive events (i.e manual override events)
-    FORCE_SPEAKER = 'Force Speaker'
-    SET_AGENDA = 'Set Agenda'
-    MANUAL_PHASE_SET = 'Manual Phase Set'
-    CLOSE_SESSION = 'Close Session'
+    FORCE_SPEAKER = 'SpeakerEvent'
+    SET_AGENDA = 'SetAgendaEvent'
+    MANUAL_PHASE_SET = 'SetPhaseEvent'
+    CLOSE_SESSION = 'Close Session' # doesnt work anymore
 
 # either close or open session
 class ChairSetSessionPayload(BaseModel):
@@ -183,11 +183,11 @@ class ChairSetAgendaPayload(BaseModel):
 class ChairSetPhasePayload(BaseModel):
     target_phase: States
 
-class EmptyPayload():
+class EmptyPayload(BaseModel):
     ...
 
 # Related Events
-class SetSessionEvent(BaseModel):
+class SetSessionEvent(BaseModel): #Doesn't work anymore given new event naming
     type: Literal[ChairEvents.OPEN_SESSION, ChairEvents.CLOSE_SESSION]
     payload: EmptyPayload
 
