@@ -1,9 +1,11 @@
 # where engine lives
+from datetime import timezone, timedelta
 from typing import Callable, Any
 
 from .schemas import *
-from .manager import SessionLiveState, VotingContext
+from .manager import DebateContext, RollCallContext, SessionLiveState, VotingContext
 
+# placeholder Exception to be used in engine
 class InvalidProceduralMove(Exception):
     pass
 
@@ -105,12 +107,8 @@ MOTIONS_ALLOWED: dict[States, set[Motions]] = {
     },
 } 
 
-# maps the accepted motion into the next possible state
-ACCEPTING_MOTIONS: dict[Motions, States] = {
-    Motions. 
-}
-
 # we also need related events or automatic/internal cron job in order to change, for example, caucus to GSL
+# TODO: change is_chair boolean flag from handlers to something like a Role class, with "DELEGATE", "OBSERVER", "ADMIN" and "CHAIR" types
 
 # Validations and helpers
 def generate_next_motion_id(state: SessionLiveState) -> int:
@@ -143,6 +141,23 @@ def validate_motion_payload(payload: DelegateMotionPayload, state: SessionLiveSt
 def validate_question_payload(payload: DelegateQuestionPayload, state: SessionLiveState) -> None:
     ...
 
+def tally_votes(voting: VotingContext) -> bool:
+    ...
+
+def get_default_speaker_seconds(state: SessionLiveState) -> int | None:
+    if state.current_state == States.MODERATED_CAUCUS and state.debate:
+        return state.debate.per_speaker_seconds
+
+    if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL, States.INITIAL_DEBATE}:
+        return state.gsl_default_time_seconds
+
+    return None
+
+
+def reset_timer(state: SessionLiveState, seconds: int = 0) -> None: 
+    state.timer_is_running = False
+    state.timer_expiration = None 
+    state.timer_remaining_seconds = seconds
 
 # -------------- HANDLERS --------------
 def handle_submit_motion(state: SessionLiveState, event: SubmitMotionEvent, sender: str, is_chair: bool) -> SessionLiveState:
@@ -176,7 +191,6 @@ def handle_submit_question(state: SessionLiveState, event: SubmitQuestionEvent, 
     if is_chair:
         raise InvalidProceduralMove("Cannot submit delegate motions as Chair")
     
-    # Extract payload (as DelegateMotionSchema)
     payload = event.payload
 
     validate_question_payload(payload, state)
@@ -186,35 +200,265 @@ def handle_submit_question(state: SessionLiveState, event: SubmitQuestionEvent, 
 
     return state
 
-def handle_set_queue(state: SessionLiveState, event: SetQueueEvent, sender: str, is_chair: bool) -> SessionLiveState:
-    ...
+def handle_join_queue(state: SessionLiveState, event: JoinQueueEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if is_chair:
+        raise InvalidProceduralMove("Cannot submit delegate motions as Chair")
+    
+    if state.current_state != States.OPEN_GSL:
+        raise InvalidProceduralMove("Cannot enter queue right now")
+
+    # if already in queue, return error, else remove from queue and return state 
+    if sender in state.gsl_queue:
+        raise InvalidProceduralMove("Already in Queue")
+    
+    state.gsl_queue.append(sender)
+    return state
+    
+
+def handle_leave_queue(state: SessionLiveState, event: LeaveQueueEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if is_chair:
+        raise InvalidProceduralMove("Cannot submit delegate motions as Chair")
+
+    if state.current_state != States.OPEN_GSL:
+        raise InvalidProceduralMove("Cannot enter queue right now")
+
+    if sender not in state.gsl_queue:
+        raise InvalidProceduralMove("Not in Queue")
+
+    state.gsl_queue.remove(sender)
+    return state
+    
 
 def handle_cast_vote(state: SessionLiveState, event: CastVoteEvent, sender: str, is_chair: bool) -> SessionLiveState:
-    ...
+    # review copy structuring here
+    if is_chair:
+        raise InvalidProceduralMove("Cannot cast vote as Chair")
+    
+    voting_context = state.voting 
+    if voting_context == None:
+        raise InvalidProceduralMove("Cannot vote during this stage")
+    
+    # initial voting workflow, may be reviewed later
+    # TODO: perhaps allow casting another vote if first one fails
+    if sender in voting_context.voting_registry:
+        raise InvalidProceduralMove("Already cast vote")
+   
+    # register vote on voting context
+    voting_context.voting_registry[sender] = event.payload.vote
 
+    return state
+
+@deprecated("Delegates won't normally choose their delegation")
 def handle_choose_delegation(state: SessionLiveState, event: ChooseDelegateEvent, sender: str, is_chair: bool) -> SessionLiveState:
     ...
 
+def handle_answer_roll_call(state: SessionLiveState, event: AnswerRollCallEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if state.current_state != States.ROLL_CALL or state.roll_call is None:
+        raise InvalidProceduralMove("Roll call not available now")
+
+    state.roll_call.registry[sender] = event.payload.choice 
+    return state
+     
 # Chair events
-def handle_set_session(state: SessionLiveState, event: SetSessionEvent, sender: str, is_chair: bool) -> SessionLiveState:
+def handle_open_session(state: SessionLiveState, event: OpenSessionEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    ...
+    # should go into rollcall and modify RollCallContext
+
+def handle_close_session(state: SessionLiveState, event: CloseSessionEvent, sender: str, is_chair: bool) -> SessionLiveState:
     ...
 
-def handle_set_timer(state: SessionLiveState, event: SetTimerEvent, sender: str, is_chair: bool) -> SessionLiveState:
-    ...
+# TODO: create helpers for timers -> stop_timer, set_timer, pause_timer, etc
+def handle_toggle_timer(state: SessionLiveState, event: ToggleTimerEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("Invalid move")
+    
+    # uses utc for now
+    now = datetime.now(timezone.utc)
+    if state.timer_is_running:
+        # timer currently running 
+        if state.timer_expiration is not None and now > state.timer_expiration:
+            # currently overtime, act as stop button
+            # TODO: change to BETWEEN_SPEECHES state and trigger a cron job to change it to the default/last state
+            state.timer_is_running = False 
+            state.timer_remaining_seconds = 0
+            state.timer_duration_seconds = 0 
+    
+        elif state.timer_expiration is not None:
+            state.timer_is_running = False 
+            elapsed = state.timer_expiration - now 
+            state.timer_remaining_seconds = int(elapsed.total_seconds())
+            state.timer_expiration = None
+    else:
+        # timer currently stopped 
+        state.timer_is_running = True 
+        state.timer_expiration = now + timedelta(seconds=state.timer_remaining_seconds)
+    
+    return state
+
+def handle_increase_timer(state: SessionLiveState, event: IncreaseTimerEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("Invalid move")
+
+    now = datetime.now(timezone.utc)
+
+    if state.timer_is_running and state.timer_expiration is not None:
+        state.timer_expiration += timedelta(seconds=event.payload.seconds)
+        state.timer_remaining_seconds = int((state.timer_expiration - now).total_seconds())
+    else:
+        state.timer_remaining_seconds += event.payload.seconds 
+
+    return state
 
 def handle_open_informal_voting(state: SessionLiveState, event: OpenInformalVotingEvent, sender: str, is_chair: bool) -> SessionLiveState:
-    ...
+    if not is_chair:
+        raise InvalidProceduralMove("Invalid move")
+
+    if state.current_state == States.VOTING_EXECUTION:
+        raise InvalidProceduralMove("Can't open voting while another voting is in course")
+    
+    state.voting = VotingContext(
+            target_type="INFORMAL",
+            title=event.payload.title,
+            return_state=state.current_state,
+            voting_registry= {},
+            majority=event.payload.majority,
+            veto_power=event.payload.veto_power,
+    ) 
+
+    state.current_state = States.VOTING_EXECUTION
+
+    return state
+     
 
 def handle_close_informal_voting(state: SessionLiveState, event: CloseInformalVotingEvent, sender: str, is_chair: bool) -> SessionLiveState:
-    ...
+    if not is_chair:
+        raise InvalidProceduralMove("Invalid move")
 
-# handles changing to debate states, close debate, close gsl, voting procedures, close session, etc
+    if state.voting is None:
+        raise InvalidProceduralMove("No voting present")
+    
+    if state.current_state != States.VOTING_EXECUTION or state.voting.target_type != "INFORMAL":
+        raise InvalidProceduralMove("Can't close voting")
+    
+    # extract last state 
+    state.current_state = state.voting.return_state
+    state.voting = None
+
+    return state
+
+
 def handle_close_procedural_voting(state: SessionLiveState, event: CloseProceduralVotingEvent, sender: str, is_chair: bool) -> SessionLiveState:
-    ...
+    if not is_chair:
+        raise InvalidProceduralMove("Invalid move")
+
+    if state.voting is None:
+        raise InvalidProceduralMove("No voting present")
+
+    if state.current_state != States.VOTING_EXECUTION or state.voting.target_type != "PROCEDURAL": 
+        raise InvalidProceduralMove("Can't close voting")
+
+    motion = state.voting.motion_in_vote
+    passed = tally_votes(state.voting)
+    
+    # TODO: pass everything here into a helper "apply_passed_motion" and "apply_change_debate"
+    if passed:
+        next_state = state.current_state # as fallback
+        state.current_speaker = None 
+        state.timer_is_running = False 
+        state.timer_expiration = None 
+        
+        # 1st block: change of debate motions
+        if motion.type == Motions.CHANGE_DEBATE_TYPE and motion.debate_type is not None: 
+
+            state.caucus_list = []
+            state.current_speaker = None 
+
+            match motion.debate_type:
+                case DebateTypes.MODERATED_DEBATE:
+                    next_state = States.MODERATED_CAUCUS 
+                    state.debate = DebateContext(
+                        debate_type=DebateTypes.MODERATED_DEBATE, 
+                        return_state = state.current_state, 
+                        total_duration_seconds = event.payload.total_duration_minutes * 60,
+                        per_speaker_seconds = event.payload.per_speaker_seconds,
+                        expires_at = datetime.now(timezone.utc) + timedelta(seconds=event.payload.total_duration_minutes * 60),
+                    ) 
+                    reset_timer(state, motion.per_speaker_seconds)
+
+                case DebateTypes.UNMODERATED_DEBATE:
+                    next_state = States.UNMODERATED_CAUCUS
+                    state.debate = DebateContext(
+                        debate_type=DebateTypes.UNMODERATED_DEBATE, 
+                        return_state = state.current_state, 
+                        total_duration_seconds = motion.total_duration_minutes * 60,
+                        per_speaker_seconds = None,
+                        expires_at = datetime.now(timezone.utc) + timedelta(seconds=event.payload.total_duration_minutes * 60),
+                    ) 
+                    reset_timer(state) # should not display per_speaker timer
+
+                case DebateTypes.SPEAKERS_LIST:
+                    next_state = States.OPEN_GSL
+                    state.debate = None
+                    reset_timer(state, state.gsl_default_time_seconds)
+
+                case _:
+                    raise InvalidProceduralMove("Undefined debate type")
+    
+        match motion.type:
+            case Motions.POSTPONE_SESSION: 
+                # TODO: create a type of force_to_database function here? or query if it's a postpone session on service.py 
+                pass
+            case Motions.REOPEN_SESSION:
+                # TODO: same as above
+                pass
+            case Motions.TOUR_DE_TABLE:
+                # note: seems like belongs to debate type
+                pass 
+            case Motions.END_DEBATE:
+                # clean gsl list
+                state.gsl_queue = []
+                state.debate = None
+                reset_timer(state)
+                next_state = States.VOTING_PROCEDURES # or VOTING_PREPARATION
+                
+            case Motions.VOTE_AMENDMENT:
+                # note: seems more like an informal consultation
+                pass 
+            case Motions.VOTE_BY_ROLL_CALL:
+                # will define the VotingContext for resolutions
+                pass 
+            case Motions.CLOSE_SPEAKERS_LIST: 
+                next_state = States.CLOSED_GSL
+
+            case Motions.REOPEN_SPEAKERS_LIST: 
+                next_state = States.OPEN_GSL
+
+            case Motions.SPLIT_PROPOSAL:
+                # note: seems more like an informal consultation
+                pass 
+            case Motions.CHANGE_TOPIC:
+                # note: seems more like an informal consultation
+                pass
+            case Motions.QUORUM:
+                state.roll_call = RollCallContext(registry={})
+                next_state = States.ROLL_CALL
+            case _:
+                raise InvalidProceduralMove("Undefined motion type")
+
+        # additional case: if we went from GSL to something, save gsl structures
+        state.current_state = next_state
+    else:
+        # motion failed, so return to last state 
+        state.current_state = state.voting.return_state
+    
+    # clear state voting 
+    state.voting = None
+    return state
+
 
 # handles setting state into VOTING_EXECUTION or rejecting the motion
 def handle_resolve_motion(state: SessionLiveState, event: ResolveMotionEvent, sender: str, is_chair: bool) -> SessionLiveState:
-    # Suggested by codex: So handle_resolve_motion(... ACCEPT ...) should usually not immediately move to MODERATED_CAUCUS. It should create a voting context and move to VOTING_EXECUTION
+    # TODO: check how to resolve INTRODUCE_RESOLUTION_PROPOSAL and INTRODUCE_AMENDMENT_PROPOSAL motions separately from procedural motions
     if not is_chair:
         raise InvalidProceduralMove("Not authorized")
 
@@ -224,19 +468,21 @@ def handle_resolve_motion(state: SessionLiveState, event: ResolveMotionEvent, se
 
     if motion is None:
         raise InvalidProceduralMove("Motion not found")
-
+    
     if payload.action == "ACCEPT":
-        # if accepted, move into VOTING_EXECUTION and enable CastVoteEvent from
         state.voting = VotingContext(
                 target_type="PROCEDURAL",
-                motion_in_vote=motion.id,
-                return_state=state.current_state
+                motion_in_vote=motion,
+                return_state=state.current_state,
                 voting_registry={},
+                majority='QUALIFIED', # TODO: change depending on type of motion
+                veto_power=True
         )
 
         state.current_state = States.VOTING_EXECUTION
-
+    
     state.submitted_motions.remove(motion)
+
     return state
     
 
@@ -247,7 +493,43 @@ def handle_manual_phase_set(state: SessionLiveState, event: SetPhaseEvent, sende
     ...
 
 def handle_choose_speaker(state: SessionLiveState, event: SpeakerEvent, sender: str, is_chair: bool) -> SessionLiveState:
-    ...
+    if not is_chair:
+        raise InvalidProceduralMove("Cannot choose speaker as delegate")
+
+    seconds = event.payload.seconds or get_default_speaker_seconds(state)
+    state.current_speaker = event.payload.speaker
+    
+    state.timer_is_running = False
+    state.timer_expiration = None # will be calculated when timer is toggled 
+    state.timer_remaining_seconds = seconds or 60 # default to something
+
+    return state
+
+def handle_mark_roll_call(state: SessionLiveState, event: SpeakerEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("cannot mark roll call as delegate")
+    if state.current_state != States.ROLL_CALL or state.roll_call is None:
+        raise InvalidProceduralMove("Cannot mark roll call right now")
+
+    state.roll_call.registry[event.payload.delegation] = event.payload.choice
+
+    return state
+
+def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("cannot close roll call as delegate")
+    if state.current_state != States.ROLL_CALL or state.roll_call is None:
+        raise InvalidProceduralMove("Cannot close roll call right now")
+
+    # may also empty roll call if needed, to avoid loading stale values 
+    state.current_state = States.OPEN_GSL
+    state.voting_choice = {
+            delegation: RollCallChoice.PRESENT_AND_VOTING if choice == RollCallChoice.PRESENT_AND_VOTING else RollCallChoice.PRESENT
+            for delegation, choice in state.roll_call.registry.items() 
+            if choice in {RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING}
+    }
+    state.roll_call = None
+    return state
 
 # Signature for events/handlers
 type EventHandler = Callable[
@@ -259,12 +541,13 @@ type EventHandler = Callable[
 EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
       DelegateEvents.SUBMIT_MOTION: handle_submit_motion,
       DelegateEvents.SUBMIT_QUESTION: handle_submit_question,
-      DelegateEvents.JOIN_QUEUE: handle_set_queue, # TODO: collapse these two into only one
-      DelegateEvents.LEAVE_QUEUE: handle_set_queue,
+      DelegateEvents.JOIN_QUEUE: handle_join_queue,
+      DelegateEvents.LEAVE_QUEUE: handle_leave_queue,
       DelegateEvents.CAST_VOTE: handle_cast_vote,
       DelegateEvents.CHOOSE_DELEGATION: handle_choose_delegation,
+      DelegateEvents.ANSWER_ROLLCALL: handle_answer_roll_call,
 
-      ChairEvents.OPEN_SESSION: handle_set_session,
+      ChairEvents.OPEN_SESSION: handle_open_session,
       ChairEvents.INCREASE_TIMER: handle_increase_timer,
       ChairEvents.TOGGLE_TIMER: handle_toggle_timer,
       ChairEvents.OPEN_INFORMAL_VOTING: handle_open_informal_voting,
@@ -273,8 +556,10 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
       ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
       ChairEvents.SET_AGENDA: handle_set_agenda, 
       ChairEvents.MANUAL_PHASE_SET: handle_manual_phase_set,
-      ChairEvents.CLOSE_SESSION: handle_set_session,
+      ChairEvents.CLOSE_SESSION: handle_close_session,
       ChairEvents.CHOOSE_SPEAKER: handle_choose_speaker,
+      ChairEvents.MARK_ROLLCALL: handle_mark_roll_call,
+      ChairEvents.CLOSE_ROLLCALL: handle_close_roll_call,
 }
 
 class SessionEngine:

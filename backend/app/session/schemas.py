@@ -1,3 +1,5 @@
+from warnings import deprecated
+
 from pydantic import BaseModel, Field
 from typing import Literal, Annotated
 from datetime import datetime 
@@ -44,6 +46,11 @@ class States(str, Enum):
     VOTING_EXECUTION = 'Voting Execution' # this handles either "motion to moderated caucus" or "motion to voting procedures", for example
     BETWEEN_DEBATES = 'Between Debates'
 
+class RollCallChoice(str, Enum):
+    PRESENT = 'Present'
+    PRESENT_AND_VOTING = 'Present and Voting'
+    ABSENT = 'Absent'
+
 # ----------------------------- EVENTS
 # Events like this will also enable "Discriminated Unions" in Typescript
 class DelegateEvents(str, Enum):
@@ -54,6 +61,7 @@ class DelegateEvents(str, Enum):
     CAST_VOTE = 'CastVoteEvent'
     CHOOSE_DELEGATION = 'ChooseDelegateEvent'
     YIELD_SPEAKING = 'YieldEvent'
+    ANSWER_ROLLCALL = 'AnswerRollCallEvent'
 
 class DebateTypes(str, Enum):
     SPEAKERS_LIST = 'Speakers List'
@@ -65,10 +73,10 @@ class Motions(str, Enum):
     POSTPONE_SESSION = 'Postpone Session'
     REOPEN_SESSION = 'Reopen Session'
     TOUR_DE_TABLE = 'Tour de Table'
-    END_DEBATE  = 'End Debate'
-    VOTE_AMENDMENT = 'Vote Amendment'
-    VOTE_BY_ROLL_CALL = 'Vote by Roll Call'
-    CLOSE_SPEAKERS_LIST  = 'Close Speakers list'
+    END_DEBATE  = 'End Debate' # TODO: map this out since "motion to close debate" means clear GSL and go to voting procedures in modeldiplomat and can also mean the same as "motion to move into voting procedures"
+    VOTE_AMENDMENT = 'Vote Amendment' # TODO: check the way this is used, since amendments MUST be voted if they're present during VOTING_PROCEDURES
+    VOTE_BY_ROLL_CALL = 'Vote by Roll Call' # TODO: check the way this is used
+    CLOSE_SPEAKERS_LIST  = 'Close Speakers list' 
     REOPEN_SPEAKERS_LIST = 'Reopen Speakers list'
     SPLIT_PROPOSAL = 'Split Proposal'
     INTRODUCE_RESOLUTION_PROPOSAL = 'Introduce Resolution Proposal'
@@ -77,14 +85,16 @@ class Motions(str, Enum):
     QUORUM = 'Quorum'
     CUSTOM_MOTION = '' #not implemented
 
+# TODO: refactor this to only reflect the payload received by delegates, with MotionModel being a separated entity
 class DelegateMotionPayload(BaseModel):
     id: int | None = None # When Delegate Sends it, it's None
-    priority: int = 0
+    priority: int = 0 # TODO: priority must be set on the backend unless Chair sends with custom priority? also check if chair motions automatically pass
     type: Motions
     delegate: int | None = None
+    debate_type: DebateTypes | None = None
 
     total_duration_minutes: int | None = None
-    total_speaking_seconds: int | None = None
+    per_speaker_seconds: int | None = None
     target_topic: str | None = None
 
     details: str | None = None
@@ -103,14 +113,19 @@ class DelegateQuestionPayload(BaseModel):
 
 class DelegateVotingPayload(BaseModel):
     # other types of voting must be put in here
-    type: Literal['FORMAL', 'INFORMAL',]
-    motion_id: int | None = None
-    title: str | None = None # For informal votes, put custom string
+    type: Literal['FORMAL', 'INFORMAL',] #perhaps not needed
+    motion_id: int | None = None # perhaps not needed, unless we pass the voting context to UI to validate?
+    title: str | None = None # perhaps not needed
     vote: Literal["FAVOUR", "AGAINST", "ABSTAIN"]
 
 # Specific class to choose a country when first entering session
+@deprecated("Delegates won't choose country by themselves")
 class ChooseDelegatePayload(BaseModel):
     choice: str
+
+# TODO: have a separate AbsentMyselfEvent for this thing here
+class AnswerRollCallPayload(BaseModel):
+    choice: Literal[RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING]
 
 # -------
 # Respective "type" + "payload" compositions that enable deep documentation
@@ -126,6 +141,7 @@ class CastVoteEvent(BaseModel):
     type: Literal[DelegateEvents.CAST_VOTE]
     payload: DelegateVotingPayload
 
+@deprecated("Delegates won't choose country by themselves")
 class ChooseDelegateEvent(BaseModel):
     type: Literal[DelegateEvents.CHOOSE_DELEGATION]
     payload: ChooseDelegatePayload
@@ -139,6 +155,10 @@ class JoinQueueEvent(BaseModel):
 class LeaveQueueEvent(BaseModel):
     type: Literal[DelegateEvents.LEAVE_QUEUE] 
     payload: dict = {}
+
+class AnswerRollCallEvent(BaseModel):
+    type: Literal[DelegateEvents.ANSWER_ROLLCALL]
+    payload: AnswerRollCallPayload
 
 # -----------------------------------------------------------------------
 
@@ -157,10 +177,12 @@ class ChairEvents(str, Enum):
     CLOSE_SESSION = 'CloseSessionEvent' # doesnt work anymore
 
     # Manual actions 
-    CHOOSE_SPEAKER = 'Choose Speaker'
+    CHOOSE_SPEAKER = 'SpeakerEvent'
+    MARK_ROLLCALL = 'MarkRollCallEvent'
+    CLOSE_ROLLCALL = 'CloseRollCallEvent'
     
 class ChairIncreaseTimerPayload(BaseModel):
-    duration_seconds: int = 5
+    seconds: int = 5
 
 class ChairToggleTimerPayload(BaseModel):
     toggle: bool = True
@@ -189,12 +211,12 @@ class ChairSetPhasePayload(BaseModel):
 class ChairCloseInformalVotingPayload(BaseModel):
     voting_id: int | None = None
 
-class ChairCloseProceduralVotingPayload(BaseModel):
-    ... 
-
-
 class EmptyPayload(BaseModel):
     ...
+
+class MarkRollCallPayload(BaseModel):
+    delegation: str
+    choice: RollCallChoice
 
 # Related Events
 class OpenSessionEvent(BaseModel): 
@@ -239,15 +261,23 @@ class CloseInformalVotingEvent(BaseModel):
 
 class CloseProceduralVotingEvent(BaseModel):
     type: Literal[ChairEvents.CLOSE_PROCEDURAL_VOTING]
-    payload: ChairCloseProceduralVotingPayload
+    payload: EmptyPayload
+
+class MarkRollCallEvent(BaseModel):
+    type: Literal[ChairEvents.MARK_ROLLCALL]
+    payload: MarkRollCallPayload
+
+class CloseRollCallEvent(BaseModel):
+    type: Literal[ChairEvents.CLOSE_ROLLCALL]
+    payload: EmptyPayload
 
 # -----------------------------------------------------------------------
 # Event envelope model / Discriminated Union
 
 SessionEvent = Annotated[ 
-    SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent
+    SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent
     | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent
     | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent 
-    | SetAgendaEvent | SetPhaseEvent,
+    | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent,
     Field(discriminator="type")]
 
