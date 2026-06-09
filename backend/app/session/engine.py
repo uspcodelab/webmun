@@ -22,6 +22,7 @@ OPEN_SESSION / SETUP: setup state. Websockets are already made, thus possible ev
     - can_set_motions (during specific debates)
     - default_state (either GSL or Moderated, should be put later)
     - topics
+    - may be skipped during initial testings
 
 ChooseDelegation should not be possible anymore (at least not for now)
 

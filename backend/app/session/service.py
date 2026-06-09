@@ -2,24 +2,54 @@
 # The 2nd layer between the API route and inner things such as database, FSM engine, Redis, etc. Should orchestrate everything
 # Also calls the manager in order to broadcast states, etc
 
-from datetime import datetime, timedelta, timezone 
-from .manager import manager, SessionLiveState 
+from datetime import datetime
+
+from app.session.engine import SessionEngine
+from .manager import manager, SessionLiveState,RollCallContext
 from .schemas import *
 import logging
 import json
 
-def create_session(session_id: int, name: str):
-    # this defines a birthtime
-    pass
+engine = SessionEngine()
+
+# TODO: pass this to schemas afterwards
+EVENT_SCHEMAS = {
+      DelegateEvents.SUBMIT_MOTION: SubmitMotionEvent,
+      DelegateEvents.ANSWER_ROLLCALL: AnswerRollCallEvent,
+      ChairEvents.CLOSE_ROLLCALL: CloseRollCallEvent,
+      ChairEvents.RESOLVE_MOTION: ResolveMotionEvent,
+      ChairEvents.CLOSE_PROCEDURAL_VOTING: CloseProceduralVotingEvent,
+      # add rest incrementally
+  }
+
+def create_session(session_id: int):
+    manager.room_states[session_id] = SessionLiveState(
+            session_id=session_id,
+            start_time=datetime.now(),
+
+            current_state=States.ROLL_CALL,
+            gsl_default_time_seconds=60,
+            roll_call=RollCallContext(registry={}),
+            voiting_choice={}
+    )
+    manager.active_connections.setdefault(session_id, {})
 
 uvicorn_logger = logging.getLogger("uvicorn.error")
 
-def handle_client_messages(data: str):
+async def handle_client_messages(session_id: int, sender: str, data):
     obj = json.loads(data)
-    type = globals().get(obj["type"]) #Get Corresponding Schema
-    # TODO: change this to use an event dispatch table or something related so IDE doesnt complain
-    parsed = type.model_validate(obj) #Reason Json as correct Object
+    is_chair = False if sender != "CHAIR" else True
 
-    uvicorn_logger.info(parsed) #Debugging
-    #TODO: depending on typename call a function from engine
-    pass
+    schema = EVENT_SCHEMAS.get(obj.get("type"))
+    if schema is None:
+        raise ValueError("Unsupported event type")
+    
+    event = schema.model_validate(obj)
+    state = manager.room_states[session_id]
+
+    uvicorn_logger.info(event) #Debugging
+    
+    new_state = engine.dispatch(state, event, sender, is_chair)
+    manager.room_states[session_id] = new_state
+
+    await manager.broadcast_state(session_id)

@@ -35,7 +35,6 @@ class RollCallContext(BaseModel):
 # Represents the session live state
 class SessionLiveState(BaseModel):
     session_id: int
-    session_name: str | None = None
     start_time: datetime
 
     # General state for FSM engine
@@ -78,48 +77,39 @@ class SessionLiveState(BaseModel):
     roll_call: RollCallContext | None = None # set to none at first
 
 class ConnectionManager:
-    # TODO: rename 'committee' as 'session'
     # TODO: refactor additional field 'delegation' when working with auth
 
     def __init__(self):
         # Initialize dictionary with room_name and dict with websocket -> delegation
         # TODO: needs per room dict initialization. So when a session is created, it needs to create a dict model here
         self.active_connections: dict[int, dict[WebSocket, str]] = {}
-        # maps committee_id to current committee state 
         self.room_states: dict[int, SessionLiveState] = {}
     
-    async def connect(self, websocket: WebSocket, committee_id: int, delegation: str):
+    async def connect(self, websocket: WebSocket, session_id: int, delegation: str):
         await websocket.accept()
-        self.active_connections[committee_id][websocket] = delegation
+        self.active_connections[session_id][websocket] = delegation
 
-        # when someone connects, send current state 
-        # TODO: change this 
-        if committee_id in self.room_states:
-            await websocket.send_json({
-                "type": "INITIAL_STATE",
-                "payload": self.room_states[committee_id].model_dump(mode='json'),
-                })
+        # when someone connects, send current state as SessionLiveState
+        if session_id in self.room_states:
+            await websocket.send_json(self.room_states[session_id].model_dump(mode='json'))
 
-    def disconnect(self, websocket: WebSocket, committee_id: int):
-        self.active_connections[committee_id].pop(websocket)
+    def disconnect(self, websocket: WebSocket, session_id: int):
+        self.active_connections[session_id].pop(websocket)
 
-    def get_delegation(self, websocket: WebSocket, committee_id: int):
-        return self.active_connections[committee_id].get(websocket)
+    def get_delegation(self, websocket: WebSocket, session_id: int):
+        return self.active_connections[session_id].get(websocket)
 
     # More things from connection manager here 
-    async def broadcast_state(self, committee_id: int):
+    async def broadcast_state(self, session_id: int):
         """Sends current state to all clients in the room"""
-        state = self.room_states.get(committee_id)
+        state = self.room_states.get(session_id)
         if not state:
             return
-        
-        message = {
-                "type": "STATE_UPDATE",
-                 "payload": state.dict()
-        }
 
-        for connection in self.active_connections[committee_id]:
-            await connection.send_json(message)
+        for connection in self.active_connections[session_id]:
+            await connection.send_json(state.dict())
+
+    # TODO: add broadcast_event so we send only the event + deltas (fields changed), or keep broadcasting entire state
 
 manager = ConnectionManager()
 

@@ -1,8 +1,5 @@
-from warnings import deprecated
-
 from pydantic import BaseModel, Field
 from typing import Literal, Annotated
-from datetime import datetime 
 from enum import Enum
 
 # Schema to be sent to create Session
@@ -10,24 +7,9 @@ class SessionCreationSchema(BaseModel):
     committee_id: int
     name: str
 
-# Schema to be sent to update newcomers (or perhaps send entire SessionLiveState?)
-class SessionStateSchema(BaseModel):
-    committee_id: int 
-    name: str
-    current_speaker: int | None 
-    timer_end: datetime | None 
-
-SessionCreationSchema.model_rebuild()
-
-# The idea here is to send States to the clients using the States Enum, plus
-# their corresponding Schema, for exemple to open a session you would send
 # {"type"= States.OPEN_SESSION, "payload"= session.model_dump(mode='json')}
-# with session being a SessionSchema.
-# R: Enum idea seems good. But further research indicates a mix of States + Events is a better option
+# We'll separate into two: Events indicate actions to be taken, whereas States/Phases indicate the current phase
 
-# We'll separate into two: Events indicate actions to be taken, whereas States/Phases indicate the current
-# Phase of the Session (Debate (Moderated/Unmoderated), General Speakers List, More if needed)
-#
 class States(str, Enum):
     # Normal flow of states
     SETUP = 'Setup Room'
@@ -118,8 +100,7 @@ class DelegateVotingPayload(BaseModel):
     title: str | None = None # perhaps not needed
     vote: Literal["FAVOUR", "AGAINST", "ABSTAIN"]
 
-# Specific class to choose a country when first entering session
-@deprecated("Delegates won't choose country by themselves")
+# TODO: should be removed
 class ChooseDelegatePayload(BaseModel):
     choice: str
 
@@ -141,7 +122,7 @@ class CastVoteEvent(BaseModel):
     type: Literal[DelegateEvents.CAST_VOTE]
     payload: DelegateVotingPayload
 
-@deprecated("Delegates won't choose country by themselves")
+# TODO: should be removed
 class ChooseDelegateEvent(BaseModel):
     type: Literal[DelegateEvents.CHOOSE_DELEGATION]
     payload: ChooseDelegatePayload
