@@ -85,7 +85,6 @@ class ConnectionManager:
 
     def __init__(self):
         # Initialize dictionary with room_name and dict with websocket -> delegation
-        # TODO: needs per room dict initialization. So when a session is created, it needs to create a dict model here
         self.active_connections: dict[int, dict[WebSocket, str]] = {}
         self.room_states: dict[int, SessionLiveState] = {}
     
@@ -95,6 +94,7 @@ class ConnectionManager:
 
         # when someone connects, send current state as SessionLiveState
         if session_id in self.room_states:
+            # TODO: check if it's better to create with mode='json' or model_dump_json()
             await websocket.send_json(self.room_states[session_id].model_dump(mode='json'))
 
     def disconnect(self, websocket: WebSocket, session_id: int):
@@ -111,7 +111,7 @@ class ConnectionManager:
             return
 
         for connection in self.active_connections[session_id]:
-            await connection.send_json(state.dict())
+            await connection.send_json(state.model_dump(mode='json'))
 
     # TODO: add broadcast_event so we send only the event + deltas (fields changed)/event only, or keep broadcasting entire state
 
