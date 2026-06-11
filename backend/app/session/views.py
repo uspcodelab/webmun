@@ -13,7 +13,7 @@ router = APIRouter()
 # Create session route
 # TODO: improve session creation
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
-async def create_session_endpoint(session_schema: SessionCreationSchema, test: SessionEvent): #terrible workaround to FastApi only adding schemas that are on routes to the openapi schemas
+async def create_session_endpoint(session_schema: SessionCreationSchema): 
     # Mock a session being created
     create_session(session_schema)
 
