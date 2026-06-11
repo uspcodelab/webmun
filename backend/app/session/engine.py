@@ -1,6 +1,6 @@
 # where engine lives
 from datetime import timezone, timedelta, datetime
-from typing import Callable, Any
+from typing import Callable, Any, TypeAlias
 
 from .schemas import *
 from .manager import DebateContext, RollCallContext, SessionLiveState, VotingContext
@@ -48,6 +48,7 @@ Specific Debates: (Moderated, Unmoderated, Tour) Queue not enabled. Each delegat
     - In particular, Unmoderated should not have a queue/motions enabled at all, but this may be implemented later 
 
 BETWEEN_DEBATES: After each speak (From moderated or GSL), this temporary state (for up to 15 seconds) is enabled so chair can ask for new motions and check submitted ones. It should go into OPEN_GSL or MODERATED_CAUCUS, depending on which state is there
+-> may not be needed if Chair controls the timer
 
 VOTING_EXECUTION: Voting on a procedural motion.
 
@@ -279,10 +280,9 @@ def handle_toggle_timer(state: SessionLiveState, event: ToggleTimerEvent, sender
         # timer currently running 
         if state.timer_expiration is not None and now > state.timer_expiration:
             # currently overtime, act as stop button
-            # TODO: change to BETWEEN_SPEECHES state and trigger a cron job to change it to the default/last state
+
             state.timer_is_running = False 
             state.timer_remaining_seconds = 0
-            state.timer_duration_seconds = 0 
     
         elif state.timer_expiration is not None:
             state.timer_is_running = False 
@@ -343,6 +343,7 @@ def handle_close_informal_voting(state: SessionLiveState, event: CloseInformalVo
     
     # extract last state 
     state.current_state = state.voting.return_state
+
     state.voting = None
 
     return state
@@ -359,6 +360,10 @@ def handle_close_procedural_voting(state: SessionLiveState, event: CloseProcedur
         raise InvalidProceduralMove("Can't close voting")
 
     motion = state.voting.motion_in_vote
+    
+    if motion is None:
+        raise InvalidProceduralMove("Can't close voting if motion is None")
+
     passed = tally_votes(state.voting)
     
     # TODO: pass everything here into a helper "apply_passed_motion" and "apply_change_debate"
@@ -373,6 +378,7 @@ def handle_close_procedural_voting(state: SessionLiveState, event: CloseProcedur
 
             state.caucus_list = []
             state.current_speaker = None 
+            duration_seconds = (motion.total_duration_minutes * 60) if motion.total_duration_minutes is not None else 600 # defaults to 10 minutes as fallback
 
             match motion.debate_type:
                 case DebateTypes.MODERATED_DEBATE:
@@ -380,20 +386,20 @@ def handle_close_procedural_voting(state: SessionLiveState, event: CloseProcedur
                     state.debate = DebateContext(
                         debate_type=DebateTypes.MODERATED_DEBATE, 
                         return_state = state.current_state, 
-                        total_duration_seconds = event.payload.total_duration_minutes * 60,
-                        per_speaker_seconds = event.payload.per_speaker_seconds,
-                        expires_at = datetime.now(timezone.utc) + timedelta(seconds=event.payload.total_duration_minutes * 60),
+                        total_duration_seconds = duration_seconds,
+                        per_speaker_seconds = motion.per_speaker_seconds,
+                        expires_at = datetime.now(timezone.utc) + timedelta(seconds=duration_seconds),
                     ) 
-                    reset_timer(state, motion.per_speaker_seconds)
+                    reset_timer(state, motion.per_speaker_seconds if motion.per_speaker_seconds is not None else 60)
 
                 case DebateTypes.UNMODERATED_DEBATE:
                     next_state = States.UNMODERATED_CAUCUS
                     state.debate = DebateContext(
                         debate_type=DebateTypes.UNMODERATED_DEBATE, 
                         return_state = state.current_state, 
-                        total_duration_seconds = motion.total_duration_minutes * 60,
+                        total_duration_seconds = duration_seconds,
                         per_speaker_seconds = None,
-                        expires_at = datetime.now(timezone.utc) + timedelta(seconds=event.payload.total_duration_minutes * 60),
+                        expires_at = datetime.now(timezone.utc) + timedelta(seconds=duration_seconds),
                     ) 
                     reset_timer(state) # should not display per_speaker timer
 
@@ -506,7 +512,7 @@ def handle_choose_speaker(state: SessionLiveState, event: SpeakerEvent, sender: 
 
     return state
 
-def handle_mark_roll_call(state: SessionLiveState, event: SpeakerEvent, sender: str, is_chair: bool) -> SessionLiveState:
+def handle_mark_roll_call(state: SessionLiveState, event: MarkRollCallEvent, sender: str, is_chair: bool) -> SessionLiveState:
     if not is_chair:
         raise InvalidProceduralMove("cannot mark roll call as delegate")
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
@@ -532,8 +538,8 @@ def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, s
     state.roll_call = None
     return state
 
-# Signature for events/handlers
-type EventHandler = Callable[
+# Signature for events/handlers, uses legacy(ish) 3.11 TypeAlias
+EventHandler: TypeAlias = Callable[
         [SessionLiveState, Any, str, bool], # overall signature
         SessionLiveState # Return type
         ]

@@ -91,7 +91,7 @@ class DelegateQuestionPayload(BaseModel):
     id: int | None = None
     priority: int = 0
     type: Questions
-    delegate: int | None = None
+    delegate: str | None = None
     details: str
 
 class DelegateVotingPayload(BaseModel):

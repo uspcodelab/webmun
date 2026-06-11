@@ -12,7 +12,7 @@ class VotingContext(BaseModel):
     target_type: Literal["PROCEDURAL", "SUBSTANTIVE", "INFORMAL"]
     motion_in_vote: DelegateMotionPayload | None = None
     title: str | None = None 
-    return_state: States | None = None # If rejected, returns to this state.
+    return_state: States 
     voting_registry: dict[str, Literal["FAVOUR", "AGAINST", "ABSTAIN"]] = {}
 
     # additional fields
