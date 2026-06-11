@@ -4,8 +4,9 @@ from enum import Enum
 
 # Schema to be sent to create Session
 class SessionCreationSchema(BaseModel):
-    committee_id: int
-    name: str
+    session_id: int
+    name: str | None = None
+    delegations: list[str]
 
 # {"type"= States.OPEN_SESSION, "payload"= session.model_dump(mode='json')}
 # We'll separate into two: Events indicate actions to be taken, whereas States/Phases indicate the current phase

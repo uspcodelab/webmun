@@ -11,10 +11,11 @@ from .service import create_session, handle_client_messages
 router = APIRouter()
 
 # Create session route
+# TODO: improve session creation
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
-async def create_session_endpoint(ssession_id: int, test: SessionEvent): #terrible workaround to FastApi only adding schemas that are on routes to the openapi schemas
+async def create_session_endpoint(session_id: int, test: SessionEvent): #terrible workaround to FastApi only adding schemas that are on routes to the openapi schemas
     # Mock a session being created
-    create_session(ssession_id)
+    create_session(session_id)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
     
@@ -33,3 +34,4 @@ async def websocket_endpoint(websocket: WebSocket, session_id: int, delegation: 
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, session_id)
+

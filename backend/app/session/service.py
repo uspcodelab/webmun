@@ -22,15 +22,17 @@ EVENT_SCHEMAS = {
       # add rest incrementally
   }
 
-def create_session(session_id: int):
+def create_session(session_schema: SessionCreationSchema):
+    session_id = session_schema.session_id
+    
     manager.room_states[session_id] = SessionLiveState(
             session_id=session_id,
             start_time=datetime.now(),
-
+            delegations=session_schema.delegations,
             current_state=States.ROLL_CALL,
             gsl_default_time_seconds=60,
             roll_call=RollCallContext(registry={}),
-            voiting_choice={}
+            voting_choice={},
     )
     manager.active_connections.setdefault(session_id, {})
 

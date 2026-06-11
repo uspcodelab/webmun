@@ -37,6 +37,10 @@ class SessionLiveState(BaseModel):
     session_id: int
     start_time: datetime
 
+    # temporary list of delegations in this committee
+    # TODO: validate sender delegation to this list
+    delegations: list[str]
+
     # General state for FSM engine
     current_state: States = States.SETUP
 
@@ -109,7 +113,7 @@ class ConnectionManager:
         for connection in self.active_connections[session_id]:
             await connection.send_json(state.dict())
 
-    # TODO: add broadcast_event so we send only the event + deltas (fields changed), or keep broadcasting entire state
+    # TODO: add broadcast_event so we send only the event + deltas (fields changed)/event only, or keep broadcasting entire state
 
 manager = ConnectionManager()
 
