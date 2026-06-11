@@ -14,13 +14,28 @@ engine = SessionEngine()
 
 # TODO: pass this to schemas afterwards
 EVENT_SCHEMAS = {
-      DelegateEvents.SUBMIT_MOTION: SubmitMotionEvent,
-      DelegateEvents.ANSWER_ROLLCALL: AnswerRollCallEvent,
-      ChairEvents.CLOSE_ROLLCALL: CloseRollCallEvent,
-      ChairEvents.RESOLVE_MOTION: ResolveMotionEvent,
-      ChairEvents.CLOSE_PROCEDURAL_VOTING: CloseProceduralVotingEvent,
-      # add rest incrementally
-  }
+        DelegateEvents.SUBMIT_MOTION: SubmitMotionEvent,
+        DelegateEvents.SUBMIT_QUESTION: SubmitQuestionEvent, 
+        DelegateEvents.JOIN_QUEUE: JoinQueueEvent, 
+        DelegateEvents.LEAVE_QUEUE: LeaveQueueEvent, 
+        DelegateEvents.CAST_VOTE: CastVoteEvent, 
+        DelegateEvents.ANSWER_ROLLCALL: AnswerRollCallEvent,
+
+        ChairEvents.INCREASE_TIMER: IncreaseTimerEvent, 
+        ChairEvents.TOGGLE_TIMER: ToggleTimerEvent, 
+        ChairEvents.OPEN_INFORMAL_VOTING: OpenInformalVotingEvent, 
+        ChairEvents.CLOSE_INFORMAL_VOTING: CloseInformalVotingEvent,
+        ChairEvents.CLOSE_PROCEDURAL_VOTING: CloseProceduralVotingEvent,
+        ChairEvents.RESOLVE_MOTION: ResolveMotionEvent, 
+        ChairEvents.SET_AGENDA: SetAgendaEvent,
+        ChairEvents.MANUAL_PHASE_SET: SetPhaseEvent, 
+        ChairEvents.CHOOSE_SPEAKER: SpeakerEvent, 
+        ChairEvents.MARK_ROLLCALL: MarkRollCallEvent,
+        ChairEvents.CLOSE_ROLLCALL: CloseRollCallEvent,
+
+        ChairEvents.OPEN_SESSION: OpenSessionEvent, 
+        ChairEvents.CLOSE_SESSION: CloseSessionEvent,
+}
 
 def create_session(session_schema: SessionCreationSchema):
     session_id = session_schema.session_id
