@@ -1,5 +1,5 @@
 # where engine lives
-from datetime import timezone, timedelta
+from datetime import timezone, timedelta, datetime
 from typing import Callable, Any
 
 from .schemas import *
@@ -136,7 +136,7 @@ def validate_motion_payload(payload: DelegateMotionPayload, state: SessionLiveSt
         )
     
     # can also raise error if there are missing fields
-    if payload.type in {States.MODERATED_CAUCUS} and payload.total_speaking_seconds == None:
+    if payload.type in {States.MODERATED_CAUCUS} and payload.per_speaker_seconds == None:
         raise InvalidProceduralMove("Cannot submit motion without speaking time")
 
 def validate_question_payload(payload: DelegateQuestionPayload, state: SessionLiveState) -> None:
@@ -249,7 +249,7 @@ def handle_cast_vote(state: SessionLiveState, event: CastVoteEvent, sender: str,
 
     return state
 
-@deprecated("Delegates won't normally choose their delegation")
+# TODO: remove this
 def handle_choose_delegation(state: SessionLiveState, event: ChooseDelegateEvent, sender: str, is_chair: bool) -> SessionLiveState:
     ...
 

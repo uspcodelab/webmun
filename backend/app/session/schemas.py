@@ -16,7 +16,7 @@ class States(str, Enum):
     SETUP = 'Setup Room'
 
     ROLL_CALL = 'Roll Call'
-    INITIAL_DEBATE = 'Initial Debate' # or INITIAL_GSL
+    INITIAL_DEBATE = 'Initial Debate' # currently unused, gsl speaking time is set by the chair
     OPEN_GSL = 'Open GSL'
     CLOSED_GSL = 'Closed GSL'
     VOTING_PREPARATION = 'Voting Preparation'
@@ -73,7 +73,7 @@ class DelegateMotionPayload(BaseModel):
     id: int | None = None # When Delegate Sends it, it's None
     priority: int = 0 # TODO: priority must be set on the backend unless Chair sends with custom priority? also check if chair motions automatically pass
     type: Motions
-    delegate: int | None = None
+    delegate: str | None = None
     debate_type: DebateTypes | None = None
 
     total_duration_minutes: int | None = None
