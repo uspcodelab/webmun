@@ -260,10 +260,7 @@ export type DelegateMotionPayload = {
      */
     priority?: number;
     type: Motions;
-    /**
-     * Delegate
-     */
-    delegate?: string | null;
+    delegate?: Delegation | null;
     debate_type?: DebateTypes | null;
     /**
      * Total Duration Minutes
@@ -296,10 +293,7 @@ export type DelegateQuestionPayload = {
      */
     priority?: number;
     type: Questions;
-    /**
-     * Delegate
-     */
-    delegate?: string | null;
+    delegate?: Delegation | null;
     /**
      * Details
      */
@@ -425,10 +419,7 @@ export type MarkRollCallEvent = {
  * MarkRollCallPayload
  */
 export type MarkRollCallPayload = {
-    /**
-     * Delegation
-     */
-    delegation: string;
+    delegation: Delegation;
     choice: RollCallChoice;
 };
 

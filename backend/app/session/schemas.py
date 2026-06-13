@@ -79,7 +79,7 @@ class DelegateMotionPayload(BaseModel):
     id: int | None = None # When Delegate Sends it, it's None
     priority: int = 0 # TODO: priority must be set on the backend unless Chair sends with custom priority? also check if chair motions automatically pass
     type: Motions
-    delegate: str | None = None
+    delegate: Delegation | None = None
     debate_type: DebateTypes | None = None
 
     total_duration_minutes: int | None = None
@@ -97,7 +97,7 @@ class DelegateQuestionPayload(BaseModel):
     id: int | None = None
     priority: int = 0
     type: Questions
-    delegate: str | None = None
+    delegate: Delegation | None = None
     details: str
 
 class DelegateVotingPayload(BaseModel):
@@ -203,7 +203,7 @@ class EmptyPayload(BaseModel):
     ...
 
 class MarkRollCallPayload(BaseModel):
-    delegation: str
+    delegation: Delegation
     choice: RollCallChoice
 
 # Related Events

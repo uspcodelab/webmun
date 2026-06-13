@@ -183,7 +183,7 @@ def handle_submit_motion(state: SessionLiveState, event: SubmitMotionEvent, send
     validate_motion_payload(payload, state)
 
     payload.id = generate_next_motion_id(state)
-    payload.delegate = sender
+    payload.delegate.name = sender #TODO: FIX
     state.submitted_motions.append(payload)
     
     return state
@@ -197,7 +197,7 @@ def handle_submit_question(state: SessionLiveState, event: SubmitQuestionEvent, 
 
     validate_question_payload(payload, state)
     payload.id = generate_next_question_id(state)
-    payload.delegate = sender
+    payload.delegate.name = sender #TODO: FIX
     state.submitted_questions.append(payload)
 
     return state
