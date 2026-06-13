@@ -32,6 +32,7 @@ EVENT_SCHEMAS = {
         ChairEvents.CHOOSE_SPEAKER: SpeakerEvent, 
         ChairEvents.MARK_ROLLCALL: MarkRollCallEvent,
         ChairEvents.CLOSE_ROLLCALL: CloseRollCallEvent,
+        ChairEvents.INSERT_QUEUE: ChairInsertQueueEvent,
 
         ChairEvents.OPEN_SESSION: OpenSessionEvent, 
         ChairEvents.CLOSE_SESSION: CloseSessionEvent,

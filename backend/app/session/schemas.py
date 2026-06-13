@@ -45,8 +45,8 @@ class RollCallChoice(str, Enum):
 class DelegateEvents(str, Enum):
     SUBMIT_MOTION = 'SubmitMotionEvent'
     SUBMIT_QUESTION = 'SubmitQuestionEvent'
-    JOIN_QUEUE = 'JoinQueueEvent' #doesn't work anymore
-    LEAVE_QUEUE = 'LeaveQueueEvent' #doesn't work anymore
+    JOIN_QUEUE = 'JoinQueueEvent' 
+    LEAVE_QUEUE = 'LeaveQueueEvent' 
     CAST_VOTE = 'CastVoteEvent'
     CHOOSE_DELEGATION = 'ChooseDelegateEvent'
     YIELD_SPEAKING = 'YieldEvent'
@@ -151,7 +151,7 @@ class AnswerRollCallEvent(BaseModel):
 # -----------------------------------------------------------------------
 
 class ChairEvents(str, Enum):
-    OPEN_SESSION = 'OpenSessionEvent' # Defines Session to be opened, doesnt work anymore
+    OPEN_SESSION = 'OpenSessionEvent'
     TOGGLE_TIMER = 'ToggleTimerEvent'
     INCREASE_TIMER = 'IncreaseTimerEvent'
     OPEN_INFORMAL_VOTING = 'OpenInformalVotingEvent'
@@ -162,12 +162,13 @@ class ChairEvents(str, Enum):
     # Disruptive events (i.e manual override events)
     SET_AGENDA = 'SetAgendaEvent'
     MANUAL_PHASE_SET = 'SetPhaseEvent'
-    CLOSE_SESSION = 'CloseSessionEvent' # doesnt work anymore
+    CLOSE_SESSION = 'CloseSessionEvent'
 
     # Manual actions 
     CHOOSE_SPEAKER = 'SpeakerEvent'
     MARK_ROLLCALL = 'MarkRollCallEvent'
     CLOSE_ROLLCALL = 'CloseRollCallEvent'
+    INSERT_QUEUE = 'InsertQueueEvent'
     
 class ChairIncreaseTimerPayload(BaseModel):
     seconds: int = 5
@@ -194,6 +195,9 @@ class ChairSetAgendaPayload(BaseModel):
 
 class ChairSetPhasePayload(BaseModel):
     target_phase: States
+
+class ChairInsertQueuePayload(BaseModel):
+    target: int #Delegate Id 
 
 # These two normally don't need to have an id 
 class ChairCloseInformalVotingPayload(BaseModel):
@@ -259,6 +263,9 @@ class CloseRollCallEvent(BaseModel):
     type: Literal[ChairEvents.CLOSE_ROLLCALL]
     payload: EmptyPayload
 
+class ChairInsertQueueEvent(BaseModel):
+    type: Literal[ChairEvents.INSERT_QUEUE]
+    payload: ChairInsertQueuePayload
 # -----------------------------------------------------------------------
 # Event envelope model / Discriminated Union
 
@@ -266,6 +273,6 @@ SessionEvent = Annotated[
     SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent
     | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent
     | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent 
-    | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent,
+    | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent,
     Field(discriminator="type")]
 

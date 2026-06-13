@@ -538,6 +538,13 @@ def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, s
     state.roll_call = None
     return state
 
+def handle_insert_queue(state: SessionLiveState, event: ChairInsertQueueEvent, sender: str, is_chair: bool)-> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("cannot close roll call as delegate")
+    delegate = state.delegations[event.payload.target]
+    state.gsl_queue.append(delegate)
+    return state
+
 # Signature for events/handlers, uses legacy(ish) 3.11 TypeAlias
 EventHandler: TypeAlias = Callable[
         [SessionLiveState, Any, str, bool], # overall signature
@@ -567,6 +574,7 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
       ChairEvents.CHOOSE_SPEAKER: handle_choose_speaker,
       ChairEvents.MARK_ROLLCALL: handle_mark_roll_call,
       ChairEvents.CLOSE_ROLLCALL: handle_close_roll_call,
+      ChairEvents.INSERT_QUEUE: handle_insert_queue
 }
 
 class SessionEngine:

@@ -32,7 +32,7 @@ export type BodyDummyCommitteesDummyGet = {
     /**
      * Name
      */
-    name: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent;
+    name: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent;
     schemas: SessionLiveState;
 };
 
@@ -79,6 +79,27 @@ export type ChairIncreaseTimerPayload = {
      * Seconds
      */
     seconds?: number;
+};
+
+/**
+ * ChairInsertQueueEvent
+ */
+export type ChairInsertQueueEvent = {
+    /**
+     * Type
+     */
+    type: 'InsertQueueEvent';
+    payload: ChairInsertQueuePayload;
+};
+
+/**
+ * ChairInsertQueuePayload
+ */
+export type ChairInsertQueuePayload = {
+    /**
+     * Target
+     */
+    target: number;
 };
 
 /**

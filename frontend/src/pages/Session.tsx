@@ -71,7 +71,7 @@ export default function SessionPage() {
 
     useEffect(() => {
         // Initialize WebSocket
-        socket = new WebSocket(`ws://localhost:8000/committees/ws/0?delegation="string"`);
+        socket = new WebSocket(`ws://localhost:8000/committees/ws/0?delegation="CHAIR"`);
 
         socket.onopen = () => 
             {
