@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState} from 'react';
 import { useParams } from 'react-router-dom';
 import { useCommitteeStore } from '../store/useCommitteeStore.ts'
 import SpeakerList from "@/components/session/speaker-list"
@@ -7,9 +7,25 @@ import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 
-export default function SessionPage() {
+let socket : WebSocket | null = null;
 
-    const socketRef = useRef<WebSocket>(null);
+/*
+Use this function to send events to the backend, 
+any data with one of the Event types in schemas/types.gen.ts should work
+*/
+export function SendMessage(data: any) {
+    if (socket && socket.readyState === WebSocket.OPEN) 
+    {
+        socket.send(JSON.stringify(data));
+    } 
+    else 
+    {
+        console.error("WebSocket is not connected.");
+    }
+}
+
+
+export default function SessionPage() {
 
     const speakers = [
         { id: "fr", position: 1, countryName: "Franca", countryCode: "fr", speechTime: "01:53", isSpeaking: true },
@@ -56,9 +72,7 @@ export default function SessionPage() {
 
     useEffect(() => {
         // Initialize WebSocket
-        const socket = new WebSocket(`ws://localhost:8000/committees/ws/0`);
-
-        socketRef.current = socket;
+        socket = new WebSocket(`ws://localhost:8000/committees/ws/0`);
 
         socket.onopen = () => 
             {
@@ -74,7 +88,7 @@ export default function SessionPage() {
 
         socket.onclose = () => setStatus("Disconnected");
 
-        return () => socket.close(); // Cleanup on unmount
+        return () => socket?.close(); // Cleanup on unmount
     }, [committeeId, setSessionStart, setStatus]);
 
     // Useeffect for local uptime timer 
