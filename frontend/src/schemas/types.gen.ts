@@ -520,10 +520,7 @@ export type RollCallContext = {
     registry?: {
         [key: string]: RollCallChoice;
     };
-    /**
-     * Current Delegation
-     */
-    current_delegation?: string | null;
+    current_delegation?: Delegation | null;
 };
 
 /**
@@ -573,14 +570,11 @@ export type SessionLiveState = {
      * Timer Remaining Seconds
      */
     timer_remaining_seconds?: number;
-    /**
-     * Current Speaker
-     */
-    current_speaker?: string | null;
+    current_speaker?: Delegation | null;
     /**
      * Gsl Queue
      */
-    gsl_queue?: Array<string>;
+    gsl_queue?: Array<Delegation>;
     /**
      * Can Set Motion
      */
@@ -592,7 +586,7 @@ export type SessionLiveState = {
     /**
      * Caucus List
      */
-    caucus_list?: Array<string>;
+    caucus_list?: Array<Delegation>;
     debate?: DebateContext | null;
     /**
      * Submitted Motions

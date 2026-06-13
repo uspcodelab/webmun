@@ -29,8 +29,8 @@ class DebateContext(BaseModel):
     topic: str | None = None
 
 class RollCallContext(BaseModel):
-    registry: dict[str, RollCallChoice] = {}
-    current_delegation: str | None = None # perhaps not needed
+    registry: dict[int, RollCallChoice] = {} #Delegation Id as key
+    current_delegation: Delegation | None = None # perhaps not needed
 
 # Represents the session live state
 class SessionLiveState(BaseModel):
@@ -50,14 +50,14 @@ class SessionLiveState(BaseModel):
     timer_remaining_seconds: int = 0 # update on pause/increase, can go negative 
 
     # Speakers 
-    current_speaker: str | None = None
-    gsl_queue: list[str] = []
+    current_speaker: Delegation | None = None
+    gsl_queue: list[Delegation] = []
     can_set_motion: bool = False # Can set motions during speaking time
     gsl_default_time_seconds: int = 60
 
     # Caucus variables
     # TODO: how to add a popup placard that fades away after some moment in frontend? related to CHOOSE_SPEAKER
-    caucus_list: list[str] = [] # special list that is only used during moderated caucus, has different semantic functionality than gsl queue 
+    caucus_list: list[Delegation] = [] # special list that is only used during moderated caucus, has different semantic functionality than gsl queue 
     debate: DebateContext | None = None # used specially for Moderated, unmoderated and possibly tour de table
 
     # Context Data
@@ -76,7 +76,7 @@ class SessionLiveState(BaseModel):
     voting: VotingContext | None = None
     
     # present delegations with voting choice
-    voting_choice: dict[str, RollCallChoice] | None = None 
+    voting_choice: dict[int, RollCallChoice] | None = None #DelegationId as key
 
     roll_call: RollCallContext | None = None # set to none at first
 
