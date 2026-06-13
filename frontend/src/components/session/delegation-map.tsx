@@ -13,6 +13,8 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useCommitteeStore } from "@/store/useCommitteeStore"
+import Flags from "@/components/ui/flags"
 
 type DelegationMapProps = {
     semicircleCount?: number
@@ -35,6 +37,10 @@ export default function DelegationMap({
 
         return Math.max(1, buttonsPerSemicircle)
     }
+
+    const delegations = useCommitteeStore((state) => state.delegations)
+    delegations.sort((a, b) => a.seat > b.seat? 1 : -1)
+    let delegationIndex = -1
 
     const totalDelegations = circles.reduce((total, _, circleIndex) => total + getSeatCount(circleIndex), 0)
     const delegationsPresent = Math.max(0, Math.min(presentDelegations ?? totalDelegations, totalDelegations))
@@ -89,7 +95,9 @@ export default function DelegationMap({
                                 const angleRad = (angleDeg * Math.PI) / 180
                                 const x = centerX + (radius * Math.cos(angleRad)) / 6
                                 const y = centerY + (radius * Math.sin(angleRad)) / 3.14
-
+                                delegationIndex++    
+                                if (`${circleIndex + 1 }-${seatIndex + 1}` != delegations[delegationIndex]?.seat) {
+                                    return (<div></div>)}
                                 return (
                                     <div
                                         key={`ring-${circleIndex}-seat-${seatIndex}`}
@@ -105,9 +113,14 @@ export default function DelegationMap({
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    className="h-[6vh] w-[6vh] rounded-full p-0 text-[10px] ring-4 ring-sky-300/30  ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
+                                                    className="h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ring-sky-300/30 ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
                                                 >
-                                                    {circleIndex + 1}-{seatIndex + 1}
+                                                    <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+                                                        <Flags
+                                                            code={delegations[delegationIndex]?.code}
+                                                            className="scale-125 object-contain"
+                                                        />
+                                                    </span>
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent className="w-60" align="start">
@@ -152,10 +165,13 @@ export default function DelegationMap({
                                         </DropdownMenu>
 
                                         <span className="text-[10px] font-medium leading-none text-neutral-600">
-                                            {circleIndex + 1}-{seatIndex + 1}
+                                            {delegations[delegationIndex]?.name || "Vazio"}
                                         </span>
+                                        
                                     </div>
+                                    
                                 )
+                                
                             })}
                         </div>
                     )

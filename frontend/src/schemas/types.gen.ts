@@ -329,6 +329,28 @@ export type DelegateVotingPayload = {
 };
 
 /**
+ * Delegation
+ */
+export type Delegation = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Seat
+     */
+    seat: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Code
+     */
+    code: string;
+};
+
+/**
  * EmptyPayload
  */
 export type EmptyPayload = {
@@ -528,7 +550,7 @@ export type SessionCreationSchema = {
     /**
      * Delegations
      */
-    delegations: Array<string>;
+    delegations: Array<Delegation>;
 };
 
 /**
@@ -546,7 +568,7 @@ export type SessionLiveState = {
     /**
      * Delegations
      */
-    delegations: Array<string>;
+    delegations: Array<Delegation>;
     current_state?: States;
     /**
      * Timer Is Running
