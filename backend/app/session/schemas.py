@@ -2,11 +2,17 @@ from pydantic import BaseModel, Field
 from typing import Literal, Annotated
 from enum import Enum
 
+class Delegation(BaseModel):
+    id: int
+    seat: str
+    name: str
+    code: str
+
 # Schema to be sent to create Session
 class SessionCreationSchema(BaseModel):
     session_id: int
     name: str | None = None
-    delegations: list[str]
+    delegations: list[Delegation]
 
 # {"type"= States.OPEN_SESSION, "payload"= session.model_dump(mode='json')}
 # We'll separate into two: Events indicate actions to be taken, whereas States/Phases indicate the current phase

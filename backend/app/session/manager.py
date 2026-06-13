@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Literal
 
-from .schemas import DebateTypes, RollCallChoice, States, DelegateMotionPayload, DelegateQuestionPayload
+from .schemas import DebateTypes, RollCallChoice, States, DelegateMotionPayload, DelegateQuestionPayload, Delegation
 
 class VotingContext(BaseModel):
     target_type: Literal["PROCEDURAL", "SUBSTANTIVE", "INFORMAL"]
@@ -39,7 +39,7 @@ class SessionLiveState(BaseModel):
 
     # temporary list of delegations in this committee
     # TODO: validate sender delegation to this list
-    delegations: list[str]
+    delegations: list[Delegation]
 
     # General state for FSM engine
     current_state: States = States.SETUP
