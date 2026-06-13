@@ -10,8 +10,13 @@ from .service import create_session, handle_client_messages
 
 router = APIRouter()
 
-# Create session route
-# TODO: improve session creation
+#Workaround to make FastApi add all the Schemas to the OpenApi file
+@router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
+async def dummy(name: SessionEvent):
+    return Response(status_code=status.HTTP_404_NOT_FOUND)
+    
+
+# Create committee route, receives a contentbody following CommitteeCreationSchema's format
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
 async def create_session_endpoint(session_schema: SessionCreationSchema): 
     # Mock a session being created
