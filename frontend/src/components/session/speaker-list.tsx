@@ -29,12 +29,12 @@ export default function SpeakerList({ speakers }: SpeakerListProps) {
     const sortedSpeakers = [...speakers].sort((a, b) => a.position - b.position)
     const waitingCount = sortedSpeakers.length
 
-    return (<div>
-        <div className="flex items-center m-4">
+    return (<div className="flex min-h-0 flex-1 flex-col">
+        <div className="m-4 flex items-center">
             <h2 className="text-xl font-bold">Lista de Oradores</h2>
             <Badge className="ml-auto bg-tertiary-200 text-secondary">{String(waitingCount).padStart(2, "0")} em espera</Badge>
         </div>
-        <ScrollArea className="pt-2 h-60 rounded-md border m-4">
+        <ScrollArea className="m-4 min-h-0 flex-1 rounded-md border pt-2">
             {sortedSpeakers.map((speaker) => (
                 <Item size="sm" key={speaker.id}>
                     <ItemMedia

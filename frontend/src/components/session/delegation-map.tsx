@@ -1,4 +1,18 @@
 import { Button } from "@/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type DelegationMapProps = {
     semicircleCount?: number
@@ -47,7 +61,7 @@ export default function DelegationMap({
                 </div>
 
                 <div
-                    className="pointer-events-none absolute left-1/2 top-[90%] h-10 w-28 -translate-x-1/2 -translate-y-1/2 rounded-lg border border-neutral-300 bg-white shadow-sm"
+                    className="pointer-events-none absolute left-1/2 top-[90%] h-[6vh] w-[21vh] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-neutral-300 bg-white shadow-sm"
                 >
                     <div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-50 text-[11px] font-medium text-neutral-600">
                         MESA
@@ -65,7 +79,7 @@ export default function DelegationMap({
 
                     return (
                         <div key={`ring-${circleIndex}`} >
-                            
+
 
                             {seats.map((seatIndex) => {
                                 const angleRange = 160
@@ -86,13 +100,57 @@ export default function DelegationMap({
                                             transform: "translate(-50%, -50%)",
                                         }}
                                     >
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="h-12 w-12 rounded-full p-0 text-[10px]"
-                                        >
-                                            {circleIndex + 1}-{seatIndex + 1}
-                                        </Button>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="h-[6vh] w-[6vh] rounded-full p-0 text-[10px] ring-4 ring-sky-300/30  ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
+                                                >
+                                                    {circleIndex + 1}-{seatIndex + 1}
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="w-60" align="start">
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuLabel>Ações sobre a Delegação</DropdownMenuLabel>
+                                                    <DropdownMenuItem>
+                                                        Colocar na Lista de Discursos
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem>
+                                                        Dar a palavra
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuGroup>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuItem>Ausência</DropdownMenuItem>
+                                                    <DropdownMenuSub>
+                                                        <DropdownMenuSubTrigger>Mudar Presença</DropdownMenuSubTrigger>
+                                                        <DropdownMenuPortal>
+                                                            <DropdownMenuSubContent>
+                                                                <DropdownMenuItem>Presente Votante</DropdownMenuItem>
+                                                                <DropdownMenuItem>Presente</DropdownMenuItem>
+                                                                <DropdownMenuItem>Ausente</DropdownMenuItem>
+                                                            </DropdownMenuSubContent>
+                                                        </DropdownMenuPortal>
+                                                    </DropdownMenuSub>
+
+                                                </DropdownMenuGroup>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuSub >
+                                                        <DropdownMenuSubTrigger >Punições</DropdownMenuSubTrigger>
+                                                        <DropdownMenuPortal>
+                                                            <DropdownMenuSubContent>
+                                                                <DropdownMenuItem>Aviso Formal</DropdownMenuItem>
+                                                                <DropdownMenuItem>Expulsão</DropdownMenuItem>
+                                                            </DropdownMenuSubContent>
+                                                        </DropdownMenuPortal>
+                                                    </DropdownMenuSub>
+                                                   
+                                                </DropdownMenuGroup>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+
                                         <span className="text-[10px] font-medium leading-none text-neutral-600">
                                             {circleIndex + 1}-{seatIndex + 1}
                                         </span>
