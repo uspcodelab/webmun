@@ -1,20 +1,21 @@
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuPortal,
-    DropdownMenuSeparator,
+// Dropdown menu removed in favor of context menu
 
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuGroup,
+    ContextMenuItem,
+    ContextMenuLabel,
+    ContextMenuSeparator,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import Flags from "@/components/ui/flags"
+import { SendMessage } from "@/pages/Session"
 
 type DelegationMapProps = {
     semicircleCount?: number
@@ -39,7 +40,7 @@ export default function DelegationMap({
     }
 
     const delegations = useCommitteeStore((state) => state.delegations)
-    delegations.sort((a, b) => a.seat > b.seat? 1 : -1)
+    delegations.sort((a, b) => a.seat > b.seat ? 1 : -1)
     let delegationIndex = -1
 
     const totalDelegations = circles.reduce((total, _, circleIndex) => total + getSeatCount(circleIndex), 0)
@@ -95,9 +96,10 @@ export default function DelegationMap({
                                 const angleRad = (angleDeg * Math.PI) / 180
                                 const x = centerX + (radius * Math.cos(angleRad)) / 6
                                 const y = centerY + (radius * Math.sin(angleRad)) / 3.14
-                                delegationIndex++    
-                                if (`${circleIndex + 1 }-${seatIndex + 1}` != delegations[delegationIndex]?.seat) {
-                                    return (<div></div>)}
+                                delegationIndex++
+                                if (`${circleIndex + 1}-${seatIndex + 1}` != delegations[delegationIndex]?.seat) {
+                                    return (<div></div>)
+                                }
                                 return (
                                     <div
                                         key={`ring-${circleIndex}-seat-${seatIndex}`}
@@ -108,8 +110,8 @@ export default function DelegationMap({
                                             transform: "translate(-50%, -50%)",
                                         }}
                                     >
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
+                                        <ContextMenu>
+                                            <ContextMenuTrigger asChild>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
@@ -122,56 +124,51 @@ export default function DelegationMap({
                                                         />
                                                     </span>
                                                 </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-60" align="start">
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuLabel>Ações sobre a Delegação</DropdownMenuLabel>
-                                                    <DropdownMenuItem>
+                                            </ContextMenuTrigger>
+                                            <ContextMenuContent className="w-60">
+                                                <ContextMenuGroup>
+                                                    <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
+                                                    <ContextMenuItem >
                                                         Colocar na Lista de Discursos
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem>
+                                                    </ContextMenuItem>
+                                                    <ContextMenuItem>
                                                         Dar a palavra
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuItem>Ausência</DropdownMenuItem>
-                                                    <DropdownMenuSub>
-                                                        <DropdownMenuSubTrigger>Mudar Presença</DropdownMenuSubTrigger>
-                                                        <DropdownMenuPortal>
-                                                            <DropdownMenuSubContent>
-                                                                <DropdownMenuItem>Presente Votante</DropdownMenuItem>
-                                                                <DropdownMenuItem>Presente</DropdownMenuItem>
-                                                                <DropdownMenuItem>Ausente</DropdownMenuItem>
-                                                            </DropdownMenuSubContent>
-                                                        </DropdownMenuPortal>
-                                                    </DropdownMenuSub>
+                                                    </ContextMenuItem>
+                                                </ContextMenuGroup>
+                                                <ContextMenuSeparator />
+                                                <ContextMenuGroup>
+                                                    <ContextMenuItem>Ausência</ContextMenuItem>
+                                                    <ContextMenuSub>
+                                                        <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
+                                                        <ContextMenuSubContent>
+                                                            <ContextMenuItem>Presente Votante</ContextMenuItem>
+                                                            <ContextMenuItem>Presente</ContextMenuItem>
+                                                            <ContextMenuItem>Ausente</ContextMenuItem>
+                                                        </ContextMenuSubContent>
+                                                    </ContextMenuSub>
 
-                                                </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuSub >
-                                                        <DropdownMenuSubTrigger >Punições</DropdownMenuSubTrigger>
-                                                        <DropdownMenuPortal>
-                                                            <DropdownMenuSubContent>
-                                                                <DropdownMenuItem>Aviso Formal</DropdownMenuItem>
-                                                                <DropdownMenuItem>Expulsão</DropdownMenuItem>
-                                                            </DropdownMenuSubContent>
-                                                        </DropdownMenuPortal>
-                                                    </DropdownMenuSub>
-                                                   
-                                                </DropdownMenuGroup>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                                </ContextMenuGroup>
+                                                <ContextMenuSeparator />
+                                                <ContextMenuGroup>
+                                                    <ContextMenuSub>
+                                                        <ContextMenuSubTrigger>Punições</ContextMenuSubTrigger>
+                                                        <ContextMenuSubContent>
+                                                            <ContextMenuItem>Aviso Formal</ContextMenuItem>
+                                                            <ContextMenuItem>Expulsão</ContextMenuItem>
+                                                        </ContextMenuSubContent>
+                                                    </ContextMenuSub>
+                                                </ContextMenuGroup>
+                                            </ContextMenuContent>
+                                        </ContextMenu>
 
                                         <span className="text-[10px] font-medium leading-none text-neutral-600">
                                             {delegations[delegationIndex]?.name || "Vazio"}
                                         </span>
-                                        
+
                                     </div>
-                                    
+
                                 )
-                                
+
                             })}
                         </div>
                     )

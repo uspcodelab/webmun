@@ -4,17 +4,23 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Timer from "./timer"
 import { useState } from "react"
 import {
-    AlertDialog,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useCommitteeStore } from "@/store/useCommitteeStore"
 
 export default function TopBar() {
     const [isAgendaOpen, setIsAgendaOpen] = useState(false)
+    const agendaTopics = useCommitteeStore((state) => state.agenda_topics ?? [])
+    const activeTopicIndex = useCommitteeStore((state) => state.active_topic_index)
+    const currentTopicLabel =
+        activeTopicIndex !== null && activeTopicIndex !== undefined
+            ? (agendaTopics[activeTopicIndex] ?? "Nenhum tópico em discussão")
+            : "Nenhum tópico em discussão"
 
     return (<>
             <div className="flex h-[10vh] w-full items-center shadow-lg px-4 py-2 relative z-10 ">
@@ -27,7 +33,9 @@ export default function TopBar() {
                     <div className="ml-auto flex shrink-0 items-center gap-3 pl-2">
                         <div className="flex flex-col items-end gap-1">
                             <h3 className="text-sm">
-                                Topico discutido: <span className="font-semibold">Situação na Ucrânia</span>
+                                Topico discutido: <span className="font-semibold">
+                                {currentTopicLabel}
+                                </span>
                             </h3>
                             <Button variant="outline" size="sm" onClick={() => setIsAgendaOpen(true)}>Ver agenda</Button>
                         </div>
@@ -46,14 +54,14 @@ export default function TopBar() {
 
             </div>
 
-            <AlertDialog open={isAgendaOpen} onOpenChange={setIsAgendaOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Agenda do comite</AlertDialogTitle>
-                        <AlertDialogDescription>
+            <Dialog open={isAgendaOpen} onOpenChange={setIsAgendaOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Agenda do comite</DialogTitle>
+                        <DialogDescription>
                             Selecione uma pauta para visualizar os pontos em discussao.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
+                        </DialogDescription>
+                    </DialogHeader>
 
                     <div className="grid gap-2">
                         <Button variant="outline" className="justify-start">1. Atualizacao da situacao humanitaria</Button>
@@ -61,10 +69,10 @@ export default function TopBar() {
                         <Button variant="outline" className="justify-start">3. Medidas de cooperacao internacional</Button>
                     </div>
 
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Fechar</AlertDialogCancel>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAgendaOpen(false)}>Fechar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>)
 }

@@ -27,12 +27,6 @@ export function SendMessage(data: any) {
 
 export default function SessionPage() {
 
-    const speakers = [
-        { id: "fr", position: 1, countryName: "Franca", countryCode: "fr", speechTime: "01:53", isSpeaking: true },
-        { id: "br", position: 2, countryName: "Brasil", countryCode: "br", speechTime: "02:00" },
-        { id: "es", position: 3, countryName: "Espanha", countryCode: "es", speechTime: "02:00" },
-        { id: "br-3", position: 4, countryName: "Brasil", countryCode: "br", speechTime: "02:00" },
-    ]
 
     const motions = [
         {
@@ -125,7 +119,7 @@ export default function SessionPage() {
                     />
                 </div>
                 <div className="flex h-full w-[20%] shrink-0 flex-col bg-white">
-                    <SpeakerList speakers={speakers} />
+                    <SpeakerList />
                     <MotionsList motions={motions} />
                 </div>
             </div>
