@@ -106,8 +106,9 @@ export default function Navbar() {
 
             <div className="flex items-center gap-2 flex-none">
                 <Button>Inscrever-se</Button>
-                <Button variant="outline">Login</Button>
-                
+                <Button variant="outline" onClick={() => (window.location.href = "/login")}>
+                    Login
+                </Button>
             </div>
         </nav>
     )
