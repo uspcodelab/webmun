@@ -121,8 +121,8 @@ export default function SessionPage() {
             <div className="flex h-[82vh] w-full">
                 <div className="min-w-0 flex-1 bg-neutral-100">
                     <DelegationMap
-                        semicircleCount={4}
-                        buttonsPerSemicircle={[6, 8, 10, 12]}
+                        semicircleCount={3}
+                        buttonsPerSemicircle={[6, 6, 9]}
                         presentDelegations={18}
                     />
                 </div>

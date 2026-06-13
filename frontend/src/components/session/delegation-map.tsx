@@ -69,7 +69,7 @@ export default function DelegationMap({
                 </div>
 
                 {circles.map((circleIndex) => {
-                    const radiusStep = 40
+                    const radiusStep = 50
                     const baseRadius = 120
                     const radius = baseRadius + circleIndex * radiusStep
                     const centerX = 50
