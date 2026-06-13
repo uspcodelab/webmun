@@ -25,7 +25,7 @@ export default function TestButton() {
     <Dialog>
       <form>
         <DialogTrigger asChild>
-          <Button className="m-4 flex h-8/10   flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
+          <Button className="m-4 flex h-8/10 flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
             <span className="flex h-[3vh] w-[3vh] items-center justify-center [&>svg]:size-full">
               <Cog className="size-[3vh]" />
             </span>
@@ -44,19 +44,22 @@ export default function TestButton() {
             <p>Quorum Atual: 10/20</p>
             <Button>Chamar Quorum</Button>
             <Separator className="my-4" />
+            <p>Suspensão de sessão</p>
+            <Button>Suspender Sessão</Button>
+            <Separator className="my-4" />
             <p>Estado do comitê: Debate</p>
             <Select>
               <SelectTrigger className="w-full max-w-48">
-                <SelectValue placeholder="Select a fruit" />
+                <SelectValue placeholder="Selecione um estado do comitê" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>Mudar estado do comitê</SelectLabel>
-                  <SelectItem value="apple">Agenda</SelectItem>
-                  <SelectItem value="banana">Debate</SelectItem>
-                  <SelectItem value="blueberry">Crise</SelectItem>
-                  <SelectItem value="grape">Suspensão</SelectItem>
-                  <SelectItem value="pineapple">Votação</SelectItem>
+                  <SelectLabel>Selecione um estado do comitê</SelectLabel>
+                  <SelectItem value="agenda">Agenda</SelectItem>
+                  <SelectItem value="debate">Debate</SelectItem>
+                  <SelectItem value="crise">Crise</SelectItem>
+                  <SelectItem value="suspensao">Suspensão</SelectItem>
+                  <SelectItem value="votacao">Votação</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>

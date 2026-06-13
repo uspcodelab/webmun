@@ -102,7 +102,7 @@ export default function SessionPage() {
                         presentDelegations={18}
                     />
                 </div>
-                <div className="w-[20%] shrink-0 bg-white">
+                <div className="flex h-full w-[20%] shrink-0 flex-col bg-white">
                     <SpeakerList speakers={speakers} />
                     <MotionsList motions={motions} />
                 </div>

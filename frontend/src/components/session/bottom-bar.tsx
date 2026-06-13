@@ -5,6 +5,8 @@ import HistoryButton from "./bottom-bar-buttons/HistoryButton"
 import SessionButton from "./bottom-bar-buttons/SessionButton"
 import ExitButton from "./bottom-bar-buttons/ExitButton"
 import BRBButton from "./bottom-bar-buttons/BRB"
+import IncidentHelp from "./bottom-bar-buttons/IncidentHelp"
+
 
 
 export default function BottomBar() {
@@ -23,7 +25,7 @@ export default function BottomBar() {
                 <HistoryButton />
                 <SessionButton />
                 <BRBButton />
-
+                <IncidentHelp />
             </div>
 
         </>
