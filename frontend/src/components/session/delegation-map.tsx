@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/context-menu"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import Flags from "@/components/ui/flags"
-import { SendMessage } from "@/pages/Session"
+import { sendMessage } from "@/pages/Session"
+import type { ChairInsertQueueEvent } from "@/schemas/types.gen"
 
 type DelegationMapProps = {
     semicircleCount?: number
@@ -96,8 +97,10 @@ export default function DelegationMap({
                                 const angleRad = (angleDeg * Math.PI) / 180
                                 const x = centerX + (radius * Math.cos(angleRad)) / 6
                                 const y = centerY + (radius * Math.sin(angleRad)) / 3.14
-                                delegationIndex++
-                                if (`${circleIndex + 1}-${seatIndex + 1}` != delegations[delegationIndex]?.seat) {
+                                const currentDelegationIndex = delegationIndex + 1
+                                delegationIndex = currentDelegationIndex
+
+                                if (`${circleIndex + 1}-${seatIndex + 1}` != delegations[currentDelegationIndex]?.seat) {
                                     return (<div></div>)
                                 }
                                 return (
@@ -128,7 +131,7 @@ export default function DelegationMap({
                                             <ContextMenuContent className="w-60">
                                                 <ContextMenuGroup>
                                                     <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
-                                                    <ContextMenuItem >
+                                                    <ContextMenuItem onClick={() => sendMessage({type: "InsertQueueEvent", payload: {target: delegations[currentDelegationIndex]?.id}} as ChairInsertQueueEvent)}>
                                                         Colocar na Lista de Discursos
                                                     </ContextMenuItem>
                                                     <ContextMenuItem>

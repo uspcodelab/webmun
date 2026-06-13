@@ -13,7 +13,7 @@ let socket : WebSocket | null = null;
 Use this function to send events to the backend, 
 any data with one of the Event types in schemas/types.gen.ts should work
 */
-export function SendMessage(data: any) {
+export function sendMessage(data: any) {
     if (socket && socket.readyState === WebSocket.OPEN) 
     {
         socket.send(JSON.stringify(data));
@@ -65,7 +65,7 @@ export default function SessionPage() {
 
     useEffect(() => {
         // Initialize WebSocket
-        socket = new WebSocket(`ws://localhost:8000/committees/ws/0?delegation="CHAIR"`);
+        socket = new WebSocket(`ws://localhost:8000/committees/ws/0?delegation=CHAIR`);
 
         socket.onopen = () => 
             {
