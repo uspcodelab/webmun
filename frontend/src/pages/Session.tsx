@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCommitteeStore } from '../store/useCommitteeStore.ts'
 import SpeakerList from "@/components/session/speaker-list"
@@ -8,6 +8,9 @@ import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 
 export default function SessionPage() {
+
+    const socketRef = useRef<WebSocket>(null);
+
     const speakers = [
         { id: "fr", position: 1, countryName: "Franca", countryCode: "fr", speechTime: "01:53", isSpeaking: true },
         { id: "br", position: 2, countryName: "Brasil", countryCode: "br", speechTime: "02:00" },
@@ -53,9 +56,14 @@ export default function SessionPage() {
 
     useEffect(() => {
         // Initialize WebSocket
-        const socket = new WebSocket(`ws://localhost:8000/committees/ws/${committeeId}`);
+        const socket = new WebSocket(`ws://localhost:8000/committees/ws/0`);
 
-        socket.onopen = () => setStatus("Connected");
+        socketRef.current = socket;
+
+        socket.onopen = () => 
+            {
+                setStatus("Connected");
+            }
 
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -71,6 +79,7 @@ export default function SessionPage() {
 
     // Useeffect for local uptime timer 
     useEffect(() => {
+
         if (!sessionStart) return;
 
         // calculate timer
@@ -79,6 +88,7 @@ export default function SessionPage() {
             const now = new Date().getTime();
             setUptime(Math.floor((now - start) / 1000));
         }, 1000);
+
 
         return () => clearInterval(interval);
     }, [sessionStart]);
