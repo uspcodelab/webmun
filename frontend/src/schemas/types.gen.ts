@@ -5,6 +5,27 @@ export type ClientOptions = {
 };
 
 /**
+ * AnswerRollCallEvent
+ */
+export type AnswerRollCallEvent = {
+    /**
+     * Type
+     */
+    type: 'AnswerRollCallEvent';
+    payload: AnswerRollCallPayload;
+};
+
+/**
+ * AnswerRollCallPayload
+ */
+export type AnswerRollCallPayload = {
+    /**
+     * Choice
+     */
+    choice: 'Present' | 'Present and Voting';
+};
+
+/**
  * CastVoteEvent
  */
 export type CastVoteEvent = {
@@ -13,6 +34,16 @@ export type CastVoteEvent = {
      */
     type: 'CastVoteEvent';
     payload: DelegateVotingPayload;
+};
+
+/**
+ * ChairCloseInformalVotingPayload
+ */
+export type ChairCloseInformalVotingPayload = {
+    /**
+     * Voting Id
+     */
+    voting_id?: number | null;
 };
 
 /**
@@ -34,9 +65,27 @@ export type ChairForceSpeakerPayload = {
  */
 export type ChairIncreaseTimerPayload = {
     /**
-     * Duration Seconds
+     * Seconds
      */
-    duration_seconds?: number;
+    seconds?: number;
+};
+
+/**
+ * ChairOpenInformalVotingPayload
+ */
+export type ChairOpenInformalVotingPayload = {
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Majority
+     */
+    majority: 'SIMPLE' | 'QUALIFIED' | 'ABSOLUTE';
+    /**
+     * Veto Power
+     */
+    veto_power: boolean;
 };
 
 /**
@@ -71,24 +120,6 @@ export type ChairSetPhasePayload = {
 };
 
 /**
- * ChairSetVotingPayload
- */
-export type ChairSetVotingPayload = {
-    /**
-     * Title
-     */
-    title?: string | null;
-    /**
-     * Majority
-     */
-    majority: 'SIMPLE' | 'QUALIFIED' | 'ABSOLUTE';
-    /**
-     * Veto Power
-     */
-    veto_power: boolean;
-};
-
-/**
  * ChairToggleTimerPayload
  */
 export type ChairToggleTimerPayload = {
@@ -120,6 +151,64 @@ export type ChooseDelegatePayload = {
 };
 
 /**
+ * CloseInformalVotingEvent
+ */
+export type CloseInformalVotingEvent = {
+    /**
+     * Type
+     */
+    type: 'CloseInformalVotingEvent';
+    payload: ChairCloseInformalVotingPayload;
+};
+
+/**
+ * CloseProceduralVotingEvent
+ */
+export type CloseProceduralVotingEvent = {
+    /**
+     * Type
+     */
+    type: 'CloseProceduralVotingEvent';
+    payload: EmptyPayload;
+};
+
+/**
+ * CloseRollCallEvent
+ */
+export type CloseRollCallEvent = {
+    /**
+     * Type
+     */
+    type: 'CloseRollCallEvent';
+    payload: EmptyPayload;
+};
+
+/**
+ * CloseSessionEvent
+ */
+export type CloseSessionEvent = {
+    /**
+     * Type
+     */
+    type: 'CloseSessionEvent';
+    payload: EmptyPayload;
+};
+
+/**
+ * DebateTypes
+ */
+export const DebateTypes = {
+    SPEAKERS_LIST: 'Speakers List',
+    MODERATED_DEBATE: 'Moderated Debate',
+    UNMODERATED_DEBATE: 'Unmoderated Debate'
+} as const;
+
+/**
+ * DebateTypes
+ */
+export type DebateTypes = typeof DebateTypes[keyof typeof DebateTypes];
+
+/**
  * DelegateMotionPayload
  */
 export type DelegateMotionPayload = {
@@ -135,15 +224,16 @@ export type DelegateMotionPayload = {
     /**
      * Delegate
      */
-    delegate?: number | null;
+    delegate?: string | null;
+    debate_type?: DebateTypes | null;
     /**
      * Total Duration Minutes
      */
     total_duration_minutes?: number | null;
     /**
-     * Total Speaking Seconds
+     * Per Speaker Seconds
      */
-    total_speaking_seconds?: number | null;
+    per_speaker_seconds?: number | null;
     /**
      * Target Topic
      */
@@ -170,7 +260,7 @@ export type DelegateQuestionPayload = {
     /**
      * Delegate
      */
-    delegate?: number | null;
+    delegate?: string | null;
     /**
      * Details
      */
@@ -182,23 +272,21 @@ export type DelegateQuestionPayload = {
  */
 export type DelegateVotingPayload = {
     /**
+     * Type
+     */
+    type: 'FORMAL' | 'INFORMAL';
+    /**
      * Motion Id
      */
-    motion_id: number;
+    motion_id?: number | null;
+    /**
+     * Title
+     */
+    title?: string | null;
     /**
      * Vote
      */
     vote: 'FAVOUR' | 'AGAINST' | 'ABSTAIN';
-};
-
-/**
- * DelegateYieldPayload
- */
-export type DelegateYieldPayload = {
-    /**
-     * Choice
-     */
-    choice?: string | 'CHAIR';
 };
 
 /**
@@ -230,6 +318,60 @@ export type IncreaseTimerEvent = {
 };
 
 /**
+ * JoinQueueEvent
+ */
+export type JoinQueueEvent = {
+    /**
+     * Type
+     */
+    type: 'JoinQueueEvent';
+    /**
+     * Payload
+     */
+    payload?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * LeaveQueueEvent
+ */
+export type LeaveQueueEvent = {
+    /**
+     * Type
+     */
+    type: 'LeaveQueueEvent';
+    /**
+     * Payload
+     */
+    payload?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * MarkRollCallEvent
+ */
+export type MarkRollCallEvent = {
+    /**
+     * Type
+     */
+    type: 'MarkRollCallEvent';
+    payload: MarkRollCallPayload;
+};
+
+/**
+ * MarkRollCallPayload
+ */
+export type MarkRollCallPayload = {
+    /**
+     * Delegation
+     */
+    delegation: string;
+    choice: RollCallChoice;
+};
+
+/**
  * Motions
  */
 export const Motions = {
@@ -254,6 +396,28 @@ export const Motions = {
  * Motions
  */
 export type Motions = typeof Motions[keyof typeof Motions];
+
+/**
+ * OpenInformalVotingEvent
+ */
+export type OpenInformalVotingEvent = {
+    /**
+     * Type
+     */
+    type: 'OpenInformalVotingEvent';
+    payload: ChairOpenInformalVotingPayload;
+};
+
+/**
+ * OpenSessionEvent
+ */
+export type OpenSessionEvent = {
+    /**
+     * Type
+     */
+    type: 'OpenSessionEvent';
+    payload: EmptyPayload;
+};
 
 /**
  * Questions
@@ -281,17 +445,35 @@ export type ResolveMotionEvent = {
 };
 
 /**
+ * RollCallChoice
+ */
+export const RollCallChoice = {
+    PRESENT: 'Present',
+    PRESENT_AND_VOTING: 'Present and Voting',
+    ABSENT: 'Absent'
+} as const;
+
+/**
+ * RollCallChoice
+ */
+export type RollCallChoice = typeof RollCallChoice[keyof typeof RollCallChoice];
+
+/**
  * SessionCreationSchema
  */
 export type SessionCreationSchema = {
     /**
-     * Committee Id
+     * Session Id
      */
-    committee_id: number;
+    session_id: number;
     /**
      * Name
      */
-    name: string;
+    name?: string | null;
+    /**
+     * Delegations
+     */
+    delegations: Array<string>;
 };
 
 /**
@@ -317,44 +499,6 @@ export type SetPhaseEvent = {
 };
 
 /**
- * SetQueueEvent
- */
-export type SetQueueEvent = {
-    /**
-     * Type
-     */
-    type: 'Join Speakers Queue' | 'Leave Speakers Queue';
-    /**
-     * Payload
-     */
-    payload?: {
-        [key: string]: unknown;
-    };
-};
-
-/**
- * SetSessionEvent
- */
-export type SetSessionEvent = {
-    /**
-     * Type
-     */
-    type: 'Open Session' | 'Close Session';
-    payload: EmptyPayload;
-};
-
-/**
- * SetVotingEvent
- */
-export type SetVotingEvent = {
-    /**
-     * Type
-     */
-    type: 'SetVotingEvent';
-    payload: ChairSetVotingPayload;
-};
-
-/**
  * SpeakerEvent
  */
 export type SpeakerEvent = {
@@ -374,12 +518,13 @@ export const States = {
     INITIAL_DEBATE: 'Initial Debate',
     OPEN_GSL: 'Open GSL',
     CLOSED_GSL: 'Closed GSL',
+    VOTING_PREPARATION: 'Voting Preparation',
     VOTING_PROCEDURES: 'Voting Procedures',
     FINISHED: 'Finished',
     MODERATED_CAUCUS: 'Moderated Caucus',
     UNMODERATED_CAUCUS: 'Unmoderated Caucus',
     VOTING_EXECUTION: 'Voting Execution',
-    PRE_VOTING: 'Pre-voting'
+    BETWEEN_DEBATES: 'Between Debates'
 } as const;
 
 /**
@@ -448,18 +593,7 @@ export type ValidationError = {
     };
 };
 
-/**
- * YieldEvent
- */
-export type YieldEvent = {
-    /**
-     * Type
-     */
-    type: 'YieldEvent';
-    payload: DelegateYieldPayload;
-};
-
-export type DummyCommitteesDummyPostData = {
+export type DummyCommitteesDummyGetData = {
     /**
      * Name
      */
@@ -472,18 +606,26 @@ export type DummyCommitteesDummyPostData = {
     } & CastVoteEvent) | ({
         type: 'ChooseDelegateEvent';
     } & ChooseDelegateEvent) | ({
-        type: 'Join Speakers Queue' | 'Leave Speakers Queue';
-    } & SetQueueEvent) | ({
-        type: 'YieldEvent';
-    } & YieldEvent) | ({
-        type: 'Open Session' | 'Close Session';
-    } & SetSessionEvent) | ({
-        type: 'ToggleTimerEvent';
-    } & ToggleTimerEvent) | ({
+        type: 'AnswerRollCallEvent';
+    } & AnswerRollCallEvent) | ({
+        type: 'JoinQueueEvent';
+    } & JoinQueueEvent) | ({
+        type: 'LeaveQueueEvent';
+    } & LeaveQueueEvent) | ({
+        type: 'OpenSessionEvent';
+    } & OpenSessionEvent) | ({
+        type: 'CloseSessionEvent';
+    } & CloseSessionEvent) | ({
         type: 'IncreaseTimerEvent';
     } & IncreaseTimerEvent) | ({
-        type: 'SetVotingEvent';
-    } & SetVotingEvent) | ({
+        type: 'ToggleTimerEvent';
+    } & ToggleTimerEvent) | ({
+        type: 'OpenInformalVotingEvent';
+    } & OpenInformalVotingEvent) | ({
+        type: 'CloseProceduralVotingEvent';
+    } & CloseProceduralVotingEvent) | ({
+        type: 'CloseInformalVotingEvent';
+    } & CloseInformalVotingEvent) | ({
         type: 'ResolveMotionEvent';
     } & ResolveMotionEvent) | ({
         type: 'SpeakerEvent';
@@ -491,13 +633,17 @@ export type DummyCommitteesDummyPostData = {
         type: 'SetAgendaEvent';
     } & SetAgendaEvent) | ({
         type: 'SetPhaseEvent';
-    } & SetPhaseEvent);
+    } & SetPhaseEvent) | ({
+        type: 'MarkRollCallEvent';
+    } & MarkRollCallEvent) | ({
+        type: 'CloseRollCallEvent';
+    } & CloseRollCallEvent);
     path?: never;
     query?: never;
     url: '/committees/dummy';
 };
 
-export type DummyCommitteesDummyPostErrors = {
+export type DummyCommitteesDummyGetErrors = {
     /**
      * Successful Response
      */
@@ -508,29 +654,29 @@ export type DummyCommitteesDummyPostErrors = {
     422: HttpValidationError;
 };
 
-export type DummyCommitteesDummyPostError = DummyCommitteesDummyPostErrors[keyof DummyCommitteesDummyPostErrors];
+export type DummyCommitteesDummyGetError = DummyCommitteesDummyGetErrors[keyof DummyCommitteesDummyGetErrors];
 
-export type CreateCommiteeCommitteesPostData = {
+export type CreateSessionEndpointCommitteesPostData = {
     body: SessionCreationSchema;
     path?: never;
     query?: never;
     url: '/committees/';
 };
 
-export type CreateCommiteeCommitteesPostErrors = {
+export type CreateSessionEndpointCommitteesPostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type CreateCommiteeCommitteesPostError = CreateCommiteeCommitteesPostErrors[keyof CreateCommiteeCommitteesPostErrors];
+export type CreateSessionEndpointCommitteesPostError = CreateSessionEndpointCommitteesPostErrors[keyof CreateSessionEndpointCommitteesPostErrors];
 
-export type CreateCommiteeCommitteesPostResponses = {
+export type CreateSessionEndpointCommitteesPostResponses = {
     /**
      * Successful Response
      */
     204: void;
 };
 
-export type CreateCommiteeCommitteesPostResponse = CreateCommiteeCommitteesPostResponses[keyof CreateCommiteeCommitteesPostResponses];
+export type CreateSessionEndpointCommitteesPostResponse = CreateSessionEndpointCommitteesPostResponses[keyof CreateSessionEndpointCommitteesPostResponses];
