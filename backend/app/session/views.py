@@ -7,9 +7,15 @@ from .service import create_session, handle_client_messages
 
 router = APIRouter()
 
+#Workaround to make FastApi add all the Schemas to the OpenApi file
+@router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
+async def dummy(name: SessionEvent):
+    return Response(status_code=status.HTTP_404_NOT_FOUND)
+    
+
 # Create committee route, receives a contentbody following CommitteeCreationSchema's format
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
-async def create_commitee(committeeInfo: SessionCreationSchema, test: SessionEvent):#terrible workaround to FastApi only adding schemas that are on routes to the openapi schemas
+async def create_commitee(committeeInfo: SessionCreationSchema):
     # Mock a committee being created
     create_session(committeeInfo.committee_id, committeeInfo.name)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

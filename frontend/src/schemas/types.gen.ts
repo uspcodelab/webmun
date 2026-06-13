@@ -5,17 +5,6 @@ export type ClientOptions = {
 };
 
 /**
- * Body_create_commitee_committees__post
- */
-export type BodyCreateCommiteeCommitteesPost = {
-    committeeInfo: SessionCreationSchema;
-    /**
-     * Test
-     */
-    test: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | SetQueueEvent | YieldEvent | SetSessionEvent | ToggleTimerEvent | IncreaseTimerEvent | SetVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetPhaseEvent;
-};
-
-/**
  * CastVoteEvent
  */
 export type CastVoteEvent = {
@@ -470,8 +459,59 @@ export type YieldEvent = {
     payload: DelegateYieldPayload;
 };
 
+export type DummyCommitteesDummyPostData = {
+    /**
+     * Name
+     */
+    body: ({
+        type: 'SubmitMotionEvent';
+    } & SubmitMotionEvent) | ({
+        type: 'SubmitQuestionEvent';
+    } & SubmitQuestionEvent) | ({
+        type: 'CastVoteEvent';
+    } & CastVoteEvent) | ({
+        type: 'ChooseDelegateEvent';
+    } & ChooseDelegateEvent) | ({
+        type: 'Join Speakers Queue' | 'Leave Speakers Queue';
+    } & SetQueueEvent) | ({
+        type: 'YieldEvent';
+    } & YieldEvent) | ({
+        type: 'Open Session' | 'Close Session';
+    } & SetSessionEvent) | ({
+        type: 'ToggleTimerEvent';
+    } & ToggleTimerEvent) | ({
+        type: 'IncreaseTimerEvent';
+    } & IncreaseTimerEvent) | ({
+        type: 'SetVotingEvent';
+    } & SetVotingEvent) | ({
+        type: 'ResolveMotionEvent';
+    } & ResolveMotionEvent) | ({
+        type: 'SpeakerEvent';
+    } & SpeakerEvent) | ({
+        type: 'SetAgendaEvent';
+    } & SetAgendaEvent) | ({
+        type: 'SetPhaseEvent';
+    } & SetPhaseEvent);
+    path?: never;
+    query?: never;
+    url: '/committees/dummy';
+};
+
+export type DummyCommitteesDummyPostErrors = {
+    /**
+     * Successful Response
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DummyCommitteesDummyPostError = DummyCommitteesDummyPostErrors[keyof DummyCommitteesDummyPostErrors];
+
 export type CreateCommiteeCommitteesPostData = {
-    body: BodyCreateCommiteeCommitteesPost;
+    body: SessionCreationSchema;
     path?: never;
     query?: never;
     url: '/committees/';
