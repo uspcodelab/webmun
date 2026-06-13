@@ -1,6 +1,6 @@
 import { useEffect, useState} from 'react';
 import { useParams } from 'react-router-dom';
-import { useCommitteeStore } from '../store/useCommitteeStore.ts'
+import { UpdateStore, useCommitteeStore } from '../store/useCommitteeStore.ts'
 import SpeakerList from "@/components/session/speaker-list"
 import MotionsList from "@/components/session/motions-list"
 import BottomBar from "@/components/session/bottom-bar"
@@ -63,16 +63,15 @@ export default function SessionPage() {
 
     // id that matches the name given in the Route path, at App.tsx 
     const { committeeId } = useParams<{ committeeId: string }>();
-
-    // extract what we need from the committee store
-    const { sessionStart, setSessionStart } = useCommitteeStore();
+    //const {start_time} = useCommitteeStore();
+    const all = useCommitteeStore();
 
     const [, setStatus] = useState("Connecting...");
-    const [, setUptime] = useState(0);
+    //const [, setUptime] = useState(0);
 
     useEffect(() => {
         // Initialize WebSocket
-        socket = new WebSocket(`ws://localhost:8000/committees/ws/0`);
+        socket = new WebSocket(`ws://localhost:8000/committees/ws/0?delegation="string"`);
 
         socket.onopen = () => 
             {
@@ -81,32 +80,31 @@ export default function SessionPage() {
 
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            if (data.type === "INITIAL_STATE") {
-                setSessionStart(data.payload.start_time);
-            }
+            UpdateStore(data);
+            console.log(all);
         };
 
         socket.onclose = () => setStatus("Disconnected");
 
         return () => socket?.close(); // Cleanup on unmount
-    }, [committeeId, setSessionStart, setStatus]);
+    }, [committeeId]);
 
     // Useeffect for local uptime timer 
-    useEffect(() => {
+    /*useEffect(() => {
 
-        if (!sessionStart) return;
+        if (!start_time) return;
 
         // calculate timer
         const interval = setInterval(() => {
-            const start = new Date(sessionStart).getTime();
+            const start = new Date(start_time).getTime();
             const now = new Date().getTime();
             setUptime(Math.floor((now - start) / 1000));
         }, 1000);
 
 
         return () => clearInterval(interval);
-    }, [sessionStart]);
-
+    }, [start_time]);*/
+    console.log(all);
     return (
         <div>
             {/* <p className={status === "connected" ? "text-green-500" : "text-red-500"}>

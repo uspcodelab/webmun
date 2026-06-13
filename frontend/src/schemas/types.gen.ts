@@ -26,6 +26,17 @@ export type AnswerRollCallPayload = {
 };
 
 /**
+ * Body_dummy_committees_dummy_get
+ */
+export type BodyDummyCommitteesDummyGet = {
+    /**
+     * Name
+     */
+    name: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent;
+    schemas: SessionLiveState;
+};
+
+/**
  * CastVoteEvent
  */
 export type CastVoteEvent = {
@@ -192,6 +203,34 @@ export type CloseSessionEvent = {
      */
     type: 'CloseSessionEvent';
     payload: EmptyPayload;
+};
+
+/**
+ * DebateContext
+ */
+export type DebateContext = {
+    debate_type: DebateTypes;
+    return_state: States;
+    /**
+     * Total Duration Seconds
+     */
+    total_duration_seconds?: number | null;
+    /**
+     * Total Speeches
+     */
+    total_speeches?: number | null;
+    /**
+     * Per Speaker Seconds
+     */
+    per_speaker_seconds?: number | null;
+    /**
+     * Expires At
+     */
+    expires_at?: string | null;
+    /**
+     * Topic
+     */
+    topic?: string | null;
 };
 
 /**
@@ -459,6 +498,22 @@ export const RollCallChoice = {
 export type RollCallChoice = typeof RollCallChoice[keyof typeof RollCallChoice];
 
 /**
+ * RollCallContext
+ */
+export type RollCallContext = {
+    /**
+     * Registry
+     */
+    registry?: {
+        [key: string]: RollCallChoice;
+    };
+    /**
+     * Current Delegation
+     */
+    current_delegation?: string | null;
+};
+
+/**
  * SessionCreationSchema
  */
 export type SessionCreationSchema = {
@@ -474,6 +529,85 @@ export type SessionCreationSchema = {
      * Delegations
      */
     delegations: Array<string>;
+};
+
+/**
+ * SessionLiveState
+ */
+export type SessionLiveState = {
+    /**
+     * Session Id
+     */
+    session_id: number;
+    /**
+     * Start Time
+     */
+    start_time: string;
+    /**
+     * Delegations
+     */
+    delegations: Array<string>;
+    current_state?: States;
+    /**
+     * Timer Is Running
+     */
+    timer_is_running?: boolean;
+    /**
+     * Timer Expiration
+     */
+    timer_expiration?: string | null;
+    /**
+     * Timer Remaining Seconds
+     */
+    timer_remaining_seconds?: number;
+    /**
+     * Current Speaker
+     */
+    current_speaker?: string | null;
+    /**
+     * Gsl Queue
+     */
+    gsl_queue?: Array<string>;
+    /**
+     * Can Set Motion
+     */
+    can_set_motion?: boolean;
+    /**
+     * Gsl Default Time Seconds
+     */
+    gsl_default_time_seconds?: number;
+    /**
+     * Caucus List
+     */
+    caucus_list?: Array<string>;
+    debate?: DebateContext | null;
+    /**
+     * Submitted Motions
+     */
+    submitted_motions?: Array<DelegateMotionPayload>;
+    /**
+     * Submitted Questions
+     */
+    submitted_questions?: Array<DelegateQuestionPayload>;
+    /**
+     * Agenda Topics
+     */
+    agenda_topics?: Array<[
+        string,
+        boolean
+    ]>;
+    /**
+     * Active Topic Index
+     */
+    active_topic_index?: number | null;
+    voting?: VotingContext | null;
+    /**
+     * Voting Choice
+     */
+    voting_choice?: {
+        [key: string]: RollCallChoice;
+    } | null;
+    roll_call?: RollCallContext | null;
 };
 
 /**
@@ -593,51 +727,38 @@ export type ValidationError = {
     };
 };
 
-export type DummyCommitteesDummyGetData = {
+/**
+ * VotingContext
+ */
+export type VotingContext = {
     /**
-     * Name
+     * Target Type
      */
-    body: ({
-        type: 'SubmitMotionEvent';
-    } & SubmitMotionEvent) | ({
-        type: 'SubmitQuestionEvent';
-    } & SubmitQuestionEvent) | ({
-        type: 'CastVoteEvent';
-    } & CastVoteEvent) | ({
-        type: 'ChooseDelegateEvent';
-    } & ChooseDelegateEvent) | ({
-        type: 'AnswerRollCallEvent';
-    } & AnswerRollCallEvent) | ({
-        type: 'JoinQueueEvent';
-    } & JoinQueueEvent) | ({
-        type: 'LeaveQueueEvent';
-    } & LeaveQueueEvent) | ({
-        type: 'OpenSessionEvent';
-    } & OpenSessionEvent) | ({
-        type: 'CloseSessionEvent';
-    } & CloseSessionEvent) | ({
-        type: 'IncreaseTimerEvent';
-    } & IncreaseTimerEvent) | ({
-        type: 'ToggleTimerEvent';
-    } & ToggleTimerEvent) | ({
-        type: 'OpenInformalVotingEvent';
-    } & OpenInformalVotingEvent) | ({
-        type: 'CloseProceduralVotingEvent';
-    } & CloseProceduralVotingEvent) | ({
-        type: 'CloseInformalVotingEvent';
-    } & CloseInformalVotingEvent) | ({
-        type: 'ResolveMotionEvent';
-    } & ResolveMotionEvent) | ({
-        type: 'SpeakerEvent';
-    } & SpeakerEvent) | ({
-        type: 'SetAgendaEvent';
-    } & SetAgendaEvent) | ({
-        type: 'SetPhaseEvent';
-    } & SetPhaseEvent) | ({
-        type: 'MarkRollCallEvent';
-    } & MarkRollCallEvent) | ({
-        type: 'CloseRollCallEvent';
-    } & CloseRollCallEvent);
+    target_type: 'PROCEDURAL' | 'SUBSTANTIVE' | 'INFORMAL';
+    motion_in_vote?: DelegateMotionPayload | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+    return_state: States;
+    /**
+     * Voting Registry
+     */
+    voting_registry?: {
+        [key: string]: 'FAVOUR' | 'AGAINST' | 'ABSTAIN';
+    };
+    /**
+     * Majority
+     */
+    majority: 'SIMPLE' | 'QUALIFIED' | 'ABSOLUTE';
+    /**
+     * Veto Power
+     */
+    veto_power: boolean;
+};
+
+export type DummyCommitteesDummyGetData = {
+    body: BodyDummyCommitteesDummyGet;
     path?: never;
     query?: never;
     url: '/committees/dummy';
