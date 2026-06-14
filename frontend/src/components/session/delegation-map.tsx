@@ -16,7 +16,7 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { CircleFlag } from 'react-circle-flags'
 import { sendMessage } from "@/pages/Session"
-import { type ChairInsertQueueEvent, ChairEvents, type MarkRollCallEvent } from "@/schemas/types.gen"
+import { type ChairInsertQueueEvent, type MarkRollCallEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
 
 type DelegationMapProps = {
     semicircleCount?: number
@@ -144,13 +144,13 @@ export default function DelegationMap({
                                                     <ContextMenuSub>
                                                         <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
                                                         <ContextMenuSubContent>
-                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: "Present and Voting"}} as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.PRESENT_AND_VOTING}} as MarkRollCallEvent)}>
                                                                 Presente Votante
                                                             </ContextMenuItem>
-                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: "Present"}} as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.PRESENT}} as MarkRollCallEvent)}>
                                                                 Presente
                                                             </ContextMenuItem>
-                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: "Absent"}} as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.ABSENT}} as MarkRollCallEvent)}>
                                                                 Ausente
                                                             </ContextMenuItem>
                                                         </ContextMenuSubContent>

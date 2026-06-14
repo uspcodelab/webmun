@@ -518,7 +518,8 @@ def handle_mark_roll_call(state: SessionLiveState, event: MarkRollCallEvent, sen
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
 
-    state.roll_call.registry[event.payload.delegation] = event.payload.choice
+    
+    state.roll_call.registry[event.payload.delegation_id] = event.payload.choice
 
     return state
 
@@ -540,7 +541,7 @@ def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, s
 
 def handle_insert_queue(state: SessionLiveState, event: ChairInsertQueueEvent, sender: str, is_chair: bool)-> SessionLiveState:
     if not is_chair:
-        raise InvalidProceduralMove("cannot close roll call as delegate")
+        raise InvalidProceduralMove("cannot insert someone on queue as delegate")
     delegate = state.delegations[event.payload.target]
     state.gsl_queue.append(delegate)
     return state
