@@ -24,7 +24,7 @@ export default function SpeakerList() {
             <h2 className="text-xl font-bold">Lista de Oradores</h2>
             <Badge className="ml-auto bg-tertiary-200 text-secondary">{String(waitingCount).padStart(2, "0")} em espera</Badge>
         </div>
-        <ScrollArea className="m-4 min-h-0 flex-1 rounded-md border ">
+        <ScrollArea className="m-4 mt-0 min-h-0 flex-1 rounded-md border ">
             {gslQueue.map((delegate, index) => {
                 const isSpeaking = !!currentSpeaker && currentSpeaker.id === delegate.id
                 const position = index + 1
@@ -56,9 +56,6 @@ export default function SpeakerList() {
                 )
             })}
         </ScrollArea>
-        <Button variant="outline" className="mr-4 ml-4 mb-4 w-[calc(100%-2rem)]">
-            Editar Lista
-        </Button>
         <Separator></Separator>
     </div>)
 }

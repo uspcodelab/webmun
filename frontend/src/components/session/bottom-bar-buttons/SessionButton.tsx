@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import ManualQuorum from "@/components/session/manual-quorum"
-import { RollCallChoice } from "@/schemas/types.gen"
+import { RollCallChoice, ChairEvents, type CloseRollCallEvent } from "@/schemas/types.gen"
+import { sendMessage } from "@/pages/Session"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 
 
@@ -52,7 +53,9 @@ export default function TestButton() {
               <ManualQuorum />
               <div className="inline-flex gap-2">
                 <Button variant="outline" className="bg-green-800 text-white hover:bg-green-700" disabled>Abrir Quórum</Button>
-                <Button variant="destructive" className="bg-red-800 text-white hover:bg-red-700">Fechar Quórum</Button>
+                <Button variant="destructive" className="bg-red-800 text-white hover:bg-red-700" onClick={() => sendMessage({type: ChairEvents.CLOSE_ROLL_CALL_EVENT, payload: {}} as CloseRollCallEvent)}>
+                  Fechar Quórum
+                </Button>
               </div>
             </div>
             <Separator className="my-4" />

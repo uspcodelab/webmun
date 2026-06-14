@@ -9,7 +9,6 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
@@ -17,8 +16,6 @@ import {
     Item,
     ItemActions,
     ItemContent,
-    ItemDescription,
-    ItemMedia,
     ItemTitle,
 } from "@/components/ui/item"
 import { Input } from "@/components/ui/input"
@@ -76,7 +73,7 @@ export default function TopBar() {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-2">
-                    <ScrollArea className="h-[300px] w-full rounded-md border">
+                    <ScrollArea className="h-75 w-full rounded-md border">
                         <Item>
                             <ItemContent>
                                 <ItemTitle>1. Atualizacao da situacao humanitaria</ItemTitle>
