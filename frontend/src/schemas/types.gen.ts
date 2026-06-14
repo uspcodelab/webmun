@@ -706,7 +706,7 @@ export type SessionLiveState = {
     voting_choice?: {
         [key: string]: RollCallChoice;
     } | null;
-    roll_call?: RollCallContext | null;
+    roll_call: RollCallContext;
 };
 
 /**

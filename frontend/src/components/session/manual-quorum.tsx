@@ -27,7 +27,7 @@ export default function ManualQuorum() {
     const sortedDelegations = [...delegations].sort((a, b) =>
         a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
     )
-    const currentQuorum = useCommitteeStore((state) => state.roll_call?.registry ?? {})
+    const currentQuorum = useCommitteeStore((state) => state.roll_call.registry ?? {})
     const tempQuorum = structuredClone(currentQuorum)
 
 

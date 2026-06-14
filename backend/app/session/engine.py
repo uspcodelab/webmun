@@ -547,7 +547,6 @@ def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, s
             for delegation, choice in state.roll_call.registry.items() 
             if choice in {RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING}
     }
-    state.roll_call = None
     return state
 
 def handle_insert_queue(state: SessionLiveState, event: ChairInsertQueueEvent, sender: str, is_chair: bool)-> SessionLiveState:

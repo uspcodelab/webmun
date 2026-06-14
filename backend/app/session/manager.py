@@ -78,7 +78,7 @@ class SessionLiveState(BaseModel):
     # present delegations with voting choice
     voting_choice: dict[int, RollCallChoice] | None = None #DelegationId as key
 
-    roll_call: RollCallContext | None = None # set to none at first
+    roll_call: RollCallContext #Not None, even if registry is empty
 
 class ConnectionManager:
     # TODO: refactor additional field 'delegation' when working with auth
