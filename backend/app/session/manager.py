@@ -2,39 +2,63 @@
 This file describes the overall manager for websocket and states
 """
 from fastapi import WebSocket
-from collections import defaultdict
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Literal
 
-from .schemas import States, DelegateMotionPayload, DelegateQuestionPayload
+from .schemas import DebateTypes, RollCallChoice, States, DelegateMotionPayload, DelegateQuestionPayload
 
-# Metadata that tracks the voting scheme currently in use
 class VotingContext(BaseModel):
-    target_type: Literal["PROCEDURAL", "SUBSTANTIVE"] = "PROCEDURAL"
-    motion_in_vote: int | None = None # Motion ID to be executed
+    target_type: Literal["PROCEDURAL", "SUBSTANTIVE", "INFORMAL"]
+    motion_in_vote: DelegateMotionPayload | None = None
+    title: str | None = None 
+    return_state: States 
     voting_registry: dict[str, Literal["FAVOUR", "AGAINST", "ABSTAIN"]] = {}
 
+    # additional fields
+    majority: Literal['SIMPLE', 'QUALIFIED', 'ABSOLUTE']
+    veto_power: bool
+
+class DebateContext(BaseModel):
+    debate_type: DebateTypes 
+    return_state: States 
+    total_duration_seconds: int | None = None # TODO: check if this is needed 
+    total_speeches: int | None = None # Check if we use total duration or this for calculating overall time, it can also go overtime 
+    per_speaker_seconds: int | None = None
+    expires_at: datetime | None = None 
+    topic: str | None = None
+
+class RollCallContext(BaseModel):
+    registry: dict[str, RollCallChoice] = {}
+    current_delegation: str | None = None # perhaps not needed
 
 # Represents the session live state
 class SessionLiveState(BaseModel):
     session_id: int
-    session_name: str | None = None
     start_time: datetime
+
+    # temporary list of delegations in this committee
+    # TODO: validate sender delegation to this list
+    delegations: list[str]
 
     # General state for FSM engine
     current_state: States = States.SETUP
-    # gsl_queue_locker?
 
     # Timer states
     timer_is_running: bool = False
     timer_expiration: datetime | None = None
-    timer_duration_seconds: int = 0
+    timer_remaining_seconds: int = 0 # update on pause/increase, can go negative 
 
-    # Speakers
+    # Speakers 
     current_speaker: str | None = None
     gsl_queue: list[str] = []
     can_set_motion: bool = False # Can set motions during speaking time
+    gsl_default_time_seconds: int = 60
+
+    # Caucus variables
+    # TODO: how to add a popup placard that fades away after some moment in frontend? related to CHOOSE_SPEAKER
+    caucus_list: list[str] = [] # special list that is only used during moderated caucus, has different semantic functionality than gsl queue 
+    debate: DebateContext | None = None # used specially for Moderated, unmoderated and possibly tour de table
 
     # Context Data
     # MotionSchema inherits it's type from Motions
@@ -47,54 +71,49 @@ class SessionLiveState(BaseModel):
     agenda_topics: list[tuple[str, bool]] = []
     active_topic_index: int | None = None
 
-    # Present delegations
-    present_delegations: list[str] = []
 
     # Voting context
-    voting: VotingContext
+    voting: VotingContext | None = None
+    
+    # present delegations with voting choice
+    voting_choice: dict[str, RollCallChoice] | None = None 
 
-    # maps to present | present and voting styles
-    voting_choice: dict[str, Literal["PRESENT", "VOTING"]]
-
-# to be implemented later
-class WebSocketEnvelope(BaseModel):
-    pass
+    roll_call: RollCallContext | None = None # set to none at first
 
 class ConnectionManager:
+    # TODO: refactor additional field 'delegation' when working with auth
+
     def __init__(self):
-        # Initialize dictionary with room_name and list of connections
-        self.active_connections: dict[int, list[WebSocket]] = defaultdict(list)
-        # maps committee_id to current committee state 
+        # Initialize dictionary with room_name and dict with websocket -> delegation
+        self.active_connections: dict[int, dict[WebSocket, str]] = {}
         self.room_states: dict[int, SessionLiveState] = {}
-
-    async def connect(self, websocket: WebSocket, committee_id: int):
+    
+    async def connect(self, websocket: WebSocket, session_id: int, delegation: str):
         await websocket.accept()
-        self.active_connections[committee_id].append(websocket)
+        self.active_connections[session_id][websocket] = delegation
 
-        # when someone connects, send current state 
-        if committee_id in self.room_states:
-            await websocket.send_json({
-                "type": "INITIAL_STATE",
-                "payload": self.room_states[committee_id].model_dump(mode='json'),
-                })
+        # when someone connects, send current state as SessionLiveState
+        if session_id in self.room_states:
+            # TODO: check if it's better to create with mode='json' or model_dump_json()
+            await websocket.send_json(self.room_states[session_id].model_dump(mode='json'))
 
-    def disconnect(self, websocket: WebSocket, committee_id: int):
-        self.active_connections[committee_id].remove(websocket)
+    def disconnect(self, websocket: WebSocket, session_id: int):
+        self.active_connections[session_id].pop(websocket)
+
+    def get_delegation(self, websocket: WebSocket, session_id: int):
+        return self.active_connections[session_id].get(websocket)
 
     # More things from connection manager here 
-    async def broadcast_state(self, committee_id: int):
+    async def broadcast_state(self, session_id: int):
         """Sends current state to all clients in the room"""
-        state = self.room_states.get(committee_id)
+        state = self.room_states.get(session_id)
         if not state:
             return
-        
-        message = {
-                "type": "STATE_UPDATE",
-                 "payload": state.dict()
-        }
 
-        for connection in self.active_connections[committee_id]:
-            await connection.send_json(message)
+        for connection in self.active_connections[session_id]:
+            await connection.send_json(state.model_dump(mode='json'))
+
+    # TODO: add broadcast_event so we send only the event + deltas (fields changed)/event only, or keep broadcasting entire state
 
 manager = ConnectionManager()
 
