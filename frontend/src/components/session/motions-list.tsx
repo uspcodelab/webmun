@@ -44,12 +44,12 @@ export default function MotionsList({ motions }: MotionsListProps) {
     })
     const queueCount = sortedMotions.length
 
-    return (<div className="m-4">
+    return (<div className="m-4 flex min-h-0 flex-1 flex-col">
         <div className="flex items-center">
             <h2 className="text-xl font-bold">Moçoes Apresentadas</h2>
             <Badge className="ml-auto bg-tertiary-200 text-secondary">{String(queueCount).padStart(2, "0")} na fila</Badge>
         </div>
-        <ScrollArea className="h-60 rounded-md border mt-4">
+        <ScrollArea className="mt-4 min-h-0 flex-1 rounded-md border">
             {sortedMotions.map((motion) => (
                 <Item size="sm" key={motion.id}>
                     <ItemMedia variant="icon" className="h-10 w-10 bg-neutral-200 rounded-full">
@@ -74,6 +74,6 @@ export default function MotionsList({ motions }: MotionsListProps) {
                 </Item>
             ))}
         </ScrollArea>
-        <Separator></Separator>
+
     </div>)
 }

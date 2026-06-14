@@ -6,7 +6,6 @@ import MotionsList from "@/components/session/motions-list"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
-import {type Events, type SubmitMotionEvent, Motions} from '../schemas/types.gen.ts'
 
 export default function SessionPage() {
 
@@ -64,11 +63,6 @@ export default function SessionPage() {
         socket.onopen = () => 
             {
                 setStatus("Connected");
-                const evnt : SubmitMotionEvent = {
-                type: "SubmitMotionEvent",
-                payload: { type: Motions.CHANGE_DEBATE_TYPE }
-                }
-                socketRef.current?.send(JSON.stringify(evnt))
             }
 
         socket.onmessage = (event) => {
@@ -118,7 +112,7 @@ export default function SessionPage() {
                         presentDelegations={18}
                     />
                 </div>
-                <div className="w-[20%] shrink-0 bg-white">
+                <div className="flex h-full w-[20%] shrink-0 flex-col bg-white">
                     <SpeakerList speakers={speakers} />
                     <MotionsList motions={motions} />
                 </div>
@@ -128,19 +122,3 @@ export default function SessionPage() {
 
     );
 }
-/*
-Função que manda uma mensagem para o servidor
-
-export function SendMesssage(event: Events)
-{
-    const json = JSON.stringify(event);
-    if(socket) socket.send(json);
-    else throw new Error("socket not inicialized");
-}
-
-const evnt : SubmitMotionEvent = {
-    type: "SubmitMotionEvent",
-    payload: { type: Motions.CHANGE_DEBATE_TYPE }
-}
-SendMesssage(evnt)
-*/

@@ -16,8 +16,12 @@ router = APIRouter()
 async def create_session_endpoint(session_schema: SessionCreationSchema): 
     # Mock a session being created
     create_session(session_schema)
-
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+#Workaround to make FastApi add all the Schemas to the OpenApi file
+@router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
+async def dummy(name: SessionEvent):
+    return Response(status_code=status.HTTP_404_NOT_FOUND)
     
 @router.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: int, delegation: str):
