@@ -14,7 +14,7 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
-import Flags from "@/components/ui/flags"
+import { CircleFlag } from 'react-circle-flags'
 import { sendMessage } from "@/pages/Session"
 import type { ChairInsertQueueEvent } from "@/schemas/types.gen"
 
@@ -121,9 +121,9 @@ export default function DelegationMap({
                                                     className="h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ring-sky-300/30 ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
                                                 >
                                                     <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
-                                                        <Flags
-                                                            code={delegations[delegationIndex]?.code}
-                                                            className="scale-125 object-contain"
+                                                        <CircleFlag
+                                                            countryCode={delegations[delegationIndex]?.code}
+                                                            className="scale-110 object-contain"
                                                         />
                                                     </span>
                                                 </Button>

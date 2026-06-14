@@ -10,11 +10,11 @@ export default function Timer() {
         <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
                 <Flag />
-                <h3>Orador com a Palavra:</h3>
+                <h3 className="text-[1.5vh]">Orador com a Palavra:</h3>
             </div>
             <div className="flex items-center justify-center gap-2">
                 <Flags code="fr" className="h-5" />
-                <h3 className="uppercase">França</h3>
+                <h3 className="uppercase text-[1.75vh]">França</h3>
             </div>
         </div>
         <Separator orientation="vertical" />
