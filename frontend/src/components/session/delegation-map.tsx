@@ -16,7 +16,7 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { CircleFlag } from 'react-circle-flags'
 import { sendMessage } from "@/pages/Session"
-import type { ChairInsertQueueEvent } from "@/schemas/types.gen"
+import type { ChairInsertQueueEvent, MarkRollCallEvent } from "@/schemas/types.gen"
 
 type DelegationMapProps = {
     semicircleCount?: number
@@ -144,9 +144,15 @@ export default function DelegationMap({
                                                     <ContextMenuSub>
                                                         <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
                                                         <ContextMenuSubContent>
-                                                            <ContextMenuItem>Presente Votante</ContextMenuItem>
-                                                            <ContextMenuItem>Presente</ContextMenuItem>
-                                                            <ContextMenuItem>Ausente</ContextMenuItem>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: "MarkRollCallEvent", payload: {delegation: delegations[currentDelegationIndex], choice: "Present and Voting"}} as MarkRollCallEvent)}>
+                                                                Presente Votante
+                                                            </ContextMenuItem>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: "MarkRollCallEvent", payload: {delegation: delegations[currentDelegationIndex], choice: "Present"}} as MarkRollCallEvent)}>
+                                                                Presente
+                                                            </ContextMenuItem>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: "MarkRollCallEvent", payload: {delegation: delegations[currentDelegationIndex], choice: "Absent"}} as MarkRollCallEvent)}>
+                                                                Ausente
+                                                            </ContextMenuItem>
                                                         </ContextMenuSubContent>
                                                     </ContextMenuSub>
 
