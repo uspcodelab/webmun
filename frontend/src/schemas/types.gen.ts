@@ -58,6 +58,31 @@ export type ChairCloseInformalVotingPayload = {
 };
 
 /**
+ * ChairEvents
+ */
+export const ChairEvents = {
+    OPEN_SESSION_EVENT: 'OpenSessionEvent',
+    TOGGLE_TIMER_EVENT: 'ToggleTimerEvent',
+    INCREASE_TIMER_EVENT: 'IncreaseTimerEvent',
+    OPEN_INFORMAL_VOTING_EVENT: 'OpenInformalVotingEvent',
+    RESOLVE_MOTION_EVENT: 'ResolveMotionEvent',
+    CLOSE_PROCEDURAL_VOTING_EVENT: 'CloseProceduralVotingEvent',
+    CLOSE_INFORMAL_VOTING_EVENT: 'CloseInformalVotingEvent',
+    SET_AGENDA_EVENT: 'SetAgendaEvent',
+    SET_PHASE_EVENT: 'SetPhaseEvent',
+    CLOSE_SESSION_EVENT: 'CloseSessionEvent',
+    SPEAKER_EVENT: 'SpeakerEvent',
+    MARK_ROLL_CALL_EVENT: 'MarkRollCallEvent',
+    CLOSE_ROLL_CALL_EVENT: 'CloseRollCallEvent',
+    INSERT_QUEUE_EVENT: 'InsertQueueEvent'
+} as const;
+
+/**
+ * ChairEvents
+ */
+export type ChairEvents = typeof ChairEvents[keyof typeof ChairEvents];
+
+/**
  * ChairForceSpeakerPayload
  */
 export type ChairForceSpeakerPayload = {
@@ -269,6 +294,25 @@ export const DebateTypes = {
 export type DebateTypes = typeof DebateTypes[keyof typeof DebateTypes];
 
 /**
+ * DelegateEvents
+ */
+export const DelegateEvents = {
+    SUBMIT_MOTION_EVENT: 'SubmitMotionEvent',
+    SUBMIT_QUESTION_EVENT: 'SubmitQuestionEvent',
+    JOIN_QUEUE_EVENT: 'JoinQueueEvent',
+    LEAVE_QUEUE_EVENT: 'LeaveQueueEvent',
+    CAST_VOTE_EVENT: 'CastVoteEvent',
+    CHOOSE_DELEGATE_EVENT: 'ChooseDelegateEvent',
+    YIELD_EVENT: 'YieldEvent',
+    ANSWER_ROLL_CALL_EVENT: 'AnswerRollCallEvent'
+} as const;
+
+/**
+ * DelegateEvents
+ */
+export type DelegateEvents = typeof DelegateEvents[keyof typeof DelegateEvents];
+
+/**
  * DelegateMotionPayload
  */
 export type DelegateMotionPayload = {
@@ -440,7 +484,10 @@ export type MarkRollCallEvent = {
  * MarkRollCallPayload
  */
 export type MarkRollCallPayload = {
-    delegation: Delegation;
+    /**
+     * Delegation Id
+     */
+    delegation_id: number;
     choice: RollCallChoice;
 };
 
@@ -788,7 +835,10 @@ export type VotingContext = {
 export type DummyCommitteesDummyGetData = {
     body: BodyDummyCommitteesDummyGet;
     path?: never;
-    query?: never;
+    query: {
+        enum1: DelegateEvents;
+        enum2: ChairEvents;
+    };
     url: '/committees/dummy';
 };
 

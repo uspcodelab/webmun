@@ -207,7 +207,7 @@ class EmptyPayload(BaseModel):
     ...
 
 class MarkRollCallPayload(BaseModel):
-    delegation: Delegation
+    delegation_id: int
     choice: RollCallChoice
 
 # Related Events

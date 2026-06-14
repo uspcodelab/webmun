@@ -4,7 +4,7 @@ import { Flag, Pause, Plus, Play } from "lucide-react"
 import Flags from "@/components/ui/flags"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { sendMessage } from "@/pages/Session"
-import type { IncreaseTimerEvent, ToggleTimerEvent } from "@/schemas/types.gen"
+import { type IncreaseTimerEvent, type ToggleTimerEvent, ChairEvents } from "@/schemas/types.gen"
 
 
 export default function Timer() {
@@ -36,10 +36,10 @@ export default function Timer() {
         <Separator orientation="vertical" />
         <div className="flex items-center gap-2">
             <h2 className="text-3xl leading-none font-bold tabular-nums">{Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:{(remainingSeconds % 60).toString().padStart(2, '0')}</h2>
-            <Button variant="outline" size="icon-lg" aria-label={timerIsRunning ? "Pause timer" : "Start timer"} onClick={() => sendMessage({type: "ToggleTimerEvent", payload: {}} as ToggleTimerEvent)}>
+            <Button variant="outline" size="icon-lg" aria-label={timerIsRunning ? "Pause timer" : "Start timer"} onClick={() => sendMessage({type: ChairEvents.TOGGLE_TIMER_EVENT, payload: {}} as ToggleTimerEvent)}>
                 {timerIsRunning ? <Pause /> : <Play />}
             </Button>
-            <Button onClick={() => sendMessage({type: "IncreaseTimerEvent", payload: { seconds: 5 }} as IncreaseTimerEvent)}><Plus />5s</Button>
+            <Button onClick={() => sendMessage({type: ChairEvents.INCREASE_TIMER_EVENT, payload: { seconds: 5 }} as IncreaseTimerEvent)}><Plus />5s</Button>
 
         </div>
 

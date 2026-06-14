@@ -3,7 +3,7 @@
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Response, status
 import asyncio
-from app.session.schemas import SessionCreationSchema, SessionEvent
+from app.session.schemas import SessionCreationSchema, DelegateEvents, ChairEvents, SessionEvent
 from .manager import manager, SessionLiveState 
 from .service import create_session, handle_client_messages
 
@@ -12,7 +12,7 @@ router = APIRouter()
 
 #Workaround to make FastApi add all the Schemas to the OpenApi file
 @router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
-async def dummy(name: SessionEvent, schemas: SessionLiveState):
+async def dummy(name: SessionEvent, schemas: SessionLiveState, enum1: DelegateEvents, enum2: ChairEvents):
     return Response(status_code=status.HTTP_404_NOT_FOUND)
     
 
