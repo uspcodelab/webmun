@@ -27,7 +27,6 @@ type DelegationMapProps = {
 export default function DelegationMap({
     semicircleCount = 3,
     buttonsPerSemicircle = 12,
-    presentDelegations,
 }: DelegationMapProps) {
     const circles = Array.from({ length: Math.max(1, semicircleCount) }, (_, i) => i)
 
@@ -44,22 +43,24 @@ export default function DelegationMap({
     delegations.sort((a, b) => a.seat > b.seat ? 1 : -1)
     let delegationIndex = -1
 
-    const totalDelegations = circles.reduce((total, _, circleIndex) => total + getSeatCount(circleIndex), 0)
-    const delegationsPresent = Math.max(0, Math.min(presentDelegations ?? totalDelegations, totalDelegations))
-    const simpleMajority = Math.floor(delegationsPresent / 2) + 1
-    const qualifiedMajority = Math.ceil((delegationsPresent * 2) / 3)
+    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
+    const totalDelegations = useCommitteeStore((state) => state.delegations.length ?? 0)
+    const simpleMajority = Math.floor(presentDelegations / 2) + 1
+    const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)
+    const CurrentState = useCommitteeStore((state) => state.current_state)
+
 
     return (
         <div className="relative h-full w-full overflow-hidden">
             <div className="absolute inset-0 m-6 rounded-2xl border border-neutral-300 bg-linear-to-b from-white to-neutral-50">
                 <div className="pointer-events-none absolute left-4 top-4 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-xs text-neutral-600 shadow-sm">
                     <div className="font-medium text-neutral-800">Delegações presentes:</div>
-                    <div>{delegationsPresent}/{totalDelegations} delegações</div>
+                    <div>{presentDelegations}/{totalDelegations} delegações</div>
                 </div>
 
                 <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-center text-xs text-neutral-600 shadow-sm">
                     <div className="font-medium text-neutral-800">Status da sessão</div>
-                    <div>Placeholder: aguardando atualização do comitê</div>
+                    <div>{CurrentState}</div>
                 </div>
 
                 <div className="pointer-events-none absolute right-4 top-4 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-right text-xs text-neutral-600 shadow-sm">
@@ -140,7 +141,7 @@ export default function DelegationMap({
                                                 </ContextMenuGroup>
                                                 <ContextMenuSeparator />
                                                 <ContextMenuGroup>
-                                                    <ContextMenuItem>Ausência</ContextMenuItem>
+                                                    <ContextMenuItem>Ausência Temporária</ContextMenuItem>
                                                     <ContextMenuSub>
                                                         <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
                                                         <ContextMenuSubContent>

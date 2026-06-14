@@ -21,26 +21,28 @@ export default function Timer() {
     const timerIsRunning = useCommitteeStore((state) => state.timer_is_running) ?? false;
     const timerExpiration = useCommitteeStore((state) => state.timer_expiration);
     const timerRemaining = useCommitteeStore((state) => state.timer_remaining_seconds);
-    const expirationDate = new Date(timerExpiration ?? "");
 
     const [remainingSeconds,setRemainingSeconds] = useState(0);
 
-    useEffect(()=>{
-
-        if(!timerIsRunning) 
-        {
-            setRemainingSeconds(timerRemaining ?? 0);
-            return;
+    useEffect(() => {
+        if (!timerIsRunning) {
+            setRemainingSeconds(timerRemaining ?? 0)
+            return
         }
 
-        const interval = setInterval(() => {
-            const finishtime = new Date(expirationDate).getTime();
-            const now = new Date().getTime();
-            setRemainingSeconds(Math.floor((finishtime - now)/1000))
-        }, 1000);
+        const updateRemainingSeconds = () => {
+            const finishtime = new Date(timerExpiration ?? "").getTime()
+            const now = new Date().getTime()
+            setRemainingSeconds(Math.max(0, Math.floor((finishtime - now) / 1000)))
+        }
 
-        return ()=>{clearInterval(interval);}
-    }, [expirationDate])
+        updateRemainingSeconds()
+        const interval = setInterval(updateRemainingSeconds, 1000)
+
+        return () => {
+            clearInterval(interval)
+        }
+    }, [timerExpiration, timerIsRunning, timerRemaining])
 
     return (<div className="flex h-full max-h-full items-center gap-2 rounded-md border-2 p-2">
         <div className="flex flex-col">

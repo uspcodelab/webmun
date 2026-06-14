@@ -18,9 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import ManualQuorum from "@/components/session/manual-quorum"
+import { RollCallChoice } from "@/schemas/types.gen"
+import { useCommitteeStore } from "@/store/useCommitteeStore"
 
 
 export default function TestButton() {
+  const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
+  const delegations = useCommitteeStore((state) => state.delegations.length ?? 0)
+
   return (
     <Dialog>
       <form>
@@ -41,8 +47,14 @@ export default function TestButton() {
             <p>A sessão está: Aberta/Fehada</p>
             <Button>Abrir/Fechar Sessão</Button>
             <Separator className="my-4" />
-            <p>Quorum Atual: 10/20</p>
-            <Button>Chamar Quorum</Button>
+            <div className="gap-2 flex flex-col">
+              <p>Quorum Atual: {presentDelegations}/{delegations}</p>
+              <ManualQuorum />
+              <div className="inline-flex gap-2">
+                <Button variant="outline" className="bg-green-800 text-white hover:bg-green-700" disabled>Abrir Quórum</Button>
+                <Button variant="destructive" className="bg-red-800 text-white hover:bg-red-700">Fechar Quórum</Button>
+              </div>
+            </div>
             <Separator className="my-4" />
             <p>Suspensão de sessão</p>
             <Button>Suspender Sessão</Button>
