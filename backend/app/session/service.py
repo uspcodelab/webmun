@@ -4,6 +4,7 @@
 
 from datetime import datetime
 
+from pydantic import TypeAdapter
 from app.session.engine import SessionEngine
 from .manager import manager, SessionLiveState,RollCallContext
 from .schemas import *
@@ -11,32 +12,6 @@ import logging
 import json
 
 engine = SessionEngine()
-
-# TODO: pass this to schemas afterwards
-EVENT_SCHEMAS = {
-        DelegateEvents.SUBMIT_MOTION: SubmitMotionEvent,
-        DelegateEvents.SUBMIT_QUESTION: SubmitQuestionEvent, 
-        DelegateEvents.JOIN_QUEUE: JoinQueueEvent, 
-        DelegateEvents.LEAVE_QUEUE: LeaveQueueEvent, 
-        DelegateEvents.CAST_VOTE: CastVoteEvent, 
-        DelegateEvents.ANSWER_ROLLCALL: AnswerRollCallEvent,
-
-        ChairEvents.INCREASE_TIMER: IncreaseTimerEvent, 
-        ChairEvents.TOGGLE_TIMER: ToggleTimerEvent, 
-        ChairEvents.OPEN_INFORMAL_VOTING: OpenInformalVotingEvent, 
-        ChairEvents.CLOSE_INFORMAL_VOTING: CloseInformalVotingEvent,
-        ChairEvents.CLOSE_PROCEDURAL_VOTING: CloseProceduralVotingEvent,
-        ChairEvents.RESOLVE_MOTION: ResolveMotionEvent, 
-        ChairEvents.SET_AGENDA: SetAgendaEvent,
-        ChairEvents.MANUAL_PHASE_SET: SetPhaseEvent, 
-        ChairEvents.CHOOSE_SPEAKER: SpeakerEvent, 
-        ChairEvents.MARK_ROLLCALL: MarkRollCallEvent,
-        ChairEvents.CLOSE_ROLLCALL: CloseRollCallEvent,
-        ChairEvents.INSERT_QUEUE: ChairInsertQueueEvent,
-
-        ChairEvents.OPEN_SESSION: OpenSessionEvent, 
-        ChairEvents.CLOSE_SESSION: CloseSessionEvent,
-}
 
 def create_session(session_schema: SessionCreationSchema):
     session_id = session_schema.session_id
@@ -55,15 +30,16 @@ def create_session(session_schema: SessionCreationSchema):
 uvicorn_logger = logging.getLogger("uvicorn.error")
 
 async def handle_client_messages(session_id: int, sender: str, data):
-    obj = json.loads(data)
     is_chair = False if sender != "CHAIR" else True
 
-    schema = EVENT_SCHEMAS.get(obj.get("type"))
-    if schema is None:
-        raise ValueError("Unsupported event type")
+    adapter = TypeAdapter(SessionEvent)
+
+    #if schema is None:
+        #raise ValueError("Unsupported event type")
     
-    event = schema.model_validate(obj)
+    event = adapter.validate_json(data)
     state = manager.room_states[session_id]
+
 
     uvicorn_logger.info(event) #Debugging
     
