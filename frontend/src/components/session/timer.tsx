@@ -17,8 +17,11 @@ export default function Timer() {
         name: "Mesa",
         code: "null",
     }
-    const remainingSeconds = useCommitteeStore((state) => state.timer_remaining_seconds) ?? 0
     const timerIsRunning = useCommitteeStore((state) => state.timer_is_running) ?? false
+    const timerExpiration = useCommitteeStore((state) => state.timer_expiration)
+    const expirationDate = new Date(timerExpiration ?? "")
+    const now = new Date()
+    const remainingSeconds = Math.floor((expirationDate.getTime() - now.getTime()) / 1000)
 
 
 
