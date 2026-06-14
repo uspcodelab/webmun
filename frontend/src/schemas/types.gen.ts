@@ -32,7 +32,7 @@ export type BodyDummyCommitteesDummyGet = {
     /**
      * Name
      */
-    name: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent;
+    name: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent | MarkRollCallBulkEvent;
     schemas: SessionLiveState;
 };
 
@@ -73,6 +73,7 @@ export const ChairEvents = {
     CLOSE_SESSION_EVENT: 'CloseSessionEvent',
     SPEAKER_EVENT: 'SpeakerEvent',
     MARK_ROLL_CALL_EVENT: 'MarkRollCallEvent',
+    MARK_ROLL_CALL_BULK_EVENT: 'Mark Roll Call Bulk Event',
     CLOSE_ROLL_CALL_EVENT: 'CloseRollCallEvent',
     INSERT_QUEUE_EVENT: 'InsertQueueEvent'
 } as const;
@@ -466,6 +467,29 @@ export type LeaveQueueEvent = {
      */
     payload?: {
         [key: string]: unknown;
+    };
+};
+
+/**
+ * MarkRollCallBulkEvent
+ */
+export type MarkRollCallBulkEvent = {
+    /**
+     * Type
+     */
+    type: 'Mark Roll Call Bulk Event';
+    payload: MarkRollCallBulkPayload;
+};
+
+/**
+ * MarkRollCallBulkPayload
+ */
+export type MarkRollCallBulkPayload = {
+    /**
+     * Rollcalls
+     */
+    Rollcalls: {
+        [key: string]: RollCallChoice;
     };
 };
 

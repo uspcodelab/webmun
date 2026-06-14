@@ -523,6 +523,17 @@ def handle_mark_roll_call(state: SessionLiveState, event: MarkRollCallEvent, sen
 
     return state
 
+def handle_mark_roll_call_bulk(state: SessionLiveState, event: MarkRollCallBulkEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("cannot mark roll call as delegate")
+    if state.current_state != States.ROLL_CALL or state.roll_call is None:
+        raise InvalidProceduralMove("Cannot mark roll call right now")
+
+    
+    state.roll_call.registry.update(event.payload.Rollcalls)
+
+    return state
+
 def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, sender: str, is_chair: bool) -> SessionLiveState:
     if not is_chair:
         raise InvalidProceduralMove("cannot close roll call as delegate")
@@ -574,6 +585,7 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
       ChairEvents.CLOSE_SESSION: handle_close_session,
       ChairEvents.CHOOSE_SPEAKER: handle_choose_speaker,
       ChairEvents.MARK_ROLLCALL: handle_mark_roll_call,
+      ChairEvents.MARK_ROLLCALL_BULK: handle_mark_roll_call_bulk,
       ChairEvents.CLOSE_ROLLCALL: handle_close_roll_call,
       ChairEvents.INSERT_QUEUE: handle_insert_queue
 }

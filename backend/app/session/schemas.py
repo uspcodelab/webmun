@@ -167,6 +167,7 @@ class ChairEvents(str, Enum):
     # Manual actions 
     CHOOSE_SPEAKER = 'SpeakerEvent'
     MARK_ROLLCALL = 'MarkRollCallEvent'
+    MARK_ROLLCALL_BULK = 'Mark Roll Call Bulk Event'
     CLOSE_ROLLCALL = 'CloseRollCallEvent'
     INSERT_QUEUE = 'InsertQueueEvent'
     
@@ -209,6 +210,9 @@ class EmptyPayload(BaseModel):
 class MarkRollCallPayload(BaseModel):
     delegation_id: int
     choice: RollCallChoice
+
+class MarkRollCallBulkPayload(BaseModel):
+    Rollcalls: dict[int, RollCallChoice]
 
 # Related Events
 class OpenSessionEvent(BaseModel): 
@@ -259,6 +263,10 @@ class MarkRollCallEvent(BaseModel):
     type: Literal[ChairEvents.MARK_ROLLCALL]
     payload: MarkRollCallPayload
 
+class MarkRollCallBulkEvent(BaseModel):
+    type: Literal[ChairEvents.MARK_ROLLCALL_BULK]
+    payload: MarkRollCallBulkPayload
+
 class CloseRollCallEvent(BaseModel):
     type: Literal[ChairEvents.CLOSE_ROLLCALL]
     payload: EmptyPayload
@@ -273,6 +281,6 @@ SessionEvent = Annotated[
     SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent
     | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent
     | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent 
-    | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent,
+    | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent | MarkRollCallBulkEvent,
     Field(discriminator="type")]
 
