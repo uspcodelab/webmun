@@ -29,7 +29,7 @@ export const useCommitteeStore = create<SessionLiveState>(() =>({
 	voting: null,
 	voting_choice: null,
 
-    roll_call: null,
+    roll_call: {},
 }));
 
 export const UpdateStore = (state:SessionLiveState) => useCommitteeStore.setState(state)

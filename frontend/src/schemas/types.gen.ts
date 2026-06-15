@@ -519,20 +519,20 @@ export type MarkRollCallPayload = {
  * Motions
  */
 export const Motions = {
-    CHANGE_DEBATE_TYPE: 'Change Debate Type',
-    POSTPONE_SESSION: 'Postpone Session',
-    REOPEN_SESSION: 'Reopen Session',
+    MUDAR_TIPO_DE_DEBATE: 'Mudar Tipo de Debate',
+    ADIAAMENTO_DE_SESSÃO: 'Adiaamento de Sessão',
+    REABRIR_SESSÃO: 'Reabrir Sessão',
     TOUR_DE_TABLE: 'Tour de Table',
-    END_DEBATE: 'End Debate',
-    VOTE_AMENDMENT: 'Vote Amendment',
-    VOTE_BY_ROLL_CALL: 'Vote by Roll Call',
-    CLOSE_SPEAKERS_LIST: 'Close Speakers list',
-    REOPEN_SPEAKERS_LIST: 'Reopen Speakers list',
-    SPLIT_PROPOSAL: 'Split Proposal',
-    INTRODUCE_RESOLUTION_PROPOSAL: 'Introduce Resolution Proposal',
-    INTRODUCE_AMENDMENT_PROPOSAL: 'Introduce Amendment Proposal',
-    CHANGE_TOPIC: 'Change Topic',
-    QUORUM: 'Quorum',
+    ENCERRAMENTO_DE_DEBATE: 'Encerramento de Debate',
+    VOTAÇÃO_DE_EMENDA: 'Votação de Emenda',
+    VOTAÇÃO_POR_CHAMADA: 'Votação por Chamada',
+    FECHAMENTO_DA_LISTA_DE_DISCURSOS: 'Fechamento da Lista de Discursos',
+    REABRIR_A_LISTA_DE_DISCURSOS: 'Reabrir a Lista de Discursos',
+    DIVISÃO_DE_PROPOSTA: 'Divisão de Proposta',
+    INTRODUÇÃO_DE_PROPOSTA_DE_RESOLUÇÃO: 'Introdução de Proposta de Resolução',
+    INTRODUÇÃO_DE_PROPOSTA_DE_EMENDA: 'Introdução de Proposta de Emenda',
+    MUDANÇA_DE_TÓPICO: 'Mudança de Tópico',
+    QUÓRUM: 'Quórum',
     '': ''
 } as const;
 

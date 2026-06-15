@@ -58,20 +58,20 @@ class DebateTypes(str, Enum):
     UNMODERATED_DEBATE = 'Unmoderated Debate'
 
 class Motions(str, Enum):
-    CHANGE_DEBATE_TYPE = 'Change Debate Type'
-    POSTPONE_SESSION = 'Postpone Session'
-    REOPEN_SESSION = 'Reopen Session'
+    CHANGE_DEBATE_TYPE = 'Mudar Tipo de Debate'
+    POSTPONE_SESSION = 'Adiaamento de Sessão'
+    REOPEN_SESSION = 'Reabrir Sessão'
     TOUR_DE_TABLE = 'Tour de Table'
-    END_DEBATE  = 'End Debate' # TODO: map this out since "motion to close debate" means clear GSL and go to voting procedures in modeldiplomat and can also mean the same as "motion to move into voting procedures"
-    VOTE_AMENDMENT = 'Vote Amendment' # TODO: check the way this is used, since amendments MUST be voted if they're present during VOTING_PROCEDURES
-    VOTE_BY_ROLL_CALL = 'Vote by Roll Call' # TODO: check the way this is used
-    CLOSE_SPEAKERS_LIST  = 'Close Speakers list' 
-    REOPEN_SPEAKERS_LIST = 'Reopen Speakers list'
-    SPLIT_PROPOSAL = 'Split Proposal'
-    INTRODUCE_RESOLUTION_PROPOSAL = 'Introduce Resolution Proposal'
-    INTRODUCE_AMENDMENT_PROPOSAL = 'Introduce Amendment Proposal'
-    CHANGE_TOPIC = 'Change Topic'
-    QUORUM = 'Quorum'
+    END_DEBATE  = 'Encerramento de Debate' # TODO: map this out since "motion to close debate" means clear GSL and go to voting procedures in modeldiplomat and can also mean the same as "motion to move into voting procedures"
+    VOTE_AMENDMENT = 'Votação de Emenda' # TODO: check the way this is used, since amendments MUST be voted if they're present during VOTING_PROCEDURES
+    VOTE_BY_ROLL_CALL = 'Votação por Chamada' # TODO: check the way this is used
+    CLOSE_SPEAKERS_LIST  = 'Fechamento da Lista de Discursos' 
+    REOPEN_SPEAKERS_LIST = 'Reabrir a Lista de Discursos'
+    SPLIT_PROPOSAL = 'Divisão de Proposta'
+    INTRODUCE_RESOLUTION_PROPOSAL = 'Introdução de Proposta de Resolução'
+    INTRODUCE_AMENDMENT_PROPOSAL = 'Introdução de Proposta de Emenda'
+    CHANGE_TOPIC = 'Mudança de Tópico'
+    QUORUM = 'Quórum'
     CUSTOM_MOTION = '' #not implemented
 
 # TODO: refactor this to only reflect the payload received by delegates, with MotionModel being a separated entity
