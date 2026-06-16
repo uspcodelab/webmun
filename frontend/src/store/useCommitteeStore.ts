@@ -1,22 +1,35 @@
 import { create } from 'zustand'
+import {type SessionLiveState} from '../schemas/types.gen'
 
-interface CommitteeState {
-	committeeId: number;
-	committeeName: string;
-	sessionStart: string; // ISO string for datetime
+export const useCommitteeStore = create<SessionLiveState>(() =>({
+	session_id: -1,
+	start_time: "",
 
-	setCommiteeId: (id: number) => void;
-	setCommitteeName: (name: string) => void;
-	setSessionStart: (time: string) => void;
+	delegations: [],
 
-}
+	current_state: undefined,
 
-export const useCommitteeStore = create<CommitteeState>((set) =>({
-	committeeId: null,
-	committeeName: null,
-	sessionStart: null,
+    timer_is_running: false,
+    timer_expiration: null,
+    timer_remaining_seconds: 0,
+    current_speaker: null,
 
-	setCommiteeId: (id) => set({committeeId: id}),
-	setCommitteeName: (name) => set({committeeName: name}),
-	setSessionStart: (time) => set({sessionStart: time}),
+    gsl_queue: [],
+    can_set_motion: false,
+    gsl_default_time_seconds: 0,
+    caucus_list: [],
+
+    debate: null,
+
+    submitted_motions: [],
+    submitted_questions: [],
+
+	agenda_topics: [],
+	active_topic_index: null,
+	voting: null,
+	voting_choice: null,
+
+    roll_call: {},
 }));
+
+export const UpdateStore = (state:SessionLiveState) => useCommitteeStore.setState(state)

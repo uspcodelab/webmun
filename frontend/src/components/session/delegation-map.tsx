@@ -1,18 +1,22 @@
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuPortal,
-    DropdownMenuSeparator,
+// Dropdown menu removed in favor of context menu
 
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuGroup,
+    ContextMenuItem,
+    ContextMenuLabel,
+    ContextMenuSeparator,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import { useCommitteeStore } from "@/store/useCommitteeStore"
+import { CircleFlag } from 'react-circle-flags'
+import { sendMessage } from "@/pages/Session"
+import { type ChairInsertQueueEvent, type MarkRollCallEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
 
 type DelegationMapProps = {
     semicircleCount?: number
@@ -23,7 +27,6 @@ type DelegationMapProps = {
 export default function DelegationMap({
     semicircleCount = 3,
     buttonsPerSemicircle = 12,
-    presentDelegations,
 }: DelegationMapProps) {
     const circles = Array.from({ length: Math.max(1, semicircleCount) }, (_, i) => i)
 
@@ -36,22 +39,28 @@ export default function DelegationMap({
         return Math.max(1, buttonsPerSemicircle)
     }
 
-    const totalDelegations = circles.reduce((total, _, circleIndex) => total + getSeatCount(circleIndex), 0)
-    const delegationsPresent = Math.max(0, Math.min(presentDelegations ?? totalDelegations, totalDelegations))
-    const simpleMajority = Math.floor(delegationsPresent / 2) + 1
-    const qualifiedMajority = Math.ceil((delegationsPresent * 2) / 3)
+    const delegations = useCommitteeStore((state) => state.delegations)
+    delegations.sort((a, b) => a.seat > b.seat ? 1 : -1)
+    let delegationIndex = -1
+
+    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
+    const totalDelegations = useCommitteeStore((state) => state.delegations.length ?? 0)
+    const simpleMajority = Math.floor(presentDelegations / 2) + 1
+    const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)
+    const CurrentState = useCommitteeStore((state) => state.current_state)
+
 
     return (
         <div className="relative h-full w-full overflow-hidden">
             <div className="absolute inset-0 m-6 rounded-2xl border border-neutral-300 bg-linear-to-b from-white to-neutral-50">
                 <div className="pointer-events-none absolute left-4 top-4 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-xs text-neutral-600 shadow-sm">
                     <div className="font-medium text-neutral-800">Delegações presentes:</div>
-                    <div>{delegationsPresent}/{totalDelegations} delegações</div>
+                    <div>{presentDelegations}/{totalDelegations} delegações</div>
                 </div>
 
                 <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-center text-xs text-neutral-600 shadow-sm">
                     <div className="font-medium text-neutral-800">Status da sessão</div>
-                    <div>Placeholder: aguardando atualização do comitê</div>
+                    <div>{CurrentState}</div>
                 </div>
 
                 <div className="pointer-events-none absolute right-4 top-4 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-right text-xs text-neutral-600 shadow-sm">
@@ -69,7 +78,7 @@ export default function DelegationMap({
                 </div>
 
                 {circles.map((circleIndex) => {
-                    const radiusStep = 40
+                    const radiusStep = 50
                     const baseRadius = 120
                     const radius = baseRadius + circleIndex * radiusStep
                     const centerX = 50
@@ -89,7 +98,12 @@ export default function DelegationMap({
                                 const angleRad = (angleDeg * Math.PI) / 180
                                 const x = centerX + (radius * Math.cos(angleRad)) / 6
                                 const y = centerY + (radius * Math.sin(angleRad)) / 3.14
+                                const currentDelegationIndex = delegationIndex + 1
+                                delegationIndex = currentDelegationIndex
 
+                                if (`${circleIndex + 1}-${seatIndex + 1}` != delegations[currentDelegationIndex]?.seat) {
+                                    return (<div></div>)
+                                }
                                 return (
                                     <div
                                         key={`ring-${circleIndex}-seat-${seatIndex}`}
@@ -100,62 +114,71 @@ export default function DelegationMap({
                                             transform: "translate(-50%, -50%)",
                                         }}
                                     >
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
+                                        <ContextMenu>
+                                            <ContextMenuTrigger asChild>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    className="h-[6vh] w-[6vh] rounded-full p-0 text-[10px] ring-4 ring-sky-300/30  ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
+                                                    className="h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ring-sky-300/30 ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
                                                 >
-                                                    {circleIndex + 1}-{seatIndex + 1}
+                                                    <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+                                                        <CircleFlag
+                                                            countryCode={delegations[delegationIndex]?.code}
+                                                            className="scale-110 object-contain"
+                                                        />
+                                                    </span>
                                                 </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-60" align="start">
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuLabel>Ações sobre a Delegação</DropdownMenuLabel>
-                                                    <DropdownMenuItem>
+                                            </ContextMenuTrigger>
+                                            <ContextMenuContent className="w-60">
+                                                <ContextMenuGroup>
+                                                    <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
+                                                    <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.INSERT_QUEUE_EVENT, payload: {target: delegations[currentDelegationIndex]?.id}} as ChairInsertQueueEvent)}>
                                                         Colocar na Lista de Discursos
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem>
+                                                    </ContextMenuItem>
+                                                    <ContextMenuItem>
                                                         Dar a palavra
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuItem>Ausência</DropdownMenuItem>
-                                                    <DropdownMenuSub>
-                                                        <DropdownMenuSubTrigger>Mudar Presença</DropdownMenuSubTrigger>
-                                                        <DropdownMenuPortal>
-                                                            <DropdownMenuSubContent>
-                                                                <DropdownMenuItem>Presente Votante</DropdownMenuItem>
-                                                                <DropdownMenuItem>Presente</DropdownMenuItem>
-                                                                <DropdownMenuItem>Ausente</DropdownMenuItem>
-                                                            </DropdownMenuSubContent>
-                                                        </DropdownMenuPortal>
-                                                    </DropdownMenuSub>
+                                                    </ContextMenuItem>
+                                                </ContextMenuGroup>
+                                                <ContextMenuSeparator />
+                                                <ContextMenuGroup>
+                                                    <ContextMenuItem>Ausência Temporária</ContextMenuItem>
+                                                    <ContextMenuSub>
+                                                        <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
+                                                        <ContextMenuSubContent>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.PRESENT_AND_VOTING}} as MarkRollCallEvent)}>
+                                                                Presente Votante
+                                                            </ContextMenuItem>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.PRESENT}} as MarkRollCallEvent)}>
+                                                                Presente
+                                                            </ContextMenuItem>
+                                                            <ContextMenuItem onClick={() => sendMessage({type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: {delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.ABSENT}} as MarkRollCallEvent)}>
+                                                                Ausente
+                                                            </ContextMenuItem>
+                                                        </ContextMenuSubContent>
+                                                    </ContextMenuSub>
 
-                                                </DropdownMenuGroup>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuSub >
-                                                        <DropdownMenuSubTrigger >Punições</DropdownMenuSubTrigger>
-                                                        <DropdownMenuPortal>
-                                                            <DropdownMenuSubContent>
-                                                                <DropdownMenuItem>Aviso Formal</DropdownMenuItem>
-                                                                <DropdownMenuItem>Expulsão</DropdownMenuItem>
-                                                            </DropdownMenuSubContent>
-                                                        </DropdownMenuPortal>
-                                                    </DropdownMenuSub>
-                                                   
-                                                </DropdownMenuGroup>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                                </ContextMenuGroup>
+                                                <ContextMenuSeparator />
+                                                <ContextMenuGroup>
+                                                    <ContextMenuSub>
+                                                        <ContextMenuSubTrigger>Punições</ContextMenuSubTrigger>
+                                                        <ContextMenuSubContent>
+                                                            <ContextMenuItem>Aviso Formal</ContextMenuItem>
+                                                            <ContextMenuItem>Expulsão</ContextMenuItem>
+                                                        </ContextMenuSubContent>
+                                                    </ContextMenuSub>
+                                                </ContextMenuGroup>
+                                            </ContextMenuContent>
+                                        </ContextMenu>
 
                                         <span className="text-[10px] font-medium leading-none text-neutral-600">
-                                            {circleIndex + 1}-{seatIndex + 1}
+                                            {delegations[delegationIndex]?.name || "Vazio"}
                                         </span>
+
                                     </div>
+
                                 )
+
                             })}
                         </div>
                     )

@@ -1,22 +1,32 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState} from 'react';
 import { useParams } from 'react-router-dom';
-import { useCommitteeStore } from '../store/useCommitteeStore.ts'
+import { UpdateStore, useCommitteeStore } from '../store/useCommitteeStore.ts'
 import SpeakerList from "@/components/session/speaker-list"
 import MotionsList from "@/components/session/motions-list"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 
+let socket : WebSocket | null = null;
+
+/*
+Use this function to send events to the backend, 
+any data with one of the Event types in schemas/types.gen.ts should work
+*/
+export function sendMessage(data: any) {
+    if (socket && socket.readyState === WebSocket.OPEN) 
+    {
+        socket.send(JSON.stringify(data));
+    } 
+    else 
+    {
+        console.error("WebSocket is not connected.");
+    }
+}
+
+
 export default function SessionPage() {
 
-    const socketRef = useRef<WebSocket>(null);
-
-    const speakers = [
-        { id: "fr", position: 1, countryName: "Franca", countryCode: "fr", speechTime: "01:53", isSpeaking: true },
-        { id: "br", position: 2, countryName: "Brasil", countryCode: "br", speechTime: "02:00" },
-        { id: "es", position: 3, countryName: "Espanha", countryCode: "es", speechTime: "02:00" },
-        { id: "br-3", position: 4, countryName: "Brasil", countryCode: "br", speechTime: "02:00" },
-    ]
 
     const motions = [
         {
@@ -47,18 +57,15 @@ export default function SessionPage() {
 
     // id that matches the name given in the Route path, at App.tsx 
     const { committeeId } = useParams<{ committeeId: string }>();
-
-    // extract what we need from the committee store
-    const { sessionStart, setSessionStart } = useCommitteeStore();
+    //const {start_time} = useCommitteeStore();
+    const all = useCommitteeStore();
 
     const [, setStatus] = useState("Connecting...");
-    const [, setUptime] = useState(0);
+    //const [, setUptime] = useState(0);
 
     useEffect(() => {
         // Initialize WebSocket
-        const socket = new WebSocket(`ws://localhost:8000/committees/ws/0`);
-
-        socketRef.current = socket;
+        socket = new WebSocket(`ws://localhost:8000/committees/ws/0?delegation=CHAIR`);
 
         socket.onopen = () => 
             {
@@ -67,32 +74,31 @@ export default function SessionPage() {
 
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            if (data.type === "INITIAL_STATE") {
-                setSessionStart(data.payload.start_time);
-            }
+            UpdateStore(data);
+            console.log(all);
         };
 
         socket.onclose = () => setStatus("Disconnected");
 
-        return () => socket.close(); // Cleanup on unmount
-    }, [committeeId, setSessionStart, setStatus]);
+        return () => socket?.close(); // Cleanup on unmount
+    }, [committeeId]);
 
     // Useeffect for local uptime timer 
-    useEffect(() => {
+    /*useEffect(() => {
 
-        if (!sessionStart) return;
+        if (!start_time) return;
 
         // calculate timer
         const interval = setInterval(() => {
-            const start = new Date(sessionStart).getTime();
+            const start = new Date(start_time).getTime();
             const now = new Date().getTime();
             setUptime(Math.floor((now - start) / 1000));
         }, 1000);
 
 
         return () => clearInterval(interval);
-    }, [sessionStart]);
-
+    }, [start_time]);*/
+    console.log(all);
     return (
         <div>
             {/* <p className={status === "connected" ? "text-green-500" : "text-red-500"}>
@@ -107,13 +113,12 @@ export default function SessionPage() {
             <div className="flex h-[82vh] w-full">
                 <div className="min-w-0 flex-1 bg-neutral-100">
                     <DelegationMap
-                        semicircleCount={4}
-                        buttonsPerSemicircle={[6, 8, 10, 12]}
-                        presentDelegations={18}
+                        semicircleCount={3}
+                        buttonsPerSemicircle={[6, 6, 9]}
                     />
                 </div>
                 <div className="flex h-full w-[20%] shrink-0 flex-col bg-white">
-                    <SpeakerList speakers={speakers} />
+                    <SpeakerList />
                     <MotionsList motions={motions} />
                 </div>
             </div>

@@ -183,7 +183,7 @@ def handle_submit_motion(state: SessionLiveState, event: SubmitMotionEvent, send
     validate_motion_payload(payload, state)
 
     payload.id = generate_next_motion_id(state)
-    payload.delegate = sender
+    payload.delegate.name = sender #TODO: FIX
     state.submitted_motions.append(payload)
     
     return state
@@ -197,7 +197,7 @@ def handle_submit_question(state: SessionLiveState, event: SubmitQuestionEvent, 
 
     validate_question_payload(payload, state)
     payload.id = generate_next_question_id(state)
-    payload.delegate = sender
+    payload.delegate.name = sender #TODO: FIX
     state.submitted_questions.append(payload)
 
     return state
@@ -518,7 +518,19 @@ def handle_mark_roll_call(state: SessionLiveState, event: MarkRollCallEvent, sen
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
 
-    state.roll_call.registry[event.payload.delegation] = event.payload.choice
+    
+    state.roll_call.registry[event.payload.delegation_id] = event.payload.choice
+
+    return state
+
+def handle_mark_roll_call_bulk(state: SessionLiveState, event: MarkRollCallBulkEvent, sender: str, is_chair: bool) -> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("cannot mark roll call as delegate")
+    if state.current_state != States.ROLL_CALL or state.roll_call is None:
+        raise InvalidProceduralMove("Cannot mark roll call right now")
+
+    
+    state.roll_call.registry.update(event.payload.Rollcalls)
 
     return state
 
@@ -535,7 +547,13 @@ def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, s
             for delegation, choice in state.roll_call.registry.items() 
             if choice in {RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING}
     }
-    state.roll_call = None
+    return state
+
+def handle_insert_queue(state: SessionLiveState, event: ChairInsertQueueEvent, sender: str, is_chair: bool)-> SessionLiveState:
+    if not is_chair:
+        raise InvalidProceduralMove("cannot insert someone on queue as delegate")
+    delegate = state.delegations[event.payload.target]
+    state.gsl_queue.append(delegate)
     return state
 
 # Signature for events/handlers, uses legacy(ish) 3.11 TypeAlias
@@ -566,7 +584,9 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
       ChairEvents.CLOSE_SESSION: handle_close_session,
       ChairEvents.CHOOSE_SPEAKER: handle_choose_speaker,
       ChairEvents.MARK_ROLLCALL: handle_mark_roll_call,
+      ChairEvents.MARK_ROLLCALL_BULK: handle_mark_roll_call_bulk,
       ChairEvents.CLOSE_ROLLCALL: handle_close_roll_call,
+      ChairEvents.INSERT_QUEUE: handle_insert_queue
 }
 
 class SessionEngine:

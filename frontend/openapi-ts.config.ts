@@ -5,7 +5,7 @@ export default {
   input: 'http://localhost:8000/openapi.json', 
   output: {
     entryFile: false,
-    path: '/src/schemas',
+    path: 'src/schemas',
   },
   plugins: [
     {

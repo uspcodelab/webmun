@@ -2,11 +2,17 @@ from pydantic import BaseModel, Field
 from typing import Literal, Annotated
 from enum import Enum
 
+class Delegation(BaseModel):
+    id: int
+    seat: str
+    name: str
+    code: str
+
 # Schema to be sent to create Session
 class SessionCreationSchema(BaseModel):
     session_id: int
     name: str | None = None
-    delegations: list[str]
+    delegations: list[Delegation]
 
 # {"type"= States.OPEN_SESSION, "payload"= session.model_dump(mode='json')}
 # We'll separate into two: Events indicate actions to be taken, whereas States/Phases indicate the current phase
@@ -39,8 +45,8 @@ class RollCallChoice(str, Enum):
 class DelegateEvents(str, Enum):
     SUBMIT_MOTION = 'SubmitMotionEvent'
     SUBMIT_QUESTION = 'SubmitQuestionEvent'
-    JOIN_QUEUE = 'JoinQueueEvent' #doesn't work anymore
-    LEAVE_QUEUE = 'LeaveQueueEvent' #doesn't work anymore
+    JOIN_QUEUE = 'JoinQueueEvent' 
+    LEAVE_QUEUE = 'LeaveQueueEvent' 
     CAST_VOTE = 'CastVoteEvent'
     CHOOSE_DELEGATION = 'ChooseDelegateEvent'
     YIELD_SPEAKING = 'YieldEvent'
@@ -52,20 +58,20 @@ class DebateTypes(str, Enum):
     UNMODERATED_DEBATE = 'Unmoderated Debate'
 
 class Motions(str, Enum):
-    CHANGE_DEBATE_TYPE = 'Change Debate Type'
-    POSTPONE_SESSION = 'Postpone Session'
-    REOPEN_SESSION = 'Reopen Session'
+    CHANGE_DEBATE_TYPE = 'Mudar Tipo de Debate'
+    POSTPONE_SESSION = 'Adiaamento de Sessão'
+    REOPEN_SESSION = 'Reabrir Sessão'
     TOUR_DE_TABLE = 'Tour de Table'
-    END_DEBATE  = 'End Debate' # TODO: map this out since "motion to close debate" means clear GSL and go to voting procedures in modeldiplomat and can also mean the same as "motion to move into voting procedures"
-    VOTE_AMENDMENT = 'Vote Amendment' # TODO: check the way this is used, since amendments MUST be voted if they're present during VOTING_PROCEDURES
-    VOTE_BY_ROLL_CALL = 'Vote by Roll Call' # TODO: check the way this is used
-    CLOSE_SPEAKERS_LIST  = 'Close Speakers list' 
-    REOPEN_SPEAKERS_LIST = 'Reopen Speakers list'
-    SPLIT_PROPOSAL = 'Split Proposal'
-    INTRODUCE_RESOLUTION_PROPOSAL = 'Introduce Resolution Proposal'
-    INTRODUCE_AMENDMENT_PROPOSAL = 'Introduce Amendment Proposal'
-    CHANGE_TOPIC = 'Change Topic'
-    QUORUM = 'Quorum'
+    END_DEBATE  = 'Encerramento de Debate' # TODO: map this out since "motion to close debate" means clear GSL and go to voting procedures in modeldiplomat and can also mean the same as "motion to move into voting procedures"
+    VOTE_AMENDMENT = 'Votação de Emenda' # TODO: check the way this is used, since amendments MUST be voted if they're present during VOTING_PROCEDURES
+    VOTE_BY_ROLL_CALL = 'Votação por Chamada' # TODO: check the way this is used
+    CLOSE_SPEAKERS_LIST  = 'Fechamento da Lista de Discursos' 
+    REOPEN_SPEAKERS_LIST = 'Reabrir a Lista de Discursos'
+    SPLIT_PROPOSAL = 'Divisão de Proposta'
+    INTRODUCE_RESOLUTION_PROPOSAL = 'Introdução de Proposta de Resolução'
+    INTRODUCE_AMENDMENT_PROPOSAL = 'Introdução de Proposta de Emenda'
+    CHANGE_TOPIC = 'Mudança de Tópico'
+    QUORUM = 'Quórum'
     CUSTOM_MOTION = '' #not implemented
 
 # TODO: refactor this to only reflect the payload received by delegates, with MotionModel being a separated entity
@@ -73,7 +79,7 @@ class DelegateMotionPayload(BaseModel):
     id: int | None = None # When Delegate Sends it, it's None
     priority: int = 0 # TODO: priority must be set on the backend unless Chair sends with custom priority? also check if chair motions automatically pass
     type: Motions
-    delegate: str | None = None
+    delegate: Delegation | None = None
     debate_type: DebateTypes | None = None
 
     total_duration_minutes: int | None = None
@@ -91,7 +97,7 @@ class DelegateQuestionPayload(BaseModel):
     id: int | None = None
     priority: int = 0
     type: Questions
-    delegate: str | None = None
+    delegate: Delegation | None = None
     details: str
 
 class DelegateVotingPayload(BaseModel):
@@ -145,7 +151,7 @@ class AnswerRollCallEvent(BaseModel):
 # -----------------------------------------------------------------------
 
 class ChairEvents(str, Enum):
-    OPEN_SESSION = 'OpenSessionEvent' # Defines Session to be opened, doesnt work anymore
+    OPEN_SESSION = 'OpenSessionEvent'
     TOGGLE_TIMER = 'ToggleTimerEvent'
     INCREASE_TIMER = 'IncreaseTimerEvent'
     OPEN_INFORMAL_VOTING = 'OpenInformalVotingEvent'
@@ -156,12 +162,14 @@ class ChairEvents(str, Enum):
     # Disruptive events (i.e manual override events)
     SET_AGENDA = 'SetAgendaEvent'
     MANUAL_PHASE_SET = 'SetPhaseEvent'
-    CLOSE_SESSION = 'CloseSessionEvent' # doesnt work anymore
+    CLOSE_SESSION = 'CloseSessionEvent'
 
     # Manual actions 
     CHOOSE_SPEAKER = 'SpeakerEvent'
     MARK_ROLLCALL = 'MarkRollCallEvent'
+    MARK_ROLLCALL_BULK = 'Mark Roll Call Bulk Event'
     CLOSE_ROLLCALL = 'CloseRollCallEvent'
+    INSERT_QUEUE = 'InsertQueueEvent'
     
 class ChairIncreaseTimerPayload(BaseModel):
     seconds: int = 5
@@ -189,6 +197,9 @@ class ChairSetAgendaPayload(BaseModel):
 class ChairSetPhasePayload(BaseModel):
     target_phase: States
 
+class ChairInsertQueuePayload(BaseModel):
+    target: int #Delegate Id 
+
 # These two normally don't need to have an id 
 class ChairCloseInformalVotingPayload(BaseModel):
     voting_id: int | None = None
@@ -197,8 +208,11 @@ class EmptyPayload(BaseModel):
     ...
 
 class MarkRollCallPayload(BaseModel):
-    delegation: str
+    delegation_id: int
     choice: RollCallChoice
+
+class MarkRollCallBulkPayload(BaseModel):
+    Rollcalls: dict[int, RollCallChoice]
 
 # Related Events
 class OpenSessionEvent(BaseModel): 
@@ -249,10 +263,17 @@ class MarkRollCallEvent(BaseModel):
     type: Literal[ChairEvents.MARK_ROLLCALL]
     payload: MarkRollCallPayload
 
+class MarkRollCallBulkEvent(BaseModel):
+    type: Literal[ChairEvents.MARK_ROLLCALL_BULK]
+    payload: MarkRollCallBulkPayload
+
 class CloseRollCallEvent(BaseModel):
     type: Literal[ChairEvents.CLOSE_ROLLCALL]
     payload: EmptyPayload
 
+class ChairInsertQueueEvent(BaseModel):
+    type: Literal[ChairEvents.INSERT_QUEUE]
+    payload: ChairInsertQueuePayload
 # -----------------------------------------------------------------------
 # Event envelope model / Discriminated Union
 
@@ -260,6 +281,6 @@ SessionEvent = Annotated[
     SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent
     | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent
     | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent 
-    | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent,
+    | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent | MarkRollCallBulkEvent,
     Field(discriminator="type")]
 
