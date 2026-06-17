@@ -12,8 +12,10 @@ services:
       - VITE_API_URL=http://localhost:8000
       - VITE_WS_URL=ws://localhost:8000/ws
     depends_on:
-      - backend
-    
+      backend:
+        condition: service_healthy
+    post_start:
+      - command: npx @hey-api/openapi-ts   
   backend:
     build:
       context: ./backend
@@ -22,7 +24,15 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-    
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request, sys;
+                      res = urllib.request.urlopen('http://localhost:8000/committees/health', timeout=3); 
+                      sys.exit(0) if res.getcode() == 200 else sys.exit(1); "]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 1s
    
     
     

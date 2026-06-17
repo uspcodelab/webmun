@@ -14,8 +14,11 @@ router = APIRouter()
 @router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
 async def dummy(name: SessionEvent, schemas: SessionLiveState, enum1: DelegateEvents, enum2: ChairEvents):
     return Response(status_code=status.HTTP_404_NOT_FOUND)
-    
 
+@router.get("/health", status_code=status.HTTP_200_OK)
+async def health():
+    return Response(status_code=status.HTTP_200_OK)
+    
 # Create committee route, receives a contentbody following CommitteeCreationSchema's format
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
 async def create_session_endpoint(session_schema: SessionCreationSchema): 
