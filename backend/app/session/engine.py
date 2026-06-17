@@ -170,7 +170,7 @@ def require_delegate(actor: SessionActor) -> DelegationContext:
 
 def require_chair(actor: SessionActor) -> None:
     """Returns"""
-    if SessionActor.role != SessionRole.CHAIR:
+    if actor.role != SessionRole.CHAIR:
         raise InvalidProceduralMove("Chair role required")
 
 
@@ -547,7 +547,8 @@ def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, a
 
 def handle_insert_queue(state: SessionLiveState, event: ChairInsertQueueEvent, actor: SessionActor)-> SessionLiveState:
     require_chair(actor)
-    delegate = state.delegations[event.payload.target]
+    del_id: int = event.payload.target
+    delegate = state.delegations[del_id]
     state.gsl_queue.append(delegate.id)
     return state
 

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Literal, Annotated
 from enum import Enum
-from .models import Delegation
+from .models import DelegationContext
 
 # TODO: separate this in relation to Schema and Model 
 # Current
@@ -10,7 +10,7 @@ from .models import Delegation
 class SessionCreationSchema(BaseModel):
     session_id: int
     name: str | None = None
-    delegations: list[Delegation]
+    delegations: list[DelegationContext] # useful for now
 
 # {"type"= States.OPEN_SESSION, "payload"= session.model_dump(mode='json')}
 # We'll separate into two: Events indicate actions to be taken, whereas States/Phases indicate the current phase
@@ -77,7 +77,7 @@ class DelegateMotionPayload(BaseModel):
     id: int | None = None # When Delegate Sends it, it's None
     priority: int = 0 # TODO: priority must be set on the backend unless Chair sends with custom priority? also check if chair motions automatically pass
     type: Motions
-    delegate: Delegation
+    delegate: DelegationContext
     debate_type: DebateTypes | None = None
 
     total_duration_minutes: int | None = None
@@ -95,7 +95,7 @@ class DelegateQuestionPayload(BaseModel):
     id: int | None = None
     priority: int = 0
     type: Questions
-    delegate: Delegation
+    delegate: DelegationContext
     details: str
 
 class DelegateVotingPayload(BaseModel):
