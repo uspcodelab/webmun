@@ -6,7 +6,6 @@ from datetime import datetime
 
 from pydantic import TypeAdapter
 from app.session.engine import SessionEngine
-from app.session.models import SessionActor
 from .manager import manager, SessionLiveState,RollCallContext
 from .schemas import *
 from .models import SessionActor, SessionRole, DelegationContext
