@@ -91,7 +91,7 @@ class ConnectionManager:
     # 
     async def connect(self, websocket: WebSocket, session_id: int, actor: SessionActor):
         await websocket.accept()
-        self.active_connections[session_id][websocket]= actor 
+        self.active_connections.setdefault(session_id, {})[websocket] = actor
 
         # when someone connects, send current state as SessionLiveState
         if session_id in self.room_states:

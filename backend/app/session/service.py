@@ -9,9 +9,50 @@ from app.session.engine import SessionEngine
 from app.session.models import SessionActor
 from .manager import manager, SessionLiveState,RollCallContext
 from .schemas import *
+from .models import SessionActor, SessionRole, DelegationContext
 import logging
 
 engine = SessionEngine()
+
+class ActorResolutionError(Exception):
+    pass
+
+def build_actor(
+        session_id: int, 
+        role: SessionRole, 
+        delegation_id: int | None = None,
+        display_name: str | None = None,
+        ) -> SessionActor:
+
+    if role == SessionRole.CHAIR:
+        return SessionActor(
+                role=SessionRole.CHAIR,
+                display_name="Chair",
+                )
+
+    if role == SessionRole.DELEGATE:
+        if delegation_id is None:
+            raise ActorResolutionError("needs delegate id")
+        state = manager.room_states.get(session_id)
+        if state is None:
+            raise ActorResolutionError("session not found")
+
+        delegation = next(
+                  (d for d in state.delegations if d.id == delegation_id), None)
+        if delegation is None:
+            raise ActorResolutionError("delegation not found")
+
+        return SessionActor(
+                  role=SessionRole.DELEGATE,
+                  delegation=DelegationContext(
+                      id=delegation.id,
+                      seat=delegation.seat,
+                      name=delegation.name,
+                      code=delegation.code,
+                      ),
+                  display_name=delegation.name,
+                  )
+
 
 def create_session(session_schema: SessionCreationSchema):
     session_id = session_schema.session_id
