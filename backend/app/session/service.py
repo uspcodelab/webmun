@@ -6,10 +6,10 @@ from datetime import datetime
 
 from pydantic import TypeAdapter
 from app.session.engine import SessionEngine
+from app.session.models import SessionActor
 from .manager import manager, SessionLiveState,RollCallContext
 from .schemas import *
 import logging
-import json
 
 engine = SessionEngine()
 
@@ -29,9 +29,7 @@ def create_session(session_schema: SessionCreationSchema):
 
 uvicorn_logger = logging.getLogger("uvicorn.error")
 
-async def handle_client_messages(session_id: int, sender: str, data):
-    is_chair = False if sender != "CHAIR" else True
-
+async def handle_client_messages(session_id: int, actor: SessionActor, data):
     adapter = TypeAdapter(SessionEvent)
 
     #if schema is None:
@@ -43,7 +41,7 @@ async def handle_client_messages(session_id: int, sender: str, data):
 
     uvicorn_logger.info(event) #Debugging
     
-    new_state = engine.dispatch(state, event, sender, is_chair)
+    new_state = engine.dispatch(state, event, actor)
     manager.room_states[session_id] = new_state
 
     await manager.broadcast_state(session_id)

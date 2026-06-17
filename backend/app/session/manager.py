@@ -6,14 +6,15 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Literal
 
-from .schemas import DebateTypes, RollCallChoice, States, DelegateMotionPayload, DelegateQuestionPayload, Delegation
+from .schemas import DebateTypes, RollCallChoice, States, DelegateMotionPayload, DelegateQuestionPayload
+from .models import DelegationContext, SessionActor, SessionRole # TODO: remove these imports later
 
 class VotingContext(BaseModel):
     target_type: Literal["PROCEDURAL", "SUBSTANTIVE", "INFORMAL"]
     motion_in_vote: DelegateMotionPayload | None = None
     title: str | None = None 
     return_state: States 
-    voting_registry: dict[str, Literal["FAVOUR", "AGAINST", "ABSTAIN"]] = {}
+    voting_registry: dict[int, Literal["FAVOUR", "AGAINST", "ABSTAIN"]] = {}
 
     # additional fields
     majority: Literal['SIMPLE', 'QUALIFIED', 'ABSOLUTE']
@@ -30,7 +31,7 @@ class DebateContext(BaseModel):
 
 class RollCallContext(BaseModel):
     registry: dict[int, RollCallChoice] = {} #Delegation Id as key
-    current_delegation: Delegation | None = None # perhaps not needed
+    current_delegation: int | None = None # perhaps not needed
 
 # Represents the session live state
 class SessionLiveState(BaseModel):
@@ -38,8 +39,7 @@ class SessionLiveState(BaseModel):
     start_time: datetime
 
     # temporary list of delegations in this committee
-    # TODO: validate sender delegation to this list
-    delegations: list[Delegation]
+    delegations: list[DelegationContext]
 
     # General state for FSM engine
     current_state: States = States.SETUP
@@ -50,14 +50,14 @@ class SessionLiveState(BaseModel):
     timer_remaining_seconds: int = 0 # update on pause/increase, can go negative 
 
     # Speakers 
-    current_speaker: Delegation | None = None
-    gsl_queue: list[Delegation] = []
+    current_speaker: int | None = None
+    gsl_queue: list[int] = []
     can_set_motion: bool = False # Can set motions during speaking time
     gsl_default_time_seconds: int = 60
 
     # Caucus variables
     # TODO: how to add a popup placard that fades away after some moment in frontend? related to CHOOSE_SPEAKER
-    caucus_list: list[Delegation] = [] # special list that is only used during moderated caucus, has different semantic functionality than gsl queue 
+    caucus_list: list[int] = [] # special list that is only used during moderated caucus, has different semantic functionality than gsl queue 
     debate: DebateContext | None = None # used specially for Moderated, unmoderated and possibly tour de table
 
     # Context Data
@@ -76,7 +76,7 @@ class SessionLiveState(BaseModel):
     voting: VotingContext | None = None
     
     # present delegations with voting choice
-    voting_choice: dict[int, RollCallChoice] | None = None #DelegationId as key
+    voting_choice: dict[int, RollCallChoice] | None = None # DelegationId as key
 
     roll_call: RollCallContext #Not None, even if registry is empty
 
@@ -85,12 +85,13 @@ class ConnectionManager:
 
     def __init__(self):
         # Initialize dictionary with room_name and dict with websocket -> delegation
-        self.active_connections: dict[int, dict[WebSocket, str]] = {}
+        self.active_connections: dict[int, dict[WebSocket, SessionActor]] = {}
         self.room_states: dict[int, SessionLiveState] = {}
     
-    async def connect(self, websocket: WebSocket, session_id: int, delegation: str):
+    # 
+    async def connect(self, websocket: WebSocket, session_id: int, actor: SessionActor):
         await websocket.accept()
-        self.active_connections[session_id][websocket] = delegation
+        self.active_connections[session_id][websocket]= actor 
 
         # when someone connects, send current state as SessionLiveState
         if session_id in self.room_states:
@@ -100,8 +101,11 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket, session_id: int):
         self.active_connections[session_id].pop(websocket)
 
-    def get_delegation(self, websocket: WebSocket, session_id: int):
-        return self.active_connections[session_id].get(websocket)
+    def get_actor(self, websocket: WebSocket, session_id: int):
+        return self.active_connections.get(session_id, {}).get(websocket)
+    
+    def count_connected(self, session_id: int):
+        return len(self.active_connections.get(session_id, {}))
 
     # More things from connection manager here 
     async def broadcast_state(self, session_id: int):
