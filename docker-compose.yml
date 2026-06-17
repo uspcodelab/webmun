@@ -14,8 +14,14 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+        restart: true
     post_start:
       - command: npx @hey-api/openapi-ts   
+    develop:
+      watch:
+        - action: restart
+          path: ./backend/app/session/schemas.py
+
   backend:
     build:
       context: ./backend
@@ -33,6 +39,9 @@ services:
       retries: 3
       start_period: 30s
       start_interval: 1s
-   
+    develop:
+      watch:
+        - action: restart
+          path: ./backend/app/session/schemas.py
     
     
