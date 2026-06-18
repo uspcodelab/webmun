@@ -165,7 +165,7 @@ def reset_timer(state: SessionLiveState, seconds: int = 0) -> None:
 def require_delegate(actor: SessionActor) -> DelegationContext:
     # helper that returns the delegation context (old Delegation model) while validating
     if actor.role != SessionRole.DELEGATE or actor.delegation is None:
-        raise InvalidProceduralMove("Delegate role/identity required")
+        raise InvalidProceduralMove("Delegate role required")
     return actor.delegation
 
 def require_chair(actor: SessionActor) -> None:
