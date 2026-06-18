@@ -8,10 +8,50 @@ from pydantic import TypeAdapter
 from app.session.engine import SessionEngine
 from .manager import manager, SessionLiveState,RollCallContext
 from .schemas import *
+from .models import SessionActor, SessionRole, DelegationContext
 import logging
-import json
 
 engine = SessionEngine()
+
+class ActorResolutionError(Exception):
+    pass
+
+def build_actor(
+        session_id: int, 
+        role: SessionRole, 
+        delegation_id: int | None = None,
+        display_name: str | None = None,
+        ) -> SessionActor:
+
+    if role == SessionRole.CHAIR:
+        return SessionActor(
+                role=SessionRole.CHAIR,
+                display_name="Chair",
+                )
+
+    if role == SessionRole.DELEGATE:
+        if delegation_id is None:
+            raise ActorResolutionError("needs delegate id")
+        state = manager.room_states.get(session_id)
+        if state is None:
+            raise ActorResolutionError("session not found")
+
+        delegation = next(
+                  (d for d in state.delegations if d.id == delegation_id), None)
+        if delegation is None:
+            raise ActorResolutionError("delegation not found")
+
+        return SessionActor(
+                  role=SessionRole.DELEGATE,
+                  delegation=DelegationContext(
+                      id=delegation.id,
+                      seat=delegation.seat,
+                      name=delegation.name,
+                      code=delegation.code,
+                      ),
+                  display_name=delegation.name,
+                  )
+
 
 def create_session(session_schema: SessionCreationSchema):
     session_id = session_schema.session_id
@@ -29,9 +69,7 @@ def create_session(session_schema: SessionCreationSchema):
 
 uvicorn_logger = logging.getLogger("uvicorn.error")
 
-async def handle_client_messages(session_id: int, sender: str, data):
-    is_chair = False if sender != "CHAIR" else True
-
+async def handle_client_messages(session_id: int, actor: SessionActor, data):
     adapter = TypeAdapter(SessionEvent)
 
     #if schema is None:
@@ -43,7 +81,7 @@ async def handle_client_messages(session_id: int, sender: str, data):
 
     uvicorn_logger.info(event) #Debugging
     
-    new_state = engine.dispatch(state, event, sender, is_chair)
+    new_state = engine.dispatch(state, event, actor)
     manager.room_states[session_id] = new_state
 
     await manager.broadcast_state(session_id)
