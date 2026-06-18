@@ -3,9 +3,6 @@ from typing import Literal, Annotated
 from enum import Enum
 from .models import DelegationContext
 
-# TODO: separate this in relation to Schema and Model 
-# Current
-
 # Schema to be sent to create Session
 class SessionCreationSchema(BaseModel):
     session_id: int
