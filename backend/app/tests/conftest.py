@@ -1,15 +1,15 @@
 # Environment configuration file for testing
 
 from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
+
 from app.main import app
 from app.session.engine import SessionEngine
-from app.session.models import SessionActor, SessionRole, DelegationContext
-from app.session.manager import (
-        RollCallContext,  
-        SessionLiveState
-        )
+from app.session.manager import RollCallContext, SessionLiveState
+from app.session.models import DelegationContext, SessionActor, SessionRole
+
 
 @pytest.fixture
 def client():
