@@ -5,14 +5,9 @@ from enum import Enum
 from datetime import datetime
 from typing import Literal
 
-from .schemas import DebateTypes, RollCallChoice, States, DelegateMotionPayload, DelegateQuestionPayload #We'll probably remove or move some of these
+from .schemas import DebateTypes, RollCallChoice, States, DelegateMotionPayload, DelegationContext, DelegateQuestionPayload #We'll probably remove or move some of these
 
 # This may be used for SessionLiveState as well, but mainly used in SessionActor
-class DelegationContext(BaseModel):
-    id: int
-    seat: str
-    name: str
-    code: str
 
 class SessionRole(str, Enum):
     CHAIR = "CHAIR"

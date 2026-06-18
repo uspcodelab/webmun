@@ -2,9 +2,9 @@
 # The 1st layer when connecting to clients
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Response, WebSocketException, status
-from app.session.models import SessionRole
-from app.session.schemas import SessionCreationSchema, DelegateEvents, ChairEvents, SessionEvent
-from .manager import manager, SessionLiveState 
+from app.session.models import SessionRole, SessionLiveState
+from app.session.schemas import SessionCreationSchema, DelegateEvents, ChairEvents, SessionEvent 
+from .manager import manager
 from .service import create_session, handle_client_messages, build_actor, ActorResolutionError
 
 

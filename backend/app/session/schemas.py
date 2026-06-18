@@ -1,7 +1,14 @@
 from pydantic import BaseModel, Field
 from typing import Literal, Annotated
 from enum import Enum
-from .models import DelegationContext
+
+#TODO: Separate models and schemas more cleanly, this is only here to stop circular imports
+#TEMPORARY SOLUTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+class DelegationContext(BaseModel):
+    id: int
+    seat: str
+    name: str
+    code: str
 
 # Schema to be sent to create Session
 class SessionCreationSchema(BaseModel):

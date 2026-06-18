@@ -88,9 +88,9 @@ export type ChairEvents = typeof ChairEvents[keyof typeof ChairEvents];
  */
 export type ChairForceSpeakerPayload = {
     /**
-     * Speaker
+     * Speaker Id
      */
-    speaker?: string | null;
+    speaker_id?: number | null;
     /**
      * Seconds
      */
@@ -326,7 +326,7 @@ export type DelegateMotionPayload = {
      */
     priority?: number;
     type: Motions;
-    delegate?: Delegation | null;
+    delegate: DelegationContext;
     debate_type?: DebateTypes | null;
     /**
      * Total Duration Minutes
@@ -359,7 +359,7 @@ export type DelegateQuestionPayload = {
      */
     priority?: number;
     type: Questions;
-    delegate?: Delegation | null;
+    delegate: DelegationContext;
     /**
      * Details
      */
@@ -389,9 +389,9 @@ export type DelegateVotingPayload = {
 };
 
 /**
- * Delegation
+ * DelegationContext
  */
-export type Delegation = {
+export type DelegationContext = {
     /**
      * Id
      */
@@ -612,7 +612,10 @@ export type RollCallContext = {
     registry?: {
         [key: string]: RollCallChoice;
     };
-    current_delegation?: Delegation | null;
+    /**
+     * Current Delegation
+     */
+    current_delegation?: number | null;
 };
 
 /**
@@ -630,7 +633,7 @@ export type SessionCreationSchema = {
     /**
      * Delegations
      */
-    delegations: Array<Delegation>;
+    delegations: Array<DelegationContext>;
 };
 
 /**
@@ -648,7 +651,7 @@ export type SessionLiveState = {
     /**
      * Delegations
      */
-    delegations: Array<Delegation>;
+    delegations: Array<DelegationContext>;
     current_state?: States;
     /**
      * Timer Is Running
@@ -662,11 +665,14 @@ export type SessionLiveState = {
      * Timer Remaining Seconds
      */
     timer_remaining_seconds?: number;
-    current_speaker?: Delegation | null;
+    /**
+     * Current Speaker
+     */
+    current_speaker?: number | null;
     /**
      * Gsl Queue
      */
-    gsl_queue?: Array<Delegation>;
+    gsl_queue?: Array<number>;
     /**
      * Can Set Motion
      */
@@ -678,7 +684,7 @@ export type SessionLiveState = {
     /**
      * Caucus List
      */
-    caucus_list?: Array<Delegation>;
+    caucus_list?: Array<number>;
     debate?: DebateContext | null;
     /**
      * Submitted Motions
