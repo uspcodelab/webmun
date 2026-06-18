@@ -3,7 +3,7 @@ from datetime import timezone, timedelta, datetime
 from typing import Callable, Any, TypeAlias
 
 from .schemas import *
-from .manager import DebateContext, RollCallContext, SessionLiveState, VotingContext
+from .manager import DebateContext, RollCallContext, SessionLiveState, VotingContext, manager
 from .models import SessionActor, DelegationContext, SessionRole
 
 # placeholder Exception to be used in engine
@@ -268,8 +268,32 @@ def handle_answer_roll_call(state: SessionLiveState, event: AnswerRollCallEvent,
      
 # Chair events
 def handle_open_session(state: SessionLiveState, event: OpenSessionEvent, actor: SessionActor) -> SessionLiveState:
-    ...
-    # should go into rollcall and modify RollCallContext
+    
+    require_chair(actor)
+    if (state.current_state != States.SETUP):
+        raise InvalidProceduralMove("Session can only be opened from setup")
+
+    # Count unique delegations currently connected to this session
+    connections = manager.active_connections.get(state.session_id, {})
+    present_delegations = {a.delegation.id for a in connections.values() if a.delegation is not None}
+
+    # Compare with assigned delegations for the session
+    expected = len(state.delegations or [])
+    present = len(present_delegations)
+    if present != expected:
+        raise InvalidProceduralMove(f"Cannot open session: {present} delegations present, expected {expected}") # Can use this verification to send a warning to chair and see if he whants to force open session or wait for more delegations
+
+    state.current_state = States.ROLL_CALL
+    state.roll_call = RollCallContext(registry={}, current_delegation=0)
+    state.voting_choice = {}
+    state.gsl_queue = []
+    state.current_speaker = None
+    state.debate = None
+    state.timer_is_running = False
+    state.timer_expiration = None
+    state.timer_remaining_seconds = 0
+
+    return state
 
 def handle_close_session(state: SessionLiveState, event: CloseSessionEvent, actor: SessionActor) -> SessionLiveState:
     ...
