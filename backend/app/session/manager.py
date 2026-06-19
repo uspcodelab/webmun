@@ -48,5 +48,3 @@ class ConnectionManager:
 
     # TODO: add broadcast_event so we send only the event + deltas (fields changed)/event only, or keep broadcasting entire state
 
-
-manager = ConnectionManager()
