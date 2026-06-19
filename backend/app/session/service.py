@@ -71,6 +71,7 @@ class SessionService():
 
         # loop through delegationSchema and convert each to DelegationContext
         delegations = [
+            # id now begins at 0 instead of 1
             DelegationContext(id=i, name=d.name, seat=d.seat, code=d.code)
             for i, d in enumerate(session_schema.delegations)
         ]

@@ -204,7 +204,7 @@ def mark_roll_call_bulk_event() -> sch.MarkRollCallBulkEvent:
 def insert_queue_event() -> sch.ChairInsertQueueEvent:
     return sch.ChairInsertQueueEvent(
         type=enums.ChairEvents.INSERT_QUEUE,
-        payload=sch.ChairInsertQueuePayload(target=1),
+        payload=sch.ChairInsertQueuePayload(target=0),
     )
 
 
@@ -294,7 +294,7 @@ def test_delegate_can_join_queue(
 ) -> None:
     state = engine.dispatch(open_gsl_state, join_queue_event, delegate_actor)
 
-    assert state.gsl_queue == [1]
+    assert state.gsl_queue == [0]
 
 
 def test_delegate_cannot_join_queue_twice(
@@ -335,7 +335,7 @@ def test_delegate_can_leave_queue(
     leave_queue_event: sch.LeaveQueueEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    open_gsl_state.gsl_queue.append(1)
+    open_gsl_state.gsl_queue.append(0)
 
     state = engine.dispatch(open_gsl_state, leave_queue_event, delegate_actor)
 
@@ -361,7 +361,7 @@ def test_delegate_can_cast_vote(
     state = engine.dispatch(voting_state, cast_vote_event, delegate_actor)
 
     assert state.voting is not None
-    assert state.voting.voting_registry == {1: "FAVOUR"}
+    assert state.voting.voting_registry == {0: "FAVOUR"}
 
 
 def test_delegate_cannot_cast_vote_twice(
@@ -396,7 +396,7 @@ def test_delegate_can_answer_roll_call(
 
     state = engine.dispatch(session_state, answer_roll_call_event, delegate_actor)
 
-    assert state.roll_call.registry == {1: enums.RollCallChoice.PRESENT}
+    assert state.roll_call.registry == {0: enums.RollCallChoice.PRESENT}
 
 
 def test_chair_can_close_roll_call(
@@ -683,10 +683,10 @@ def test_chair_can_mark_roll_call_bulk(
     }
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="handle_insert_queue currently treats delegation id as list index.",
-)
+#@pytest.mark.xfail(
+#    strict=True,
+#    reason="handle_insert_queue currently treats delegation id as list index.",
+#)
 def test_chair_insert_queue_uses_delegation_id(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
@@ -695,7 +695,7 @@ def test_chair_insert_queue_uses_delegation_id(
 ) -> None:
     state = engine.dispatch(open_gsl_state, insert_queue_event, chair_actor)
 
-    assert state.gsl_queue == [1]
+    assert state.gsl_queue == [0]
 
 
 @pytest.mark.xfail(strict=True, reason="OpenSessionEvent handler is not implemented.")

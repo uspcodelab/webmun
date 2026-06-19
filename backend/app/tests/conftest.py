@@ -25,9 +25,9 @@ def client():
 
 @pytest.fixture
 def delegation_list():
-    brazil = DelegationContext(id=1, seat="1-2", name="Brazil", code="br")
-    usa = DelegationContext(id=2, seat="3-4", name="USA", code="us")
-    russia = DelegationContext(id=3, seat="5-6", name="Russia", code="ru")
+    brazil = DelegationContext(id=0, seat="1-2", name="Brazil", code="br")
+    usa = DelegationContext(id=1, seat="3-4", name="USA", code="us")
+    russia = DelegationContext(id=2, seat="5-6", name="Russia", code="ru")
     return [brazil, usa, russia]
 
 @pytest.fixture 
