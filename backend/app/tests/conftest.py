@@ -7,8 +7,16 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.session.engine import SessionEngine
-from app.session.manager import RollCallContext, SessionLiveState
-from app.session.models import DelegationContext, SessionActor, SessionRole
+from app.session.enums import States
+from app.session.manager import ConnectionManager
+from app.session.models import (
+    DelegationContext,
+    RollCallContext,
+    SessionActor,
+    SessionLiveState,
+    SessionRole,
+)
+from app.session.service import SessionService
 
 
 @pytest.fixture
@@ -43,6 +51,32 @@ def chair_actor():
 def delegate_actor(delegation_list: list[DelegationContext]):
     return SessionActor(role=SessionRole.DELEGATE, delegation=delegation_list[0])
 
-@pytest.fixture 
+
+@pytest.fixture
 def engine():
     return SessionEngine()
+
+
+class FakeEngine:
+    def __init__(self):
+        self.dispatched = None
+
+    def dispatch(self, state, event, actor):
+        self.dispatched = {
+            "state": state, 
+            "event": event, 
+            "actor": actor,
+        }
+        state.current_state = States.OPEN_GSL
+        return state
+
+@pytest.fixture
+def fake_engine():
+    return FakeEngine()
+
+@pytest.fixture 
+def service(fake_engine):
+    return SessionService(
+        manager=ConnectionManager(),
+        engine=fake_engine,
+    )
