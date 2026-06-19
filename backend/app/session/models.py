@@ -4,10 +4,13 @@ from pydantic import BaseModel
 from enum import Enum
 from datetime import datetime
 from typing import Literal
+import app.session.enums as enums
 
-from .schemas import DebateTypes, RollCallChoice, States, DelegateMotionPayload, DelegationContext, DelegateQuestionPayload #We'll probably remove or move some of these
-
-# This may be used for SessionLiveState as well, but mainly used in SessionActor
+class DelegationContext(BaseModel):
+    id: int
+    name: str
+    seat: str
+    code: str
 
 class SessionRole(str, Enum):
     CHAIR = "CHAIR"
@@ -19,15 +22,31 @@ class SessionActor(BaseModel):
     display_name: str = "Placeholder"
     delegation: DelegationContext | None = None
 
-#Most likely there will be substantial changes to models down here
-# TODO: separate this in relation to Schema and Model 
-# Current
+class MotionContext(BaseModel):
+    id: int | None = None 
+    priority: int = 0 
+    type: enums.Motions
+    delegate_id: int | None = None
+    debate_type: enums.DebateTypes | None = None
+
+    total_duration_minutes: int | None = None
+    per_speaker_seconds: int | None = None
+    target_topic: str | None = None
+
+    details: str | None = None
+    
+class QuestionContext(BaseModel):
+    id: int | None = None 
+    priority: int = 0
+    type: enums.Questions 
+    delegate_id: int | None = None # Really None? 
+    details: str | None = None
 
 class VotingContext(BaseModel):
     target_type: Literal["PROCEDURAL", "SUBSTANTIVE", "INFORMAL"]
-    motion_in_vote: DelegateMotionPayload | None = None
+    motion_in_vote: MotionContext | None = None
     title: str | None = None 
-    return_state: States 
+    return_state: enums.States 
     voting_registry: dict[int, Literal["FAVOUR", "AGAINST", "ABSTAIN"]] = {}
 
     # additional fields
@@ -35,8 +54,8 @@ class VotingContext(BaseModel):
     veto_power: bool
 
 class DebateContext(BaseModel):
-    debate_type: DebateTypes 
-    return_state: States 
+    debate_type: enums.DebateTypes 
+    return_state: enums.States 
     total_duration_seconds: int | None = None # TODO: check if this is needed 
     total_speeches: int | None = None # Check if we use total duration or this for calculating overall time, it can also go overtime 
     per_speaker_seconds: int | None = None
@@ -44,7 +63,7 @@ class DebateContext(BaseModel):
     topic: str | None = None
 
 class RollCallContext(BaseModel):
-    registry: dict[int, RollCallChoice] = {} #Delegation Id as key
+    registry: dict[int, enums.RollCallChoice] = {} #Delegation Id as key
     current_delegation: int | None = None # perhaps not needed
 
 # Represents the session live state
@@ -56,7 +75,7 @@ class SessionLiveState(BaseModel):
     delegations: list[DelegationContext]
 
     # General state for FSM engine
-    current_state: States = States.SETUP
+    current_state: enums.States = enums.States.SETUP
 
     # Timer states
     timer_is_running: bool = False
@@ -78,18 +97,17 @@ class SessionLiveState(BaseModel):
     # MotionSchema inherits it's type from Motions
     _motion_id_counter = 0
     _question_id_counter = 0
-    submitted_motions: list[DelegateMotionPayload] = []
-    submitted_questions: list[DelegateQuestionPayload] = []
+    submitted_motions: list[MotionContext] = []
+    submitted_questions: list[QuestionContext] = []
 
     # Agenda
     agenda_topics: list[tuple[str, bool]] = []
     active_topic_index: int | None = None
 
-
     # Voting context
     voting: VotingContext | None = None
     
     # present delegations with voting choice
-    voting_choice: dict[int, RollCallChoice] | None = None # DelegationId as key
+    voting_choice: dict[int, enums.RollCallChoice] | None = None # DelegationId as key
 
     roll_call: RollCallContext #Not None, even if registry is empty

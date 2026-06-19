@@ -56,11 +56,17 @@ def build_actor(
 def create_session(session_schema: SessionCreationSchema):
     session_id = session_schema.session_id
     
+    # loop through delegationSchema and convert each to DelegationContext
+    delegations = [
+            DelegationContext(id=i, name=d.name, seat=d.seat, code=d.code)
+            for i, d in enumerate(session_schema.delegations)
+    ]
+    
     manager.room_states[session_id] = SessionLiveState(
             session_id=session_id,
             start_time=datetime.now(),
-            delegations=session_schema.delegations,
-            current_state=States.ROLL_CALL,
+            delegations=delegations,
+            current_state=enums.States.ROLL_CALL,
             gsl_default_time_seconds=60,
             roll_call=RollCallContext(registry={}),
             voting_choice={},

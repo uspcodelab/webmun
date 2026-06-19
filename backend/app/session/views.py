@@ -3,7 +3,8 @@
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Response, WebSocketException, status
 from app.session.models import SessionRole, SessionLiveState
-from app.session.schemas import SessionCreationSchema, DelegateEvents, ChairEvents, SessionEvent 
+from app.session.schemas import SessionCreationSchema, SessionEvent 
+from app.session.enums import DelegateEvents, ChairEvents
 from .manager import manager
 from .service import create_session, handle_client_messages, build_actor, ActorResolutionError
 

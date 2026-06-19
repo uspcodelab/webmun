@@ -1,11 +1,32 @@
 # where engine lives
 from datetime import timezone, timedelta, datetime
 from typing import Callable, Any, TypeAlias
+from .models import (
+        MotionContext,
+        SessionActor, 
+        DelegationContext, 
+        SessionRole,  
+        DebateContext, 
+        RollCallContext, 
+        SessionLiveState, 
+        VotingContext,
+        QuestionContext,
+)
 
-from .schemas import *
-from .models import SessionActor, DelegationContext, SessionRole,  DebateContext, RollCallContext, SessionLiveState, VotingContext
+from .enums import (
+        Motions, 
+        States, 
+        RollCallChoice, 
+        DelegateEvents, 
+        ChairEvents, 
+        DebateTypes, 
+        Questions, 
+)
 
-# placeholder Exception to be used in engine
+import app.session.schemas as schemas
+
+
+# TODO: add better error handling here
 class InvalidProceduralMove(Exception):
     pass
 
@@ -126,7 +147,7 @@ def generate_next_question_id(state: SessionLiveState) -> int:
     return state._question_id_counter
 
 # TODO: map more things to be needed here
-def validate_motion_payload(payload: DelegateMotionPayload, state: SessionLiveState) -> None:
+def validate_motion_payload(payload: schemas.DelegateMotionPayload, state: SessionLiveState) -> None:
     """Should validate motion payload and correct it before submitting""" 
     # can correct things
     if payload.target_topic == None:
@@ -140,10 +161,16 @@ def validate_motion_payload(payload: DelegateMotionPayload, state: SessionLiveSt
     if payload.type in {States.MODERATED_CAUCUS} and payload.per_speaker_seconds == None:
         raise InvalidProceduralMove("Cannot submit motion without speaking time")
 
-def validate_question_payload(payload: DelegateQuestionPayload, state: SessionLiveState) -> None:
+def validate_question_payload(payload: schemas.DelegateQuestionPayload, state: SessionLiveState) -> None:
     ...
 
 def tally_votes(voting: VotingContext) -> bool:
+    ...
+
+def get_motion_priority(motion: Motions) -> int:
+    ...
+
+def get_question_priority(question: Questions) -> int:
     ...
 
 def get_default_speaker_seconds(state: SessionLiveState) -> int | None:
@@ -174,7 +201,7 @@ def require_chair(actor: SessionActor) -> None:
 
 
 # -------------- HANDLERS --------------
-def handle_submit_motion(state: SessionLiveState, event: SubmitMotionEvent, actor: SessionActor) -> SessionLiveState:
+def handle_submit_motion(state: SessionLiveState, event: schemas.SubmitMotionEvent, actor: SessionActor) -> SessionLiveState:
     """Handles/Maps all possible states through a motion"""
     # Extract payload (as DelegateMotionSchema)
     payload = event.payload
@@ -185,30 +212,45 @@ def handle_submit_motion(state: SessionLiveState, event: SubmitMotionEvent, acto
         raise InvalidProceduralMove("Cannot submit this motion at this phase")
 
     if current_state in {States.MODERATED_CAUCUS, States.UNMODERATED_CAUCUS} and not state.can_set_motion:
-        raise InvalidProceduralMove("Submitting motions during caucuses is disabled")
+        raise InvalidProceduralMove("Submitting motions during caucuses is disabled") 
+    
+    #if actor.delegation is None and actor.role != SessionRole.CHAIR:
+    #    raise InvalidProceduralMove("Delegation context is missing")
     
     validate_motion_payload(payload, state)
-
-    payload.id = generate_next_motion_id(state)
-    # require_delegate receives actor and returns a valid (not None) delegation context
-    payload.delegate.name = require_delegate(actor).name 
-    state.submitted_motions.append(payload)
     
+    context = MotionContext(
+            id=generate_next_motion_id(state),
+            priority=get_motion_priority(payload.type),
+            type=payload.type,
+            delegate_id=actor.delegation.id if actor.delegation is not None else -1, # fallback to chair being the one who sent it?
+            total_duration_minutes=payload.total_duration_minutes,
+            per_speaker_seconds=payload.per_speaker_seconds,
+            target_topic=payload.target_topic,
+            details=payload.details,
+    )
+
+    state.submitted_motions.append(context)
     return state
 
-def handle_submit_question(state: SessionLiveState, event: SubmitQuestionEvent, actor: SessionActor) -> SessionLiveState:
+def handle_submit_question(state: SessionLiveState, event: schemas.SubmitQuestionEvent, actor: SessionActor) -> SessionLiveState:
     # TODO: change this so Chair can also catalog motions for delegations
     delegate = require_delegate(actor)
 
     payload = event.payload
     validate_question_payload(payload, state)
-    payload.id = generate_next_question_id(state)
-    payload.delegate.name = delegate.name
-    state.submitted_questions.append(payload)
 
+    context = QuestionContext(
+            id=generate_next_question_id(state),
+            priority=get_question_priority(payload.type),
+            type=payload.type,
+            delegate_id=actor.delegation.id if actor.delegation is not None else -1,
+            details=payload.details,
+    )
+    state.submitted_questions.append(context)
     return state
 
-def handle_join_queue(state: SessionLiveState, event: JoinQueueEvent, actor: SessionActor) -> SessionLiveState:
+def handle_join_queue(state: SessionLiveState, event: schemas.JoinQueueEvent, actor: SessionActor) -> SessionLiveState:
     delegate = require_delegate(actor)
     
     if state.current_state != States.OPEN_GSL:
@@ -222,7 +264,7 @@ def handle_join_queue(state: SessionLiveState, event: JoinQueueEvent, actor: Ses
     return state
     
 
-def handle_leave_queue(state: SessionLiveState, event: LeaveQueueEvent, actor: SessionActor) -> SessionLiveState:
+def handle_leave_queue(state: SessionLiveState, event: schemas.LeaveQueueEvent, actor: SessionActor) -> SessionLiveState:
     delegate = require_delegate(actor)
 
     if state.current_state != States.OPEN_GSL:
@@ -235,7 +277,7 @@ def handle_leave_queue(state: SessionLiveState, event: LeaveQueueEvent, actor: S
     return state
     
 
-def handle_cast_vote(state: SessionLiveState, event: CastVoteEvent, actor: SessionActor) -> SessionLiveState:
+def handle_cast_vote(state: SessionLiveState, event: schemas.CastVoteEvent, actor: SessionActor) -> SessionLiveState:
     delegate = require_delegate(actor)
     
     voting_context = state.voting 
@@ -253,10 +295,10 @@ def handle_cast_vote(state: SessionLiveState, event: CastVoteEvent, actor: Sessi
     return state
 
 # TODO: remove this
-def handle_choose_delegation(state: SessionLiveState, event: ChooseDelegateEvent, actor: SessionActor) -> SessionLiveState:
+def handle_choose_delegation(state: SessionLiveState, event: schemas.ChooseDelegateEvent, actor: SessionActor) -> SessionLiveState:
     ...
 
-def handle_answer_roll_call(state: SessionLiveState, event: AnswerRollCallEvent, actor: SessionActor) -> SessionLiveState:
+def handle_answer_roll_call(state: SessionLiveState, event: schemas.AnswerRollCallEvent, actor: SessionActor) -> SessionLiveState:
     delegate = require_delegate(actor)
 
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
@@ -266,15 +308,15 @@ def handle_answer_roll_call(state: SessionLiveState, event: AnswerRollCallEvent,
     return state
      
 # Chair events
-def handle_open_session(state: SessionLiveState, event: OpenSessionEvent, actor: SessionActor) -> SessionLiveState:
+def handle_open_session(state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor) -> SessionLiveState:
     ...
     # should go into rollcall and modify RollCallContext
 
-def handle_close_session(state: SessionLiveState, event: CloseSessionEvent, actor: SessionActor) -> SessionLiveState:
+def handle_close_session(state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor) -> SessionLiveState:
     ...
 
 # TODO: create helpers for timers -> stop_timer, set_timer, pause_timer, etc
-def handle_toggle_timer(state: SessionLiveState, event: ToggleTimerEvent, actor: SessionActor) -> SessionLiveState:
+def handle_toggle_timer(state: SessionLiveState, event: schemas.ToggleTimerEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
     
     # uses utc for now
@@ -299,7 +341,7 @@ def handle_toggle_timer(state: SessionLiveState, event: ToggleTimerEvent, actor:
     
     return state
 
-def handle_increase_timer(state: SessionLiveState, event: IncreaseTimerEvent, actor: SessionActor) -> SessionLiveState:
+def handle_increase_timer(state: SessionLiveState, event: schemas.IncreaseTimerEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
 
     now = datetime.now(timezone.utc)
@@ -312,7 +354,7 @@ def handle_increase_timer(state: SessionLiveState, event: IncreaseTimerEvent, ac
 
     return state
 
-def handle_open_informal_voting(state: SessionLiveState, event: OpenInformalVotingEvent, actor: SessionActor) -> SessionLiveState:
+def handle_open_informal_voting(state: SessionLiveState, event: schemas.OpenInformalVotingEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
 
     if state.current_state == States.VOTING_EXECUTION:
@@ -332,7 +374,7 @@ def handle_open_informal_voting(state: SessionLiveState, event: OpenInformalVoti
     return state
      
 
-def handle_close_informal_voting(state: SessionLiveState, event: CloseInformalVotingEvent, actor: SessionActor) -> SessionLiveState:
+def handle_close_informal_voting(state: SessionLiveState, event: schemas.CloseInformalVotingEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
 
     if state.voting is None:
@@ -349,7 +391,7 @@ def handle_close_informal_voting(state: SessionLiveState, event: CloseInformalVo
     return state
 
 
-def handle_close_procedural_voting(state: SessionLiveState, event: CloseProceduralVotingEvent, actor: SessionActor) -> SessionLiveState:
+def handle_close_procedural_voting(state: SessionLiveState, event: schemas.CloseProceduralVotingEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
 
     if state.voting is None:
@@ -463,7 +505,7 @@ def handle_close_procedural_voting(state: SessionLiveState, event: CloseProcedur
 
 
 # handles setting state into VOTING_EXECUTION or rejecting the motion
-def handle_resolve_motion(state: SessionLiveState, event: ResolveMotionEvent, actor: SessionActor) -> SessionLiveState:
+def handle_resolve_motion(state: SessionLiveState, event: schemas.ResolveMotionEvent, actor: SessionActor) -> SessionLiveState:
     # TODO: check how to resolve INTRODUCE_RESOLUTION_PROPOSAL and INTRODUCE_AMENDMENT_PROPOSAL motions separately from procedural motions
     require_chair(actor)
 
@@ -491,13 +533,13 @@ def handle_resolve_motion(state: SessionLiveState, event: ResolveMotionEvent, ac
     return state
     
 
-def handle_set_agenda(state: SessionLiveState, event: SetAgendaEvent, actor: SessionActor) -> SessionLiveState:
+def handle_set_agenda(state: SessionLiveState, event: schemas.SetAgendaEvent, actor: SessionActor) -> SessionLiveState:
     ...
 
-def handle_manual_phase_set(state: SessionLiveState, event: SetPhaseEvent, actor: SessionActor) -> SessionLiveState:
+def handle_manual_phase_set(state: SessionLiveState, event: schemas.SetPhaseEvent, actor: SessionActor) -> SessionLiveState:
     ...
 
-def handle_choose_speaker(state: SessionLiveState, event: SpeakerEvent, actor: SessionActor) -> SessionLiveState:
+def handle_choose_speaker(state: SessionLiveState, event: schemas.SpeakerEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
 
     seconds = event.payload.seconds or get_default_speaker_seconds(state)
@@ -510,7 +552,7 @@ def handle_choose_speaker(state: SessionLiveState, event: SpeakerEvent, actor: S
 
     return state
 
-def handle_mark_roll_call(state: SessionLiveState, event: MarkRollCallEvent, actor: SessionActor) -> SessionLiveState:
+def handle_mark_roll_call(state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
@@ -520,7 +562,7 @@ def handle_mark_roll_call(state: SessionLiveState, event: MarkRollCallEvent, act
 
     return state
 
-def handle_mark_roll_call_bulk(state: SessionLiveState, event: MarkRollCallBulkEvent, actor: SessionActor) -> SessionLiveState:
+def handle_mark_roll_call_bulk(state: SessionLiveState, event: schemas.MarkRollCallBulkEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
@@ -530,7 +572,7 @@ def handle_mark_roll_call_bulk(state: SessionLiveState, event: MarkRollCallBulkE
 
     return state
 
-def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, actor: SessionActor) -> SessionLiveState:
+def handle_close_roll_call(state: SessionLiveState, event: schemas.CloseRollCallEvent, actor: SessionActor) -> SessionLiveState:
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot close roll call right now")
@@ -544,7 +586,7 @@ def handle_close_roll_call(state: SessionLiveState, event: CloseRollCallEvent, a
     }
     return state
 
-def handle_insert_queue(state: SessionLiveState, event: ChairInsertQueueEvent, actor: SessionActor)-> SessionLiveState:
+def handle_insert_queue(state: SessionLiveState, event: schemas.ChairInsertQueueEvent, actor: SessionActor)-> SessionLiveState:
     require_chair(actor)
     del_id: int = event.payload.target
     delegate = state.delegations[del_id]
@@ -588,7 +630,7 @@ class SessionEngine:
     # function to calculate new state over old one
     def dispatch(self, 
                  state: SessionLiveState,
-                 event: SessionEvent,
+                 event: schemas.SessionEvent,
                  actor: SessionActor
                  ) -> SessionLiveState:
 
