@@ -24,13 +24,13 @@ from .models import (
 class ActorResolutionError(Exception):
     pass
 
+
 # SessionService class defined with Dependency Injection
 class SessionService:
     def __init__(self, manager: ConnectionManager, engine: SessionEngine):
-        self.manager = manager 
+        self.manager = manager
         self.engine = engine
         self.uvicorn_logger = logging.getLogger("uvicorn.error")
-
 
     def build_actor(
         self,
@@ -53,7 +53,9 @@ class SessionService:
             if state is None:
                 raise ActorResolutionError("session not found")
 
-            delegation = next((d for d in state.delegations if d.id == delegation_id), None)
+            delegation = next(
+                (d for d in state.delegations if d.id == delegation_id), None
+            )
             if delegation is None:
                 raise ActorResolutionError("delegation not found")
 
@@ -67,7 +69,6 @@ class SessionService:
                 ),
                 display_name=delegation.name,
             )
-
 
     def create_session(self, session_schema: schemas.SessionCreationSchema):
         session_id = session_schema.session_id
@@ -90,9 +91,7 @@ class SessionService:
         )
         self.manager.active_connections.setdefault(session_id, {})
 
-
-
-    async def handle_client_messages(self,session_id: int, actor: SessionActor, data):
+    async def handle_client_messages(self, session_id: int, actor: SessionActor, data):
         adapter = TypeAdapter(schemas.SessionEvent)
 
         # if schema is None:

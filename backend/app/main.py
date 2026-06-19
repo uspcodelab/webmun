@@ -22,7 +22,5 @@ session_service = SessionService(manager, engine)
 
 # include commitees here?
 app.include_router(
-        create_session_router(session_service),
-        prefix="/committees",
-        tags=["committees"]
+    create_session_router(session_service), prefix="/committees", tags=["committees"]
 )

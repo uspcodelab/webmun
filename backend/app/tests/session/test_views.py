@@ -13,6 +13,7 @@ def clear_service_state():
     session_service.manager.room_states.clear()
     session_service.manager.active_connections.clear()
 
+
 def session_payload(delegations: list[DelegationContext]) -> dict:
     return {
         "session_id": 0,
@@ -30,7 +31,9 @@ def test_create_session_endpoint_returns_204_and_stores_state(
     response = client.post("/committees/", json=session_payload(delegation_list))
 
     assert response.status_code == 204
-    assert session_service.manager.room_states[0].current_state == enums.States.ROLL_CALL
+    assert (
+        session_service.manager.room_states[0].current_state == enums.States.ROLL_CALL
+    )
     assert session_service.manager.room_states[0].delegations == delegation_list
     assert session_service.manager.active_connections[0] == {}
 

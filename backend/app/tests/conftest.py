@@ -23,6 +23,7 @@ from app.session.service import SessionService
 def client():
     return TestClient(app)
 
+
 @pytest.fixture
 def delegation_list():
     brazil = DelegationContext(id=0, seat="1-2", name="Brazil", code="br")
@@ -30,9 +31,11 @@ def delegation_list():
     russia = DelegationContext(id=2, seat="5-6", name="Russia", code="ru")
     return [brazil, usa, russia]
 
-@pytest.fixture 
+
+@pytest.fixture
 def roll_call():
     return RollCallContext()
+
 
 @pytest.fixture
 def session_state(delegation_list: list[DelegationContext], roll_call: RollCallContext):
@@ -43,9 +46,11 @@ def session_state(delegation_list: list[DelegationContext], roll_call: RollCallC
         roll_call=roll_call,
     )
 
+
 @pytest.fixture
 def chair_actor():
     return SessionActor(role=SessionRole.CHAIR, display_name="Chair")
+
 
 @pytest.fixture
 def delegate_actor(delegation_list: list[DelegationContext]):
@@ -63,18 +68,20 @@ class FakeEngine:
 
     def dispatch(self, state, event, actor):
         self.dispatched = {
-            "state": state, 
-            "event": event, 
+            "state": state,
+            "event": event,
             "actor": actor,
         }
         state.current_state = States.OPEN_GSL
         return state
 
+
 @pytest.fixture
 def fake_engine():
     return FakeEngine()
 
-@pytest.fixture 
+
+@pytest.fixture
 def service(fake_engine):
     return SessionService(
         manager=ConnectionManager(),

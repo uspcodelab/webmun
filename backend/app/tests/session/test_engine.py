@@ -683,10 +683,10 @@ def test_chair_can_mark_roll_call_bulk(
     }
 
 
-#@pytest.mark.xfail(
+# @pytest.mark.xfail(
 #    strict=True,
 #    reason="handle_insert_queue currently treats delegation id as list index.",
-#)
+# )
 def test_chair_insert_queue_uses_delegation_id(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,

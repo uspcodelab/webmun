@@ -129,4 +129,3 @@ async def test_broadcast_state_without_connections_is_noop(
     connection_manager.room_states[session_state.session_id] = session_state
 
     await connection_manager.broadcast_state(session_state.session_id)
-

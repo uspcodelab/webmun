@@ -35,11 +35,9 @@ def create_session_router(service: SessionService) -> APIRouter:
     ):
         return Response(status_code=status.HTTP_404_NOT_FOUND)
 
-
     @router.get("/health", status_code=status.HTTP_200_OK)
     async def health():
         return Response(status_code=status.HTTP_200_OK)
-
 
     # Create committee route, receives a contentbody following CommitteeCreationSchema's format
     @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
@@ -48,7 +46,6 @@ def create_session_router(service: SessionService) -> APIRouter:
         service.create_session(session_schema)
 
         return Response(status_code=status.HTTP_204_NO_CONTENT)
-
 
     @router.websocket("/ws/{session_id}")
     async def websocket_endpoint(
@@ -62,7 +59,9 @@ def create_session_router(service: SessionService) -> APIRouter:
         try:
             actor = service.build_actor(session_id, role, delegation_id, display_name)
         except ActorResolutionError as exc:
-            raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason=str(exc))
+            raise WebSocketException(
+                code=status.WS_1008_POLICY_VIOLATION, reason=str(exc)
+            )
 
         await service.manager.connect(websocket, session_id, actor)
         try:
