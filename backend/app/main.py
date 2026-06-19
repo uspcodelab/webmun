@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.session.views import create_session_router
-from app.session.manager import ConnectionManager
+
 from app.session.engine import SessionEngine
+from app.session.manager import ConnectionManager
 from app.session.service import SessionService
+from app.session.views import create_session_router
 
 app = FastAPI(title="WebMUN API")
 

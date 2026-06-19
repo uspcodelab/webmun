@@ -1,29 +1,30 @@
 # where engine lives
-from datetime import timezone, timedelta, datetime
-from typing import Callable, Any, TypeAlias
-from .models import (
-    MotionContext,
-    SessionActor,
-    DelegationContext,
-    SessionRole,
-    DebateContext,
-    RollCallContext,
-    SessionLiveState,
-    VotingContext,
-    QuestionContext,
-)
-
-from .enums import (
-    Motions,
-    States,
-    RollCallChoice,
-    DelegateEvents,
-    ChairEvents,
-    DebateTypes,
-    Questions,
-)
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any, TypeAlias
 
 import app.session.schemas as schemas
+
+from .enums import (
+    ChairEvents,
+    DebateTypes,
+    DelegateEvents,
+    Motions,
+    Questions,
+    RollCallChoice,
+    States,
+)
+from .models import (
+    DebateContext,
+    DelegationContext,
+    MotionContext,
+    QuestionContext,
+    RollCallContext,
+    SessionActor,
+    SessionLiveState,
+    SessionRole,
+    VotingContext,
+)
 
 
 # TODO: add better error handling here
@@ -371,7 +372,7 @@ def handle_toggle_timer(
     require_chair(actor)
 
     # uses utc for now
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if state.timer_is_running:
         # timer currently running
         if state.timer_expiration is not None and now > state.timer_expiration:
@@ -398,7 +399,7 @@ def handle_increase_timer(
 ) -> SessionLiveState:
     require_chair(actor)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if state.timer_is_running and state.timer_expiration is not None:
         state.timer_expiration += timedelta(seconds=event.payload.seconds)
@@ -507,7 +508,7 @@ def handle_close_procedural_voting(
                         return_state=state.current_state,
                         total_duration_seconds=duration_seconds,
                         per_speaker_seconds=motion.per_speaker_seconds,
-                        expires_at=datetime.now(timezone.utc)
+                        expires_at=datetime.now(UTC)
                         + timedelta(seconds=duration_seconds),
                     )
                     reset_timer(
@@ -524,7 +525,7 @@ def handle_close_procedural_voting(
                         return_state=state.current_state,
                         total_duration_seconds=duration_seconds,
                         per_speaker_seconds=None,
-                        expires_at=datetime.now(timezone.utc)
+                        expires_at=datetime.now(UTC)
                         + timedelta(seconds=duration_seconds),
                     )
                     reset_timer(state)  # should not display per_speaker timer

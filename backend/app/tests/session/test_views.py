@@ -1,9 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
+
+from app.main import session_service  # service used by our test client / main.py
 from app.session import enums
-from app.main import session_service # service used by our test client / main.py
 from app.session.models import DelegationContext
+
 
 # defines a clean service state after each testing
 @pytest.fixture(autouse=True)

@@ -1,5 +1,7 @@
+from typing import Annotated, Literal
+
 from pydantic import BaseModel, Field
-from typing import Literal, Annotated
+
 import app.session.enums as enums
 
 # --- General Schemas ---

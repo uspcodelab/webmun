@@ -2,27 +2,30 @@
 # The 2nd layer between the API route and inner things such as database, FSM engine, Redis, etc. Should orchestrate everything
 # Also calls the manager in order to broadcast states, etc
 
+import logging
 from datetime import datetime
 
 from pydantic import TypeAdapter
-from app.session.engine import SessionEngine
-from .manager import ConnectionManager
-import app.session.schemas as schemas
+
 import app.session.enums as enums
+import app.session.schemas as schemas
+from app.session.engine import SessionEngine
+
+from .manager import ConnectionManager
 from .models import (
-    SessionActor,
-    SessionRole,
     DelegationContext,
-    SessionLiveState,
     RollCallContext,
+    SessionActor,
+    SessionLiveState,
+    SessionRole,
 )
-import logging
+
 
 class ActorResolutionError(Exception):
     pass
 
 # SessionService class defined with Dependency Injection
-class SessionService():
+class SessionService:
     def __init__(self, manager: ConnectionManager, engine: SessionEngine):
         self.manager = manager 
         self.engine = engine

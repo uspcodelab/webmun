@@ -3,21 +3,22 @@
 
 from fastapi import (
     APIRouter,
+    Response,
     WebSocket,
     WebSocketDisconnect,
-    Response,
     WebSocketException,
     status,
 )
-from app.session.engine import SessionEngine
-from app.session.manager import ConnectionManager
-from app.session.models import SessionRole, SessionLiveState
+
+from app.session.enums import ChairEvents, DelegateEvents
+from app.session.models import SessionLiveState, SessionRole
 from app.session.schemas import SessionCreationSchema, SessionEvent
-from app.session.enums import DelegateEvents, ChairEvents
+
 from .service import (
-    SessionService,
     ActorResolutionError,
+    SessionService,
 )
+
 
 # We'll use the Factory design patter here, by receiving the service object and returning
 # the whole router with the service injected on it
