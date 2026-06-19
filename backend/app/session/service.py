@@ -7,7 +7,8 @@ from datetime import datetime
 from pydantic import TypeAdapter
 from app.session.engine import SessionEngine
 from .manager import manager
-from .schemas import *
+import app.session.schemas as schemas
+import app.session.enums as enums
 from .models import SessionActor, SessionRole, DelegationContext, SessionLiveState, RollCallContext
 import logging
 
@@ -53,7 +54,7 @@ def build_actor(
                   )
 
 
-def create_session(session_schema: SessionCreationSchema):
+def create_session(session_schema: schemas.SessionCreationSchema):
     session_id = session_schema.session_id
     
     # loop through delegationSchema and convert each to DelegationContext
@@ -76,7 +77,7 @@ def create_session(session_schema: SessionCreationSchema):
 uvicorn_logger = logging.getLogger("uvicorn.error")
 
 async def handle_client_messages(session_id: int, actor: SessionActor, data):
-    adapter = TypeAdapter(SessionEvent)
+    adapter = TypeAdapter(schemas.SessionEvent)
 
     #if schema is None:
         #raise ValueError("Unsupported event type")

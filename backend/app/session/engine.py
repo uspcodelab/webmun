@@ -150,7 +150,7 @@ def generate_next_question_id(state: SessionLiveState) -> int:
 def validate_motion_payload(payload: schemas.DelegateMotionPayload, state: SessionLiveState) -> None:
     """Should validate motion payload and correct it before submitting""" 
     # can correct things
-    if payload.target_topic == None:
+    if payload.target_topic is None:
         payload.target_topic = (
             state.agenda_topics[state.active_topic_index][0] 
             if state.active_topic_index is not None and 0 <= state.active_topic_index < len(state.agenda_topics) 
@@ -158,7 +158,7 @@ def validate_motion_payload(payload: schemas.DelegateMotionPayload, state: Sessi
         )
     
     # can also raise error if there are missing fields
-    if payload.type in {States.MODERATED_CAUCUS} and payload.per_speaker_seconds == None:
+    if payload.type in {States.MODERATED_CAUCUS} and payload.per_speaker_seconds is None:
         raise InvalidProceduralMove("Cannot submit motion without speaking time")
 
 def validate_question_payload(payload: schemas.DelegateQuestionPayload, state: SessionLiveState) -> None:
@@ -235,7 +235,7 @@ def handle_submit_motion(state: SessionLiveState, event: schemas.SubmitMotionEve
 
 def handle_submit_question(state: SessionLiveState, event: schemas.SubmitQuestionEvent, actor: SessionActor) -> SessionLiveState:
     # TODO: change this so Chair can also catalog motions for delegations
-    delegate = require_delegate(actor)
+    require_delegate(actor)
 
     payload = event.payload
     validate_question_payload(payload, state)
@@ -244,7 +244,7 @@ def handle_submit_question(state: SessionLiveState, event: schemas.SubmitQuestio
             id=generate_next_question_id(state),
             priority=get_question_priority(payload.type),
             type=payload.type,
-            delegate_id=actor.delegation.id if actor.delegation is not None else -1,
+            delegate_id=actor.delegation.id, #type:ignore since require_delegate assumes actor delegate is not none
             details=payload.details,
     )
     state.submitted_questions.append(context)
@@ -281,7 +281,7 @@ def handle_cast_vote(state: SessionLiveState, event: schemas.CastVoteEvent, acto
     delegate = require_delegate(actor)
     
     voting_context = state.voting 
-    if voting_context == None:
+    if voting_context is None:
         raise InvalidProceduralMove("Cannot vote during this stage")
     
     # initial voting workflow, may be reviewed later
