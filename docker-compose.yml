@@ -7,13 +7,21 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - packages:/app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000
       - VITE_WS_URL=ws://localhost:8000/ws
     depends_on:
-      - backend
-    
+      backend:
+        condition: service_healthy
+        restart: true
+    post_start:
+      - command: npx @hey-api/openapi-ts   
+    develop:
+      watch:
+        - action: restart
+          path: ./backend/app/session/schemas.py
+
   backend:
     build:
       context: ./backend
@@ -22,7 +30,21 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-    
-   
-    
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request, sys;
+                      res = urllib.request.urlopen('http://localhost:8000/committees/health', timeout=3); 
+                      sys.exit(0) if res.getcode() == 200 else sys.exit(1); "]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 50s
+      start_interval: 1s
+    develop:
+      watch:
+        - action: restart
+          path: ./backend/app/session/schemas.py
+        - action: restart
+          path: ./backend/app/session/models.py
+volumes:
+  packages:   
     

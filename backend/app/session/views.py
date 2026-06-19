@@ -2,9 +2,9 @@
 # The 1st layer when connecting to clients
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Response, WebSocketException, status
-from app.session.models import SessionRole
-from app.session.schemas import SessionCreationSchema, DelegateEvents, ChairEvents, SessionEvent
-from .manager import manager, SessionLiveState 
+from app.session.models import SessionRole, SessionLiveState
+from app.session.schemas import SessionCreationSchema, DelegateEvents, ChairEvents, SessionEvent 
+from .manager import manager
 from .service import create_session, handle_client_messages, build_actor, ActorResolutionError
 
 
@@ -14,8 +14,11 @@ router = APIRouter()
 @router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
 async def dummy(name: SessionEvent, schemas: SessionLiveState, enum1: DelegateEvents, enum2: ChairEvents):
     return Response(status_code=status.HTTP_404_NOT_FOUND)
-    
 
+@router.get("/health", status_code=status.HTTP_200_OK)
+async def health():
+    return Response(status_code=status.HTTP_200_OK)
+    
 # Create committee route, receives a contentbody following CommitteeCreationSchema's format
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
 async def create_session_endpoint(session_schema: SessionCreationSchema): 

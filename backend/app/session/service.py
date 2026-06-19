@@ -6,9 +6,9 @@ from datetime import datetime
 
 from pydantic import TypeAdapter
 from app.session.engine import SessionEngine
-from .manager import manager, SessionLiveState,RollCallContext
+from .manager import manager
 from .schemas import *
-from .models import SessionActor, SessionRole, DelegationContext
+from .models import SessionActor, SessionRole, DelegationContext, SessionLiveState, RollCallContext
 import logging
 
 engine = SessionEngine()
