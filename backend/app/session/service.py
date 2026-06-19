@@ -6,28 +6,37 @@ from datetime import datetime
 
 from pydantic import TypeAdapter
 from app.session.engine import SessionEngine
-from .manager import manager, SessionLiveState,RollCallContext
-from .schemas import *
-from .models import SessionActor, SessionRole, DelegationContext
+from .manager import manager
+import app.session.schemas as schemas
+import app.session.enums as enums
+from .models import (
+    SessionActor,
+    SessionRole,
+    DelegationContext,
+    SessionLiveState,
+    RollCallContext,
+)
 import logging
 
 engine = SessionEngine()
 
+
 class ActorResolutionError(Exception):
     pass
 
+
 def build_actor(
-        session_id: int, 
-        role: SessionRole, 
-        delegation_id: int | None = None,
-        display_name: str | None = None,
-        ) -> SessionActor:
+    session_id: int,
+    role: SessionRole,
+    delegation_id: int | None = None,
+    display_name: str | None = None,
+) -> SessionActor:
 
     if role == SessionRole.CHAIR:
         return SessionActor(
-                role=SessionRole.CHAIR,
-                display_name="Chair",
-                )
+            role=SessionRole.CHAIR,
+            display_name="Chair",
+        )
 
     if role == SessionRole.DELEGATE:
         if delegation_id is None:
@@ -36,51 +45,57 @@ def build_actor(
         if state is None:
             raise ActorResolutionError("session not found")
 
-        delegation = next(
-                  (d for d in state.delegations if d.id == delegation_id), None)
+        delegation = next((d for d in state.delegations if d.id == delegation_id), None)
         if delegation is None:
             raise ActorResolutionError("delegation not found")
 
         return SessionActor(
-                  role=SessionRole.DELEGATE,
-                  delegation=DelegationContext(
-                      id=delegation.id,
-                      seat=delegation.seat,
-                      name=delegation.name,
-                      code=delegation.code,
-                      ),
-                  display_name=delegation.name,
-                  )
+            role=SessionRole.DELEGATE,
+            delegation=DelegationContext(
+                id=delegation.id,
+                seat=delegation.seat,
+                name=delegation.name,
+                code=delegation.code,
+            ),
+            display_name=delegation.name,
+        )
 
 
-def create_session(session_schema: SessionCreationSchema):
+def create_session(session_schema: schemas.SessionCreationSchema):
     session_id = session_schema.session_id
-    
+
+    # loop through delegationSchema and convert each to DelegationContext
+    delegations = [
+        DelegationContext(id=i, name=d.name, seat=d.seat, code=d.code)
+        for i, d in enumerate(session_schema.delegations)
+    ]
+
     manager.room_states[session_id] = SessionLiveState(
-            session_id=session_id,
-            start_time=datetime.now(),
-            delegations=session_schema.delegations,
-            current_state=States.ROLL_CALL,
-            gsl_default_time_seconds=60,
-            roll_call=RollCallContext(registry={}),
-            voting_choice={},
+        session_id=session_id,
+        start_time=datetime.now(),
+        delegations=delegations,
+        current_state=enums.States.ROLL_CALL,
+        gsl_default_time_seconds=60,
+        roll_call=RollCallContext(registry={}),
+        voting_choice={},
     )
     manager.active_connections.setdefault(session_id, {})
 
+
 uvicorn_logger = logging.getLogger("uvicorn.error")
 
-async def handle_client_messages(session_id: int, actor: SessionActor, data):
-    adapter = TypeAdapter(SessionEvent)
 
-    #if schema is None:
-        #raise ValueError("Unsupported event type")
-    
+async def handle_client_messages(session_id: int, actor: SessionActor, data):
+    adapter = TypeAdapter(schemas.SessionEvent)
+
+    # if schema is None:
+    # raise ValueError("Unsupported event type")
+
     event = adapter.validate_json(data)
     state = manager.room_states[session_id]
 
+    uvicorn_logger.info(event)  # Debugging
 
-    uvicorn_logger.info(event) #Debugging
-    
     new_state = engine.dispatch(state, event, actor)
     manager.room_states[session_id] = new_state
 
