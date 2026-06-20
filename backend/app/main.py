@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.session.views import (
-    router as committee_router,
-)  # Import different domains routers
+
+from app.session.engine import SessionEngine
+from app.session.manager import ConnectionManager
+from app.session.service import SessionService
+from app.session.views import create_session_router
 
 app = FastAPI(title="WebMUN API")
 
@@ -14,5 +16,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+manager = ConnectionManager()
+engine = SessionEngine()
+session_service = SessionService(manager, engine)
+
 # include commitees here?
-app.include_router(committee_router, prefix="/committees", tags=["Committees"])
+app.include_router(
+    create_session_router(session_service), prefix="/committees", tags=["committees"]
+)

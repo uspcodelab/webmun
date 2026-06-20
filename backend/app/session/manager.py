@@ -47,6 +47,3 @@ class ConnectionManager:
             await connection.send_json(state.model_dump(mode="json"))
 
     # TODO: add broadcast_event so we send only the event + deltas (fields changed)/event only, or keep broadcasting entire state
-
-
-manager = ConnectionManager()

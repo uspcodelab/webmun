@@ -1,9 +1,11 @@
 # This file defines internal models not used as schemas for the application
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
-from pydantic import BaseModel
-from enum import Enum
 from datetime import datetime
+from enum import Enum
 from typing import Literal
+
+from pydantic import BaseModel
+
 import app.session.enums as enums
 
 
