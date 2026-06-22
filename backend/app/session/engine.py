@@ -273,13 +273,9 @@ def handle_open_session(state: SessionLiveState, event: OpenSessionEvent, actor:
     if (state.current_state != States.SETUP):
         raise InvalidProceduralMove("Session can only be opened from setup")
 
-    # Count unique delegations currently connected to this session
-    connections = manager.active_connections.get(state.session_id, {})
-    present_delegations = {a.delegation.id for a in connections.values() if a.delegation is not None}
-
     # Compare with assigned delegations for the session
     expected = len(state.delegations or [])
-    present = len(present_delegations)
+    present = manager.count_present_delegations(state.session_id)
     if present != expected:
         raise InvalidProceduralMove(f"Cannot open session: {present} delegations present, expected {expected}") # Can use this verification to send a warning to chair and see if he whants to force open session or wait for more delegations
 
