@@ -84,7 +84,7 @@ class SessionService:
             session_id=session_id,
             start_time=datetime.now(),
             delegations=delegations,
-            current_state=enums.States.ROLL_CALL,
+            current_state=States.SETUP,
             gsl_default_time_seconds=60,
             roll_call=RollCallContext(registry={}),
             voting_choice={},

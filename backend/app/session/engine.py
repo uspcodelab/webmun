@@ -353,17 +353,47 @@ def handle_answer_roll_call(
 
 
 # Chair events
-def handle_open_session(
-    state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor
-) -> SessionLiveState:
-    ...
-    # should go into rollcall and modify RollCallContext
+def handle_open_session(state: SessionLiveState, event: OpenSessionEvent, actor: SessionActor) -> SessionLiveState:
+    
+    require_chair(actor)
+    if (state.current_state != States.SETUP):
+        raise InvalidProceduralMove("Session can only be opened from setup")
 
+    # Compare with assigned delegations for the session
+    expected = len(state.delegations or [])
+    present = manager.count_present_delegations(state.session_id)
+    if present != expected:
+        raise InvalidProceduralMove(f"Cannot open session: {present} delegations present, expected {expected}") # Can use this verification to send a warning to chair and see if he whants to force open session or wait for more delegations
 
-def handle_close_session(
-    state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor
-) -> SessionLiveState: ...
+    state.current_state = States.ROLL_CALL
+    state.roll_call = RollCallContext(registry={}, current_delegation=0)
+    state.voting_choice = {}
+    state.gsl_queue = []
+    state.current_speaker = None
+    state.debate = None
+    state.timer_is_running = False
+    state.timer_expiration = None
+    state.timer_remaining_seconds = 0
 
+    return state
+
+def handle_close_session(state: SessionLiveState, event: CloseSessionEvent, actor: SessionActor) -> SessionLiveState:
+   
+    require_chair(actor)
+   
+    if (state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED)): # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
+        raise InvalidProceduralMove("Session can only be opened from setup")
+
+    state.current_state = States.FINISHED
+    state.current_speaker = None
+    state.gsl_queue = [] # I'm supposing this queue has the first element popped when someone speaks, so it should be empty when session is closed. In case this list is to be kept, we can remove this line. 
+    state.can_set_motion = False
+    state.debate = None # Same as queue
+    state.timer_is_running = False
+    state.timer_expiration = None
+    state.timer_remaining_seconds = 0
+
+    return state
 
 # TODO: create helpers for timers -> stop_timer, set_timer, pause_timer, etc
 def handle_toggle_timer(
