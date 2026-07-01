@@ -43,7 +43,7 @@ export default function DelegationMap({
     delegations.sort((a, b) => a.seat > b.seat ? 1 : -1)
     let delegationIndex = -1
 
-    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
+    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
     const totalDelegations = useCommitteeStore((state) => state.delegations.length ?? 0)
     const simpleMajority = Math.floor(presentDelegations / 2) + 1
     const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)

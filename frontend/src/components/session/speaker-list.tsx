@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -16,6 +15,7 @@ import { useCommitteeStore } from "@/store/useCommitteeStore"
 export default function SpeakerList() {
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
+    const delegations = useCommitteeStore((state) => state.delegations)
     const waitingCount = gslQueue.length
 
 
@@ -25,12 +25,13 @@ export default function SpeakerList() {
             <Badge className="ml-auto bg-tertiary-200 text-secondary">{String(waitingCount).padStart(2, "0")} em espera</Badge>
         </div>
         <ScrollArea className="m-4 mt-0 min-h-0 flex-1 rounded-md border ">
-            {gslQueue.map((delegate, index) => {
-                const isSpeaking = !!currentSpeaker && currentSpeaker.id === delegate.id
+            {gslQueue.map((delegateId, index) => {
+                const delegate = delegations.find((item) => item.id === delegateId)
+                const isSpeaking = currentSpeaker === delegateId
                 const position = index + 1
 
                 return (
-                    <div key={delegate.id}>
+                    <div key={delegateId}>
                         <Item size="sm" className="mb-0">
                             <ItemMedia
                                 variant="icon"
@@ -44,8 +45,8 @@ export default function SpeakerList() {
                             </ItemMedia>
                             <ItemContent>
                                 <ItemTitle>
-                                    {delegate.name}
-                                    <Flags code={delegate.code} className="h-5" />
+                                    {delegate?.name ?? `Delegação ${delegateId}`}
+                                    <Flags code={delegate?.code ?? ""} className="h-5" />
                                 </ItemTitle>
                             </ItemContent>
                         </Item>

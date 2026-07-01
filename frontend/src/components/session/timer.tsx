@@ -12,7 +12,8 @@ export default function Timer() {
 
 
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker);
-    const speaker = currentSpeaker ?? {
+    const delegations = useCommitteeStore((state) => state.delegations);
+    const speaker = delegations.find((delegation) => delegation.id === currentSpeaker) ?? {
         id: -1,
         seat: "",
         name: "Mesa",

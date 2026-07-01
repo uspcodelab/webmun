@@ -1,6 +1,6 @@
 import { useEffect, useState} from 'react';
 import { useParams } from 'react-router-dom';
-import { UpdateStore, useCommitteeStore } from '../store/useCommitteeStore.ts'
+import { UpdateStore } from '../store/useCommitteeStore.ts'
 import SpeakerList from "@/components/session/speaker-list"
 import MotionsList from "@/components/session/motions-list"
 import BottomBar from "@/components/session/bottom-bar"
@@ -13,7 +13,7 @@ let socket : WebSocket | null = null;
 Use this function to send events to the backend, 
 any data with one of the Event types in schemas/types.gen.ts should work
 */
-export function sendMessage(data: any) {
+export function sendMessage(data: unknown) {
     if (socket && socket.readyState === WebSocket.OPEN) 
     {
         socket.send(JSON.stringify(data));
@@ -58,8 +58,6 @@ export default function SessionPage() {
     // id that matches the name given in the Route path, at App.tsx 
     const { committeeId } = useParams<{ committeeId: string }>();
     //const {start_time} = useCommitteeStore();
-    const all = useCommitteeStore();
-
     const [, setStatus] = useState("Connecting...");
     //const [, setUptime] = useState(0);
 
@@ -75,7 +73,6 @@ export default function SessionPage() {
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
             UpdateStore(data);
-            console.log(all);
         };
 
         socket.onclose = () => setStatus("Disconnected");
@@ -98,7 +95,6 @@ export default function SessionPage() {
 
         return () => clearInterval(interval);
     }, [start_time]);*/
-    console.log(all);
     return (
         <div>
             {/* <p className={status === "connected" ? "text-green-500" : "text-red-500"}>
