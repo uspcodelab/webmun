@@ -353,17 +353,11 @@ def handle_answer_roll_call(
 
 
 # Chair events
-def handle_open_session(state: SessionLiveState, event: OpenSessionEvent, actor: SessionActor) -> SessionLiveState:
+def handle_open_session(state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor) -> SessionLiveState:
     
     require_chair(actor)
     if (state.current_state != States.SETUP):
         raise InvalidProceduralMove("Session can only be opened from setup")
-
-    # Compare with assigned delegations for the session
-    expected = len(state.delegations or [])
-    present = manager.count_present_delegations(state.session_id)
-    if present != expected:
-        raise InvalidProceduralMove(f"Cannot open session: {present} delegations present, expected {expected}") # Can use this verification to send a warning to chair and see if he whants to force open session or wait for more delegations
 
     state.current_state = States.ROLL_CALL
     state.roll_call = RollCallContext(registry={}, current_delegation=0)
@@ -377,7 +371,7 @@ def handle_open_session(state: SessionLiveState, event: OpenSessionEvent, actor:
 
     return state
 
-def handle_close_session(state: SessionLiveState, event: CloseSessionEvent, actor: SessionActor) -> SessionLiveState:
+def handle_close_session(state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor) -> SessionLiveState:
    
     require_chair(actor)
    
@@ -709,6 +703,11 @@ def handle_close_roll_call(
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot close roll call right now")
+    
+    # mark all delegations as absent in the first case. This will enable us to use 
+    # RollCallContext to tally votes
+    for delegation in state.delegations:
+        state.roll_call.registry.setdefault(delegation.id, RollCallChoice.ABSENT)
 
     # may also empty roll call if needed, to avoid loading stale values
     state.current_state = States.OPEN_GSL
