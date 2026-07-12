@@ -6,6 +6,7 @@ import MotionsList from "@/components/session/motions-list"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
+import VotingPopup from '@/components/session/voting-popup.tsx';
 
 let socket : WebSocket | null = null;
 
@@ -108,7 +109,7 @@ export default function SessionPage() {
                 {sessionStart ? `${uptime}s` : "Waiting for session..."}
             </div> */}
 
-
+            <VotingPopup />
             <TopBar />
             <div className="flex h-[82vh] w-full">
                 <div className="min-w-0 flex-1 bg-neutral-100">
