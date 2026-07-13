@@ -105,6 +105,9 @@ export default function Navbar() {
             </div>
 
             <div className="flex items-center gap-2 flex-none">
+                <Button variant="outline" onClick={() => (window.location.href = "/create-committee")}>
+                    TEST CREATE COMMITTEE
+                </Button>
                 <Button>Inscrever-se</Button>
                 <Button variant="outline" onClick={() => (window.location.href = "/login")}>
                     Login
