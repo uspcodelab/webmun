@@ -26,6 +26,8 @@ type MotionsListProps = {
     motions: Motion[]
 }
 
+const isChair = true// Replace with actual logic to determine if the user is the chair
+
 export default function MotionsList({ motions }: MotionsListProps) {
     const toMinutes = (time: string): number => {
         const [hours, minutes] = time.split(":").map(Number)
@@ -65,10 +67,12 @@ export default function MotionsList({ motions }: MotionsListProps) {
                         </ItemDescription>
                     </ItemContent>
                     <ItemFooter className="flex-col items-stretch gap-2 pt-2">
-                        <div className="flex items-center gap-2">
-                            <Button size="sm" className="flex-1 bg-green-800 text-white hover:bg-green-700">Acatar</Button>
-                            <Button size="sm" className="flex-1 bg-red-800 text-white hover:bg-red-700">Rejeitar</Button>
-                        </div>
+                        {isChair && (
+                            <div className="flex items-center gap-2">
+                                <Button size="sm" className="flex-1 bg-green-800 text-white hover:bg-green-700">Acatar</Button>
+                                <Button size="sm" className="flex-1 bg-red-800 text-white hover:bg-red-700">Rejeitar</Button>
+                            </div>
+                        )}
                         <Separator />
                     </ItemFooter>
                 </Item>

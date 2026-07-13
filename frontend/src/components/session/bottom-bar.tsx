@@ -7,6 +7,7 @@ import ExitButton from "./bottom-bar-buttons/ExitButton"
 import BRBButton from "./bottom-bar-buttons/BRB"
 import IncidentHelp from "./bottom-bar-buttons/IncidentHelp"
 
+const isChair = true // Replace with actual logic to determine if the user is the chair
 
 
 export default function BottomBar() {
@@ -19,13 +20,13 @@ export default function BottomBar() {
             <div className="fixed bottom-0 left-0 z-30 flex h-[8vh] w-full items-center justify-center outline-2 outline-tertiary-100 bg-white">
 
                 <ExitButton />
-                <VoteButton />
+                {isChair && <VoteButton />}
                 <MotionsButton />
-                <SpeechesButton />
+                {isChair && <SpeechesButton />}
                 <HistoryButton />
-                <SessionButton />
+                {isChair && <SessionButton />}
                 <BRBButton />
-                <IncidentHelp />
+                {isChair && <IncidentHelp />}
             </div>
 
         </>

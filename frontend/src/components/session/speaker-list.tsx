@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge"
 import Flags from "@/components/ui/flags"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 
-
+const isChair = true // Replace with actual logic to determine if the user is the chair
+const isAlredyInQueue = true // Replace with actual logic to determine if the user is already in the queue
+//TODO determine if queue is open, if not obscure the button and show a message that the queue is closed
 
 export default function SpeakerList() {
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
@@ -24,7 +26,7 @@ export default function SpeakerList() {
             <h2 className="text-xl font-bold">Lista de Oradores</h2>
             <Badge className="ml-auto bg-tertiary-200 text-secondary">{String(waitingCount).padStart(2, "0")} em espera</Badge>
         </div>
-        <ScrollArea className="m-4 mt-0 min-h-0 flex-1 rounded-md border ">
+        <ScrollArea className="mr-4 mb-2 ml-4 mt-0 min-h-0 flex-1 rounded-md border ">
             {gslQueue.map((delegate, index) => {
                 const isSpeaking = !!currentSpeaker && currentSpeaker.id === delegate.id
                 const position = index + 1
@@ -56,6 +58,17 @@ export default function SpeakerList() {
                 )
             })}
         </ScrollArea>
+        {!isChair && (
+            <Button variant="outline" className="mr-4 mb-2 ml-4" disabled={isAlredyInQueue}> 
+                Se colocar na lista de oradores
+            </Button>
+        )}
+        {isChair && (
+            <Button variant="outline" className="mr-4 mb-2 ml-4" disabled={waitingCount === 0} > 
+                Dar a palavra ao próximo orador
+            </Button>
+        )}
         <Separator></Separator>
+        
     </div>)
 }

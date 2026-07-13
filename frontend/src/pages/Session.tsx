@@ -118,7 +118,7 @@ export default function SessionPage() {
                         buttonsPerSemicircle={[6, 6, 9]}
                     />
                 </div>
-                <div className="flex h-full w-[20%] shrink-0 flex-col bg-white">
+                <div className="flex h-full w-[25%] shrink-0 flex-col bg-white">
                     <SpeakerList />
                     <MotionsList motions={motions} />
                 </div>
