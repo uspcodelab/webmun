@@ -29,11 +29,11 @@ export default function TestButton() {
         <AlertDialogHeader>
           <AlertDialogTitle>Você está se ausentando.</AlertDialogTitle>
           <AlertDialogDescription>
-            Ao se ausentar, você avisa a mesa que irá sair temporariamente da sessão, porém retornar em breve. Você é considerado presente até um novo quorum ser chamado. Se ausentar por longos periodos de tempo sme justificativa não é recomendado.
+            Ao se ausentar, você avisa a mesa que irá sair temporariamente da sessão, porém retornara em breve. Você é considerado presente até um novo quorum ser chamado. 
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction>Se Ausentar</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

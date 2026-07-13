@@ -39,6 +39,8 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 
+const isChair = true // Replace with actual logic to determine if the user is the chair
+
 const motions = [
   "Moção para Adiamento de Sessão",
   "Moção para Reabertura de Sessão",
@@ -123,194 +125,211 @@ export default function TestButton() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-              <DialogTitle>Questões e Moções</DialogTitle>
-              <DialogDescription>Adicione e gerencie pedidos de questões e moções</DialogDescription>
-            </DialogHeader>
+          <DialogTitle>Questões e Moções</DialogTitle>
+          {isChair && <DialogDescription>Adicione pedidos de questões e moções ou limpe a fila desses</DialogDescription>}
+          {!isChair && <DialogDescription>Envie pedidos de questões e moções a mesa</DialogDescription>}
+        </DialogHeader>
 
-          <div className="grid gap-2">
-            
+        <div className="grid gap-2">
 
-            <div className="rounded-md border bg-white p-4 text-sm text-neutral-700">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button className="mt-2 w-full" type="button" variant="destructive">
-                    Limpar fila de moções
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Limpar fila de moções?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação vai remover todas as moções da fila. Confirme apenas se tiver certeza de que deseja continuar.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction variant="destructive">Confirmar</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
 
-              <Separator className="my-4" />
+          <div className="rounded-md border bg-white p-4 text-sm text-neutral-700">
+            {isChair &&
+              <div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button className="mt-2 w-full" type="button" variant="destructive">
+                      Limpar fila de moções
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Limpar fila de moções?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação vai remover todas as moções da fila. Confirme apenas se tiver certeza de que deseja continuar.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction variant="destructive">Confirmar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
-              <FieldGroup>
-                <Field>
+                <Separator className="my-4" />
+              </div>
+            }
+            <FieldGroup>
+              <Field>
+
+                {isChair && (
                   <FieldLabel>Adicionar manualmente uma:</FieldLabel>
-                  <RadioGroup
-                    value={motionKind}
-                    className="flex flex-row gap-4"
-                    onValueChange={(value) => {
-                      setMotionKind(value as MotionKind)
-                      resetMotionFields()
-                      setQuestionText("")
-                      setAnswerText("")
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value="questão" id="questão" />
-                      <Label htmlFor="questão">Questão</Label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value="moção" id="moção" />
-                      <Label htmlFor="moção">Moção</Label>
-                    </div>
-                  </RadioGroup>
-                </Field>
+                )}
+                {!isChair && (
+                  <FieldLabel>Enviar uma:</FieldLabel>
+                )}
+                <RadioGroup
+                  value={motionKind}
+                  className="flex flex-row gap-4"
+                  onValueChange={(value) => {
+                    setMotionKind(value as MotionKind)
+                    resetMotionFields()
+                    setQuestionText("")
+                    setAnswerText("")
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="questão" id="questão" />
+                    <Label htmlFor="questão">Questão</Label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="moção" id="moção" />
+                    <Label htmlFor="moção">Moção</Label>
+                  </div>
+                </RadioGroup>
+              </Field>
 
+              <Field>
+                <Select
+                  value={selectedMotion}
+                  onValueChange={(value) => {
+                    setSelectedMotion(value)
+                    setDebateKind("")
+                    setUnmoderatedMinutes("")
+                    setSpeechCount("")
+                    setMinutesPerSpeech("")
+                    setQuestionText("")
+                    setAnswerText("")
+                    setUnlimitedDiscourses(false)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Selecione uma ${motionKind}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {motionOptions.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              {showDebateKindField && (
                 <Field>
-                  <Select
-                    value={selectedMotion}
-                    onValueChange={(value) => {
-                      setSelectedMotion(value)
-                      setDebateKind("")
-                      setUnmoderatedMinutes("")
-                      setSpeechCount("")
-                      setMinutesPerSpeech("")
-                      setQuestionText("")
-                      setAnswerText("")
-                      setUnlimitedDiscourses(false)
-                    }}
-                  >
+                  <FieldLabel>Para qual tipo de debate?</FieldLabel>
+                  <Select value={debateKindChange} onValueChange={(value) => setDebateKind(value as DebateKind)}>
                     <SelectTrigger>
-                      <SelectValue placeholder={`Selecione uma ${motionKind}`} />
+                      <SelectValue placeholder="Selecione o novo tipo" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {motionOptions.map((item) => (
-                          <SelectItem key={item} value={item}>
-                            {item}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="lista de discursos">Lista de Discursos</SelectItem>
+                        <SelectItem value="moderado">Debate moderado</SelectItem>
+                        <SelectItem value="não moderado">Debate não moderado</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
                 </Field>
+              )}
 
-                {showDebateKindField && (
-                  <Field>
-                    <FieldLabel>Para qual tipo de debate?</FieldLabel>
-                    <Select value={debateKindChange} onValueChange={(value) => setDebateKind(value as DebateKind)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o novo tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="lista de discursos">Lista de Discursos</SelectItem>
-                          <SelectItem value="moderado">Debate moderado</SelectItem>
-                          <SelectItem value="não moderado">Debate não moderado</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                )}
+              {showUnmoderatedField && (
+                <Field>
+                  <FieldLabel>Por quantos minutos?</FieldLabel>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Minutos do debate"
+                    value={unmoderatedMinutes}
+                    onChange={(event) => setUnmoderatedMinutes(event.target.value)}
+                  />
+                </Field>
+              )}
 
-                {showUnmoderatedField && (
+              {showModeratedFields && (
+                <>
                   <Field>
-                    <FieldLabel>Por quantos minutos?</FieldLabel>
+                    <FieldLabel>Quantos discursos?</FieldLabel>
                     <Input
                       type="number"
                       min={1}
-                      placeholder="Minutos do debate"
-                      value={unmoderatedMinutes}
-                      onChange={(event) => setUnmoderatedMinutes(event.target.value)}
+                      placeholder="Número de discursos"
+                      value={speechCount}
+                      disabled={unlimitedDiscourses}
+                      onChange={(event) => setSpeechCount(event.target.value)}
+                    />
+                    <FieldDescription>Deixe em branco para permitir um debate moderado sem limite de discursos.</FieldDescription>
+                  </Field>
+                  <Field>
+                    <FieldLabel>Quantos minutos por discurso?</FieldLabel>
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="Minutos por discurso"
+                      value={minutesPerSpeech}
+                      onChange={(event) => setMinutesPerSpeech(event.target.value)}
+                    />
+                    <FieldDescription>Deixe em branco para manter o tempo de discurso atual.</FieldDescription>
+                  </Field>
+                </>
+              )}
+
+              {showMotionDecision && (
+                <Field>
+                  <FieldLabel>Maioria necessária</FieldLabel>
+                  <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm font-bold text-neutral-700">
+                    {selectedMotionMajority}
+                  </div>
+                </Field>
+              )}
+
+              {showMotionDecision && isChair && (
+                <div className="flex gap-3 pt-1">
+                  <Button className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
+                    Acatar moção
+                  </Button>
+                  <Button className="bg-red-800 text-white hover:bg-red-700 flex-1" type="button">
+                    Rejeitar moção
+                  </Button>
+                </div>
+              )}
+              {showMotionDecision && !isChair && (
+                <div className="flex gap-3 pt-1">
+                  <Button className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
+                    Enviar moção
+                  </Button>
+                </div>
+              )}
+
+              {motionKind === "questão" && (
+                <>
+                  <Field>
+                    <FieldLabel>Digite a questão</FieldLabel>
+                    <Input
+                      placeholder="Escreva a questão"
+                      value={questionText}
+                      onChange={(event) => setQuestionText(event.target.value)}
                     />
                   </Field>
-                )}
-
-                {showModeratedFields && (
-                  <>
-                    <Field>
-                      <FieldLabel>Quantos discursos?</FieldLabel>
-                      <Input
-                        type="number"
-                        min={1}
-                        placeholder="Número de discursos"
-                        value={speechCount}
-                        disabled={unlimitedDiscourses}
-                        onChange={(event) => setSpeechCount(event.target.value)}
-                      />
-                      <FieldDescription>Deixe em branco para permitir um debate moderado sem limite de discursos.</FieldDescription>
-                    </Field>
-                    <Field>
-                      <FieldLabel>Quantos minutos por discurso?</FieldLabel>
-                      <Input
-                        type="number"
-                        min={1}
-                        placeholder="Minutos por discurso"
-                        value={minutesPerSpeech}
-                        onChange={(event) => setMinutesPerSpeech(event.target.value)}
-                      />
-                      <FieldDescription>Deixe em branco para manter o tempo de discurso atual.</FieldDescription>
-                    </Field>
-                  </>
-                )}
-
-                {showMotionDecision && (
                   <Field>
-                    <FieldLabel>Maioria necessária</FieldLabel>
-                    <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm font-bold text-neutral-700">
-                      {selectedMotionMajority}
-                    </div>
+                    <FieldLabel>Digite a resposta</FieldLabel>
+                    <Input
+                      placeholder="Escreva a resposta"
+                      value={answerText}
+                      onChange={(event) => setAnswerText(event.target.value)}
+                    />
                   </Field>
-                )}
-
-                {showMotionDecision && (
-                  <div className="flex gap-3 pt-1">
-                    <Button className="flex-1 bg-green-700 text-white hover:bg-green-600" type="button">
-                      Acatar moção
-                    </Button>
-                    <Button variant="destructive" className="flex-1" type="button">
-                      Rejeitar moção
-                    </Button>
-                  </div>
-                )}
-
-                {motionKind === "questão" && (
-                  <>
-                    <Field>
-                      <FieldLabel>Digite a questão</FieldLabel>
-                      <Input
-                        placeholder="Escreva a questão"
-                        value={questionText}
-                        onChange={(event) => setQuestionText(event.target.value)}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel>Digite a resposta</FieldLabel>
-                      <Input
-                        placeholder="Escreva a resposta"
-                        value={answerText}
-                        onChange={(event) => setAnswerText(event.target.value)}
-                      />
-                    </Field>
-                    <Button className="w-full bg-green-700 text-white hover:bg-green-600" type="button">
-                      Registrar questão e resposta
-                    </Button>
-                  </>
-                )}
-              </FieldGroup>
-            </div>
+                  <Button className="w-full bg-green-800 text-white hover:bg-green-700" type="button">
+                    Registrar questão e resposta
+                  </Button>
+                </>
+              )}
+            </FieldGroup>
           </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

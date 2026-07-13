@@ -47,7 +47,7 @@ export default function DelegationMap({
     const totalDelegations = useCommitteeStore((state) => state.delegations.length ?? 0)
     const simpleMajority = Math.floor(presentDelegations / 2) + 1
     const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)
-    const CurrentState = useCommitteeStore((state) => state.current_state)
+    const currentState = useCommitteeStore((state) => state.current_state)
 
 
     return (
@@ -60,7 +60,7 @@ export default function DelegationMap({
 
                 <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-center text-xs text-neutral-600 shadow-sm">
                     <div className="font-medium text-neutral-800">Status da sessão</div>
-                    <div>{CurrentState}</div>
+                    <div>{currentState}</div>
                 </div>
 
                 <div className="pointer-events-none absolute right-4 top-4 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-right text-xs text-neutral-600 shadow-sm">

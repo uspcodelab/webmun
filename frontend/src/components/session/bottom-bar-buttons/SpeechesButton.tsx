@@ -23,7 +23,6 @@ import {
 export default function TestButton() {
   return (
     <Dialog>
-      <form>
         <DialogTrigger asChild>
           <Button className="m-4 flex h-8/10   flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
             <span className="flex h-[3vh] w-[3vh] items-center justify-center [&>svg]:size-full">
@@ -64,7 +63,6 @@ export default function TestButton() {
             </FieldGroup>
           </div>
         </DialogContent>
-      </form>
     </Dialog >
   )
 }

@@ -29,11 +29,11 @@ export default function TestButton() {
         <AlertDialogHeader>
           <AlertDialogTitle>Sair para a Dashboard</AlertDialogTitle>
           <AlertDialogDescription>
-            Você tem certeza que deseja ir para a dashboard?
+            <p>Você tem certeza que deseja ir para a dashboard?</p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction variant="destructive">Sair para a Dashboard</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
