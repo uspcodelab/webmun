@@ -1,27 +1,12 @@
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import Timer from "./timer"
-import { useState } from "react"
-import { Trash2, CircleCheckBig } from "lucide-react"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
-import {
-    Item,
-    ItemActions,
-    ItemContent,
-    ItemTitle,
-} from "@/components/ui/item"
-import { Input } from "@/components/ui/input"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 
-const isChair = false // Replace with actual logic to determine if the user is the chair
+
+import  Agenda  from "./Agenda"
+
+const isChair = true // Replace with actual logic to determine if the user is the chair
 
 const agendaTopics = [
     [3, "Medidas de cooperacao internacional"],
@@ -54,7 +39,6 @@ const getTopicDepth = (topicNumber: number | string) => String(topicNumber).spli
 const sortedAgendaTopics = [...agendaTopics].sort((left, right) => compareTopicNumbers(left[0], right[0]))
 
 export default function TopBar() {
-    const [isAgendaOpen, setIsAgendaOpen] = useState(false)
     const activeTopicIndex = useCommitteeStore((state) => state.active_topic_index)
     const currentTopicLabel =
         activeTopicIndex !== null && activeTopicIndex !== undefined
@@ -77,7 +61,7 @@ export default function TopBar() {
                                 {currentTopicLabel}
                             </span>
                         </h3>
-                        <Button variant="outline" size="sm" onClick={() => setIsAgendaOpen(true)}>Ver agenda</Button>
+                        <Agenda />
                     </div>
                     <Separator orientation="vertical" />
                     <div className="flex flex-col items-end text-right leading-tight">
@@ -94,55 +78,6 @@ export default function TopBar() {
 
         </div>
 
-        <Dialog open={isAgendaOpen} onOpenChange={setIsAgendaOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Agenda do comite</DialogTitle>
-                    <DialogDescription>
-                        Veja a agenda do comite e os topicos que serao discutidos durante a sessao.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-2">
-                    <ScrollArea className="h-75 w-full rounded-md border">
-                        {sortedAgendaTopics.map(([topicNumber, topicName]) => (
-                            <Item key={topicNumber}>
-                                <ItemContent className={getTopicDepth(topicNumber) > 0 ? "pl-6" : undefined}>
-                                    <ItemTitle>{topicNumber}. {topicName}</ItemTitle>
-                                </ItemContent>
-                                {isChair && (
-                                    <ItemActions>
-                                        <Button variant="outline" size="sm">
-                                            <CircleCheckBig className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="destructive" size="sm">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-
-                                    </ItemActions>
-                                )}
-                            </Item>
-                        ))}
-                    </ScrollArea>
-                </div>
-                {isChair && (
-                    <div>
-                        <Separator></Separator>
-
-                        <div className="flex flex-col items-start gap-2">
-                            <p>Adicionar tópico à agenda </p>
-                            <p className="text-sm text-muted-foreground">
-                                Nº deve ser no formato X.Y
-                            </p>
-                            <div className="flex w-full items-center gap-1">
-                                <Input placeholder="Nº" className="w-12" />
-                                <Input placeholder="Tópico" />
-                            </div>
-
-                            <Button className=" bg-green-800 text-white hover:bg-green-700">Adicionar</Button>
-                        </div>
-                    </div>
-                )}
-            </DialogContent>
-        </Dialog >
+        
     </>)
 }
