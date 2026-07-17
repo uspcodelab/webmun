@@ -25,7 +25,7 @@ export default function BottomBar() {
                 {isChair && <SpeechesButton />}
                 <HistoryButton />
                 {isChair && <SessionButton />}
-                <BRBButton />
+                {!isChair && <BRBButton />}
                 {isChair && <IncidentHelp />}
             </div>
 

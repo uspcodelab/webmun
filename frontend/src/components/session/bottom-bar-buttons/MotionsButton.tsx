@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { useCommitteeStore } from "@/store/useCommitteeStore"
+import { States } from "@/schemas/types.gen"
 
 const isChair = true // Replace with actual logic to determine if the user is the chair
 
@@ -87,6 +89,7 @@ function QuestionsMotionsList(type: MotionKind) {
 }
 
 export default function TestButton() {
+  const currentState = useCommitteeStore((state) => state.current_state)
   const [motionKind, setMotionKind] = useState<MotionKind>("moção")
   const [selectedMotion, setSelectedMotion] = useState("")
   const [debateKindChange, setDebateKind] = useState<DebateKind>("")
@@ -116,7 +119,7 @@ export default function TestButton() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="m-4 flex h-8/10  flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
+        <Button disabled={currentState === States.SETUP_ROOM || currentState === States.ROLL_CALL} className="m-4 flex h-8/10  flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
           <span className="flex h-[3vh] w-[3vh] items-center justify-center [&>svg]:size-full">
             <Hand className="size-[3vh]" />
           </span>

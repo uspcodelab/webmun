@@ -8,12 +8,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Vote } from "lucide-react"
+import { States } from "@/schemas/types.gen"
+import { useCommitteeStore } from "@/store/useCommitteeStore"
 
 export default function VoteButton() {
+  const currentState = useCommitteeStore((state) => state.current_state)
   return (
     <Dialog>
         <DialogTrigger asChild>
-          <Button className="m-4 flex h-8/10   flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
+          <Button disabled={currentState === States.SETUP_ROOM || currentState === States.ROLL_CALL} className="m-4 flex h-8/10   flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
             <span className="flex h-[3vh] w-[3vh] items-center justify-center [&>svg]:size-full">
               <Vote className="size-[3vh]" />
             </span>
