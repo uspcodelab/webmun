@@ -121,9 +121,9 @@ export default function DelegationMap({
                                         }}
                                     >
                                         <ContextMenu>
-                                            <ContextMenuTrigger asChild>
-                                                <Tooltip    >
-                                                    <TooltipTrigger asChild>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <ContextMenuTrigger asChild>
                                                         <Button
                                                             type="button"
                                                             variant="outline"
@@ -136,14 +136,13 @@ export default function DelegationMap({
                                                                 />
                                                             </span>
                                                         </Button>
-                                                    </TooltipTrigger>
-                                                    {/* TODO: Replace by country full name */}
-                                                    <TooltipContent >
-                                                        <p>{delegations[delegationIndex]?.name || "Vazio"}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-
-                                            </ContextMenuTrigger>
+                                                    </ContextMenuTrigger>
+                                                </TooltipTrigger>
+                                                {/* TODO: Replace by country full name */}
+                                                <TooltipContent>
+                                                    <p>{delegations[delegationIndex]?.name || "Vazio"}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
                                             <ContextMenuContent className="w-60">
                                                 <ContextMenuGroup>
                                                     <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
