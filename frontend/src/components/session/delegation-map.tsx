@@ -52,7 +52,7 @@ export default function DelegationMap({
 
     return (
         <div className="relative h-full w-full overflow-hidden">
-            <div className="absolute inset-0 m-6 rounded-2xl border border-neutral-300 bg-linear-to-b from-white to-neutral-50">
+            <div className="absolute inset-0 m-3 rounded-2xl border border-neutral-300 bg-linear-to-b from-white to-neutral-50">
                 <div className="pointer-events-none absolute left-4 top-4 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-xs text-neutral-600 shadow-sm">
                     <div className="font-medium text-neutral-800">Delegações presentes:</div>
                     <div>{presentDelegations}/{totalDelegations} delegações</div>
