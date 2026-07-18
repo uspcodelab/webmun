@@ -317,16 +317,11 @@ export type DelegateEvents = typeof DelegateEvents[keyof typeof DelegateEvents];
  * DelegateMotionPayload
  */
 export type DelegateMotionPayload = {
-    /**
-     * Id
-     */
-    id?: number | null;
-    /**
-     * Priority
-     */
-    priority?: number;
     type: Motions;
-    delegate: DelegationContext;
+    /**
+     * Delegate
+     */
+    delegate: number;
     debate_type?: DebateTypes | null;
     /**
      * Total Duration Minutes
@@ -350,20 +345,15 @@ export type DelegateMotionPayload = {
  * DelegateQuestionPayload
  */
 export type DelegateQuestionPayload = {
-    /**
-     * Id
-     */
-    id?: number | null;
-    /**
-     * Priority
-     */
-    priority?: number;
     type: Questions;
-    delegate: DelegationContext;
+    /**
+     * Delegate
+     */
+    delegate: number;
     /**
      * Details
      */
-    details: string;
+    details?: string | null;
 };
 
 /**
@@ -397,13 +387,31 @@ export type DelegationContext = {
      */
     id: number;
     /**
+     * Name
+     */
+    name: string;
+    /**
      * Seat
      */
     seat: string;
     /**
+     * Code
+     */
+    code: string;
+};
+
+/**
+ * DelegationSchema
+ */
+export type DelegationSchema = {
+    /**
      * Name
      */
     name: string;
+    /**
+     * Seat
+     */
+    seat: string;
     /**
      * Code
      */
@@ -516,6 +524,42 @@ export type MarkRollCallPayload = {
 };
 
 /**
+ * MotionContext
+ */
+export type MotionContext = {
+    /**
+     * Id
+     */
+    id?: number | null;
+    /**
+     * Priority
+     */
+    priority?: number;
+    type: Motions;
+    /**
+     * Delegate Id
+     */
+    delegate_id?: number | null;
+    debate_type?: DebateTypes | null;
+    /**
+     * Total Duration Minutes
+     */
+    total_duration_minutes?: number | null;
+    /**
+     * Per Speaker Seconds
+     */
+    per_speaker_seconds?: number | null;
+    /**
+     * Target Topic
+     */
+    target_topic?: string | null;
+    /**
+     * Details
+     */
+    details?: string | null;
+};
+
+/**
  * Motions
  */
 export const Motions = {
@@ -561,6 +605,29 @@ export type OpenSessionEvent = {
      */
     type: 'OpenSessionEvent';
     payload: EmptyPayload;
+};
+
+/**
+ * QuestionContext
+ */
+export type QuestionContext = {
+    /**
+     * Id
+     */
+    id?: number | null;
+    /**
+     * Priority
+     */
+    priority?: number;
+    type: Questions;
+    /**
+     * Delegate Id
+     */
+    delegate_id?: number | null;
+    /**
+     * Details
+     */
+    details?: string | null;
 };
 
 /**
@@ -633,7 +700,7 @@ export type SessionCreationSchema = {
     /**
      * Delegations
      */
-    delegations: Array<DelegationContext>;
+    delegations: Array<DelegationSchema>;
 };
 
 /**
@@ -689,11 +756,11 @@ export type SessionLiveState = {
     /**
      * Submitted Motions
      */
-    submitted_motions?: Array<DelegateMotionPayload>;
+    submitted_motions?: Array<MotionContext>;
     /**
      * Submitted Questions
      */
-    submitted_questions?: Array<DelegateQuestionPayload>;
+    submitted_questions?: Array<QuestionContext>;
     /**
      * Agenda Topics
      */
@@ -840,7 +907,7 @@ export type VotingContext = {
      * Target Type
      */
     target_type: 'PROCEDURAL' | 'SUBSTANTIVE' | 'INFORMAL';
-    motion_in_vote?: DelegateMotionPayload | null;
+    motion_in_vote?: MotionContext | null;
     /**
      * Title
      */
