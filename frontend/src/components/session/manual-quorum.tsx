@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -18,6 +19,7 @@ import {
     ItemMedia,
     ItemTitle,
 } from "@/components/ui/item"
+import { Separator } from "@/components/ui/separator"
 import { CircleFlag } from 'react-circle-flags'
 import { type MarkRollCallBulkEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
 
@@ -28,7 +30,21 @@ export default function ManualQuorum() {
         a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
     )
     const currentQuorum = useCommitteeStore((state) => state.roll_call.registry ?? {})
-    const tempQuorum = structuredClone(currentQuorum)
+    const [tempQuorum, setTempQuorum] = React.useState<Record<number, RollCallChoice>>(() => structuredClone(currentQuorum))
+
+    React.useEffect(() => {
+        setTempQuorum(structuredClone(currentQuorum))
+    }, [currentQuorum])
+
+    const setAllQuorum = (value: RollCallChoice) => {
+        const nextQuorum = structuredClone(tempQuorum)
+
+        sortedDelegations.forEach((delegation) => {
+            nextQuorum[delegation.id] = value
+        })
+
+        setTempQuorum(nextQuorum)
+    }
 
 
     return (
@@ -45,6 +61,17 @@ export default function ManualQuorum() {
 
                     </DialogHeader>
                     <ScrollArea className="mt-4 min-h-0 max-h-[75vh] flex-1 rounded-md border">
+                        <Item size="sm">
+                            <ItemContent className="flex-row items-center justify-between gap-">
+                                <ItemTitle>Todos</ItemTitle>
+                                <ToggleGroup type="single" onValueChange={(value: RollCallChoice) => setAllQuorum(value)} className="bg-neutral-200">
+                                    <ToggleGroupItem value={RollCallChoice.PRESENT_AND_VOTING} className="hover:bg-green-700 hover:text-white data-[state=on]:bg-green-800 data-[state=on]:text-white">PV</ToggleGroupItem>
+                                    <ToggleGroupItem value={RollCallChoice.PRESENT} className="hover:bg-green-700 hover:text-white data-[state=on]:bg-green-800 data-[state=on]:text-white">P</ToggleGroupItem>
+                                    <ToggleGroupItem value={RollCallChoice.ABSENT} className="hover:bg-red-700 hover:text-white data-[state=on]:bg-red-800 data-[state=on]:text-white">Ausente</ToggleGroupItem>
+                                </ToggleGroup>
+                            </ItemContent>
+                        </Item>
+                        <Separator />
                         {sortedDelegations.map((delegation) => (
                             <Item key={delegation.id} size="sm">
                                 <ItemMedia variant="image" >
@@ -52,7 +79,15 @@ export default function ManualQuorum() {
                                 </ItemMedia>
                                 <ItemContent className="flex-row items-center justify-between gap-4">
                                     <ItemTitle>{delegation.name}</ItemTitle>
-                                    <ToggleGroup type="single" onValueChange={(value: RollCallChoice) => tempQuorum[delegation.id] = value} defaultValue={currentQuorum[delegation.id]} className="bg-neutral-200">
+                                    <ToggleGroup
+                                        type="single"
+                                        value={tempQuorum[delegation.id] ?? currentQuorum[delegation.id]}
+                                        onValueChange={(value: RollCallChoice) => setTempQuorum((previousQuorum) => ({
+                                            ...previousQuorum,
+                                            [delegation.id]: value,
+                                        }))}
+                                        className="bg-neutral-200"
+                                    >
                                         <ToggleGroupItem value={RollCallChoice.PRESENT_AND_VOTING} className="hover:bg-green-700 hover:text-white data-[state=on]:bg-green-800 data-[state=on]:text-white">PV</ToggleGroupItem>
                                         <ToggleGroupItem value={RollCallChoice.PRESENT} className="hover:bg-green-700 hover:text-white data-[state=on]:bg-green-800 data-[state=on]:text-white">P</ToggleGroupItem>
                                         <ToggleGroupItem value={RollCallChoice.ABSENT} className="hover:bg-red-700 hover:text-white data-[state=on]:bg-red-800 data-[state=on]:text-white">Ausente</ToggleGroupItem>

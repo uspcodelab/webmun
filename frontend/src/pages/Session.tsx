@@ -1,11 +1,15 @@
 import { useEffect, useState} from 'react';
 import { useParams } from 'react-router-dom';
 import { UpdateStore, useCommitteeStore } from '../store/useCommitteeStore.ts'
-import SpeakerList from "@/components/session/speaker-list"
 import MotionsList from "@/components/session/motions-list"
+import SpeakerList from "@/components/session/speaker-list"
+import ModeratedDebate from "@/components/session/moderated-debate"
+import UnmoderatedDebate from "@/components/session/unmoderated-debate"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
+import VotingPopup from '@/components/session/voting-popup.tsx';
+import { DebateTypes } from '@/schemas/types.gen';
 
 let socket : WebSocket | null = null;
 
@@ -27,6 +31,7 @@ export function sendMessage(data: any) {
 
 export default function SessionPage() {
 
+    const debateType = useCommitteeStore((state) => state.debate?.debate_type)
 
     const motions = [
         {
@@ -108,7 +113,7 @@ export default function SessionPage() {
                 {sessionStart ? `${uptime}s` : "Waiting for session..."}
             </div> */}
 
-
+            <VotingPopup />
             <TopBar />
             <div className="flex h-[82vh] w-full">
                 <div className="min-w-0 flex-1 bg-neutral-100">
@@ -117,8 +122,10 @@ export default function SessionPage() {
                         buttonsPerSemicircle={[6, 6, 9]}
                     />
                 </div>
-                <div className="flex h-full w-[20%] shrink-0 flex-col bg-white">
-                    <SpeakerList />
+                <div className="flex h-full w-[25%] shrink-0 flex-col bg-white">
+                    {debateType === DebateTypes.UNMODERATED_DEBATE && <UnmoderatedDebate />}
+                    {debateType === DebateTypes.MODERATED_DEBATE && <ModeratedDebate />}
+                    {debateType === DebateTypes.SPEAKERS_LIST && <SpeakerList />}
                     <MotionsList motions={motions} />
                 </div>
             </div>

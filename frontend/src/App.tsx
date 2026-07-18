@@ -3,6 +3,7 @@ import SessionPage from './pages/Session';
 import LoginPage from './pages/Login_page';
 import Home from './pages/Home';
 import CreateCommittee from './pages/CreateCommittee';
+import UserDash from './pages/UserDashboard';
 
 function App() {
 	// We'll use react-router in order to develop our SPA 
@@ -13,7 +14,9 @@ function App() {
 				<Route path="/committees/:committeeId/session" element={<SessionPage />} />
 				<Route path="/login" element={<LoginPage />} />
 				<Route path="/create-committee" element={<CreateCommittee />} />
+				<Route path="/dashboard" element={<UserDash />} />
 			</Routes>
+			
 		</BrowserRouter>
 	);
 }

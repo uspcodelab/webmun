@@ -17,20 +17,19 @@ import {
 } from "@/components/ui/tooltip"
 
 const isChair = true // Replace with actual logic to determine if the user is the chair
-const isAlredyInQueue = true // Replace with actual logic to determine if the user is already in the queue
 //TODO determine if queue is open, if not obscure the button and show a message that the queue is closed
 
-export default function SpeakerList() {
+export default function ModeratedDebate() {
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
     const waitingCount = gslQueue.length
 
-
+//TODO: Actually implement speaker history
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <div className="m-4 flex items-center">
-                <h2 className="text-xl font-bold">Lista de Oradores</h2>
-                <Badge className="ml-auto bg-tertiary-200 text-secondary">{String(waitingCount).padStart(2, "0")} em espera</Badge>
+            <div className="mr-4 mb-2 ml-4 mt-4 ">
+                <h2 className="text-xl font-bold">Debate Moderado</h2>
+                <p className="ml-auto">Historico de Oradores:</p>
             </div>
             <ScrollArea className="mr-4 mb-2 ml-4 mt-0 min-h-0 flex-1 rounded-md border ">
                 {gslQueue.map((delegate, index) => {
@@ -68,9 +67,8 @@ export default function SpeakerList() {
                 <Button
                     variant="outline"
                     className="mr-4 mb-2 ml-4 w-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-                    disabled={isAlredyInQueue}
                 >
-                    Se colocar na lista de oradores
+                    Quero me proniunciar
                 </Button>
             )}
             {isChair && (
@@ -87,7 +85,7 @@ export default function SpeakerList() {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Passar para o próximo orador da lista</p>
+                            <p>Escolher o próximo orador</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>

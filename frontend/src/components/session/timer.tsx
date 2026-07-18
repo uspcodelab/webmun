@@ -7,6 +7,7 @@ import { sendMessage } from "@/pages/Session"
 import { type IncreaseTimerEvent, type ToggleTimerEvent, ChairEvents } from "@/schemas/types.gen"
 import { useEffect, useState } from "react"
 
+const isChair = true // Replace with actual logic to determine if the user is the chair
 
 export default function Timer() {
 
@@ -48,7 +49,7 @@ export default function Timer() {
         <div className="flex flex-col">
             <div className="flex items-center gap-2">
                 <Flag />
-                <h3 className="text-[1.5vh]">Orador com a Palavra:</h3>
+                <h3 className="text-[1.75vh]">Com a Palavra:</h3>
             </div>
             <div className="flex items-center justify-center gap-2">
                 <Flags code={speaker.code} className="h-5" />
@@ -58,11 +59,16 @@ export default function Timer() {
         <Separator orientation="vertical" />
         <div className="flex items-center gap-2">
             <h2 className="text-3xl leading-none font-bold tabular-nums">{Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:{(remainingSeconds % 60).toString().padStart(2, '0')}</h2>
-            <Button variant="outline" size="icon-lg" aria-label={timerIsRunning ? "Pause timer" : "Start timer"} onClick={() => sendMessage({type: ChairEvents.TOGGLE_TIMER_EVENT, payload: {}} as ToggleTimerEvent)}>
+            
+            {isChair && (
+                <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon-lg" aria-label={timerIsRunning ? "Pause timer" : "Start timer"} onClick={() => sendMessage({type: ChairEvents.TOGGLE_TIMER_EVENT, payload: {}} as ToggleTimerEvent)}>
                 {timerIsRunning ? <Pause /> : <Play />}
-            </Button>
-            <Button onClick={() => sendMessage({type: ChairEvents.INCREASE_TIMER_EVENT, payload: { seconds: 5 }} as IncreaseTimerEvent)}><Plus />5s</Button>
-
+                </Button>
+                <Button onClick={() => sendMessage({type: ChairEvents.INCREASE_TIMER_EVENT, payload: { seconds: 5 }} as IncreaseTimerEvent)}><Plus />5s</Button>
+                
+                </div>
+            )}
         </div>
 
     </div>)

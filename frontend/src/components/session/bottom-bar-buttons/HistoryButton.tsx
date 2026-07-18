@@ -40,46 +40,45 @@ const historyItems = [
 export default function TestButton() {
   return (
     <Dialog>
-      <form>
-        <DialogTrigger asChild>
-          <Button className="m-4 flex h-8/10   flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
-            <span className="flex h-[3vh] w-[3vh] items-center justify-center [&>svg]:size-full">
-              <ScrollText className="size-[3vh]" />
-            </span>
-            <h3 className="text-[1.5vh] pt-1 leading-none whitespace-nowrap">HISTÓRICO DA SESSÃO</h3>
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Histórico da sessão</DialogTitle>
-            <DialogDescription>Veja os eventos recentes da sessão.</DialogDescription>
-          </DialogHeader>
-          <div className="rounded-md border bg-white p-1 text-sm text-neutral-700">
-            <ScrollArea className="h-64 p-1">
-              <div className="flex flex-col gap-2">
-                {historyItems.map((item, index) => (
-                  <div key={`${item.time}-${item.title}`}>
-                    <Item size="sm">
-                      <ItemMedia variant="icon" className="h-10 w-10 rounded-full bg-neutral-200">
-                        <div className="flex h-10 items-center justify-center">
-                          <h2 className="text-xs font-bold text-black">{item.time}</h2>
-                        </div>
-                      </ItemMedia>
-                      <ItemContent>
-                        <ItemTitle>{item.title}</ItemTitle>
-                        <ItemDescription className="flex items-center gap-2">
-                          {item.description}
-                        </ItemDescription>
-                      </ItemContent>
-                    </Item>
-                    {index < historyItems.length - 1 && <Separator className="my-2" />}
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-        </DialogContent>
-      </form>
+
+      <DialogTrigger asChild>
+        <Button className="m-4 flex h-8/10   flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
+          <span className="flex h-[3vh] w-[3vh] items-center justify-center [&>svg]:size-full">
+            <ScrollText className="size-[3vh]" />
+          </span>
+          <h3 className="text-[1.5vh] pt-1 leading-none whitespace-nowrap">HISTÓRICO DA SESSÃO</h3>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Histórico da sessão</DialogTitle>
+          <DialogDescription>Veja os eventos recentes da sessão.</DialogDescription>
+        </DialogHeader>
+        <div className="rounded-md border bg-white p-1 text-sm text-neutral-700">
+          <ScrollArea className="h-64 p-1">
+            <div className="flex flex-col gap-2">
+              {historyItems.map((item, index) => (
+                <div key={`${item.time}-${item.title}`}>
+                  <Item size="sm">
+                    <ItemMedia variant="icon" className="h-10 w-10 rounded-full bg-neutral-200">
+                      <div className="flex h-10 items-center justify-center">
+                        <h2 className="text-xs font-bold text-black">{item.time}</h2>
+                      </div>
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>{item.title}</ItemTitle>
+                      <ItemDescription className="flex items-center gap-2">
+                        {item.description}
+                      </ItemDescription>
+                    </ItemContent>
+                  </Item>
+                  {index < historyItems.length - 1 && <Separator className="my-2" />}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      </DialogContent>
     </Dialog >
   )
 }
