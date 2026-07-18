@@ -20,6 +20,8 @@ from .models import (
     SessionRole,
 )
 
+from .enums import States
+
 
 class ActorResolutionError(Exception):
     pass
