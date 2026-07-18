@@ -1,12 +1,15 @@
-FROM node:20-slim
+FROM node:22-slim
 
 WORKDIR /app
 
 COPY package*.json ./
+RUN chown node:node /app
 
-RUN npm install
+USER node
 
-COPY . .
+RUN npm ci
+
+COPY --chown=node:node . .
 
 EXPOSE 5173
 
