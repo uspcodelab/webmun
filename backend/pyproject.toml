@@ -1,9 +1,24 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Later add description"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]>=0.135.3",
+    "pytest>=9.1.0",
+    "ruff>=0.15.17",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

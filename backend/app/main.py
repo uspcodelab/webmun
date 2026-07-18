@@ -1,17 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.session.views import router as committee_router # Import different domains routers
+
+from app.session.engine import SessionEngine
+from app.session.manager import ConnectionManager
+from app.session.service import SessionService
+from app.session.views import create_session_router
 
 app = FastAPI(title="WebMUN API")
 
-# CORS config for Vite 
+# CORS config for Vite
 app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["http://localhost:5173"],
-        allow_methods=["*"],
-        allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# include commitees here?
-app.include_router(committee_router, prefix="/committees", tags=["Committees"])
+manager = ConnectionManager()
+engine = SessionEngine()
+session_service = SessionService(manager, engine)
 
+# include commitees here?
+app.include_router(
+    create_session_router(session_service), prefix="/committees", tags=["committees"]
+)
