@@ -13,7 +13,6 @@ class Settings(BaseSettings):
 
     # supabase config
     SUPABASE_URL: AnyHttpUrl
-    SUPABASE_ANON_KEY: SecretStr
     SUPABASE_JWT_SECRET: SecretStr
     JWT_ALGORITHM: str = "HS256"
 

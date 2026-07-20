@@ -15,5 +15,5 @@ create table session_assignments (
 	role session_role not null,
 	delegation_id int null, 
 
-	primary key (user_id, session_id),
+	primary key (user_id, session_id)
 );
