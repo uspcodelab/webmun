@@ -9,11 +9,11 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
-from jwt.exceptions import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.service import AccessDenied
-from app.auth.service import verify_jwt_token
+from app.auth.dep import get_current_user
+from app.auth.service import verify_jwt_token, TokenInvalidError, TokenExpiredError
 from app.core.config import Settings
 from app.core.dep import get_connection_manager, get_logger, get_session_engine
 from app.core.config import get_settings
@@ -50,7 +50,7 @@ async def create_session_endpoint(
     session_schema: SessionCreationSchema,
     session: AsyncSession = Depends(get_db_session),
     manager=Depends(get_connection_manager),
-    current_user=Depends(verify_jwt_token),
+    current_user=Depends(get_current_user), # TODO: map out that only admins can create sessions
 ):
     # Mock a session being created
     await service.create_session_service(
@@ -72,9 +72,18 @@ async def websocket_endpoint(
     logger=Depends(get_logger),
     settings: Settings = Depends(get_settings),
 ):
+    """
+    Endpoint for connecting to a committee session.
+
+    Overall flow: accepts websocket -> user sends token -> we verify it ->
+    if valid, lookup an assigment -> builds actor, connects to manager, and receive The
+    current session state
+    """
+
     await websocket.accept()
     try:
         auth_message = await websocket.receive_json()
+        # we use pure verify_jwt_token due to websocket not handling bearer-header support
         auth_user = verify_jwt_token(
             settings=settings, token=auth_message["access_token"]
         )
@@ -109,6 +118,16 @@ async def websocket_endpoint(
         except WebSocketDisconnect:
             manager.disconnect(websocket, session_id)
 
-    except (InvalidTokenError, AccessDenied, service.ActorResolutionError):
-        await websocket.close(code=1008)
+    except (TokenExpiredError, TokenInvalidError, AccessDenied, service.ActorResolutionError) as exc:
+        if isinstance(exc, TokenExpiredError):
+            reason = "token_expired"
+        elif isinstance(exc, TokenInvalidError):
+            reason = "token_invalid"
+        elif isinstance(exc, AccessDenied):
+            reason = "access_denied"
+        else:
+            reason = "actor_resolution_error"
+
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason=reason)
         return
+

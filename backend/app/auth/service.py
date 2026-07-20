@@ -3,14 +3,16 @@ from uuid import UUID
 from pydantic import BaseModel
 from app.core.config import Settings
 
+# Self documented errors: might be better for protection
+class TokenInvalidError(Exception):
+    pass 
+
+class TokenExpiredError(Exception):
+    pass
 
 class AuthUser(BaseModel):
     user_id: UUID
     email: str | None
-
-
-class InvalidTokenError(Exception):
-    pass
 
 
 def verify_jwt_token(
@@ -27,9 +29,9 @@ def verify_jwt_token(
         )
 
         return AuthUser(user_id=UUID(payload.get("sub")), email=payload.get("email"))
-
-    except jwt.ExpiredSignatureError:
-        raise InvalidTokenError("Token has expired")
-
-    except jwt.InvalidTokenError:
-        raise InvalidTokenError("Token is invalid")
+    
+    except jwt.exceptions.ExpiredSignatureError:
+        raise TokenExpiredError("Access token expired")
+    
+    except jwt.exceptions.InvalidTokenError:
+        raise TokenInvalidError("Access token invalid")
