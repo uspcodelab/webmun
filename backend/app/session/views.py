@@ -1,6 +1,8 @@
 # An adapter. Accepts HTTP/Websockets messages, validates envelopes, calls/attaches services and return/send errors
 # The 1st layer when connecting to clients
 
+from typing import Annotated
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -13,17 +15,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.service import AccessDenied
 from app.auth.dep import get_current_user
-from app.auth.service import verify_jwt_token, TokenInvalidError, TokenExpiredError
+from app.auth.service import AuthUser, verify_jwt_token, TokenInvalidError, TokenExpiredError
 from app.core.config import Settings
 from app.core.dep import get_connection_manager, get_logger, get_session_engine
 from app.core.config import get_settings
 from app.core.database import get_db_session
+from app.session.engine import SessionEngine
 from app.session.enums import ChairEvents, DelegateEvents, SessionRole
+from app.session.manager import ConnectionManager
 from app.session.models import SessionLiveState
 from app.session.schemas import SessionCreationSchema, SessionEvent
 
 import app.access.service as access
 import app.session.service as service
+import logging
 
 router = APIRouter()
 
@@ -48,16 +53,16 @@ async def health():
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
 async def create_session_endpoint(
     session_schema: SessionCreationSchema,
-    session: AsyncSession = Depends(get_db_session),
-    manager=Depends(get_connection_manager),
-    current_user=Depends(get_current_user), # TODO: map out that only admins can create sessions
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
+    current_user: Annotated[AuthUser, Depends(get_current_user)], # TODO: map out that only admins can create sessions
 ):
     # Mock a session being created
     await service.create_session_service(
         manager=manager,
         session=session,
         session_schema=session_schema,
-        creator_uuid=current_user.id,
+        creator_uuid=current_user.user_id,
     )
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -67,10 +72,10 @@ async def create_session_endpoint(
 async def websocket_endpoint(
     websocket: WebSocket,
     session_id: int,
-    manager=Depends(get_connection_manager),
-    engine=Depends(get_session_engine),
-    logger=Depends(get_logger),
-    settings: Settings = Depends(get_settings),
+    manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
+    engine: Annotated[SessionEngine, Depends(get_session_engine)],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
     """
     Endpoint for connecting to a committee session.

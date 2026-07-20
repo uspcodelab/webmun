@@ -5,11 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .models import DelegationContext
 
 
-class SessionRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-
 async def create_session(
     session: AsyncSession, name: str, delegations: list[DelegationContext]
 ) -> int | None:

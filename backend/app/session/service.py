@@ -4,7 +4,6 @@
 
 import logging
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -37,8 +36,6 @@ class ActorResolutionError(Exception):
 class SessionCreationError(Exception):
     pass
 
-
-# SessionService class defined with Dependency Injection
 
 
 def build_actor(
