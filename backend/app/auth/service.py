@@ -1,8 +1,4 @@
-from dataclasses import dataclass
-from typing import Annotated
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from uuid import UUID
 from pydantic import BaseModel
 from app.core.config import Settings
@@ -15,28 +11,23 @@ class AuthUser(BaseModel):
 class InvalidTokenError(Exception):
     pass
 
+def verify_jwt_token(
+        token: str, # self contained token that already has info like id, email, etc
+        settings: Settings
+) -> AuthUser:
+    """Local Verification of user's JWT + Supabase JWT Secret"""
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SUPABASE_JWT_SECRET.get_secret_value(),
+            settings.JWT_ALGORITHM,
+            audience="authenticated"  
+        )
 
-class AuthService:
-    def __init__(self, settings: Settings):
-        self.settings = settings
+        return AuthUser(user_id=UUID(payload.get("id")), email=payload.get("email"))
 
-    def verify_user_token(
-            self,
-            token: str # self contained token that already has info like id, email, etc
-    ) -> AuthUser:
-        """Local Verification of user's JWT + Supabase JWT Secret"""
-        try:
-            payload = jwt.decode(
-                token,
-                self.settings.SUPABASE_JWT_SECRET.get_secret_value(),
-                self.settings.JWT_ALGORITHM,
-                audience="authenticated"  
-            )
+    except jwt.ExpiredSignatureError:
+        raise InvalidTokenError("Token has expired")
 
-            return AuthUser(user_id=UUID(payload.get("id")), email=payload.get("email"))
-
-        except jwt.ExpiredSignatureError:
-            raise InvalidTokenError("Token has expired")
-
-        except jwt.InvalidTokenError:
-            raise InvalidTokenError("Token is invalid")
+    except jwt.InvalidTokenError:
+        raise InvalidTokenError("Token is invalid")
