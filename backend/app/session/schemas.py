@@ -1,21 +1,19 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 import app.session.enums as enums
 
 # --- General Schemas ---
 
-
-# should be used to create list of delegations.
 class DelegationSchema(BaseModel):
+    user_email: EmailStr # TODO: enable multiple users per delegation
     name: str
     seat: str  # TODO: check if its better to use an int here on the frontend
     code: str  # TODO: check if this is needed
 
 
 class SessionCreationSchema(BaseModel):
-    session_id: int
     name: str | None = None
     delegations: list[DelegationSchema]  # useful for now
 

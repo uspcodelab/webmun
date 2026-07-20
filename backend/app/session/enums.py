@@ -92,3 +92,8 @@ class RollCallChoice(str, Enum):
     PRESENT = "Present"
     PRESENT_AND_VOTING = "Present and Voting"
     ABSENT = "Absent"
+
+class SessionRole(str, Enum):
+    CHAIR = "CHAIR"
+    DELEGATE = "DELEGATE"
+    # further roles are put here

@@ -3,8 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
-from app.session.service import SessionService
-from app.session.views import create_session_router
+from app.session.views import router as session_router
 
 app = FastAPI(title="WebMUN API")
 
@@ -18,9 +17,12 @@ app.add_middleware(
 
 manager = ConnectionManager()
 engine = SessionEngine()
-session_service = SessionService(manager, engine)
+
+# lets manager and engine be long lived
+app.state.connection_manager = manager
+app.state.engine = engine
 
 # include commitees here?
 app.include_router(
-    create_session_router(session_service), prefix="/committees", tags=["committees"]
+    session_router, prefix="/committees", tags=["committees"]
 )

@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, TypeAlias
 
 import app.session.schemas as schemas
+import app.session.enums as enums
 
 from .enums import (
     ChairEvents,
@@ -22,7 +23,6 @@ from .models import (
     RollCallContext,
     SessionActor,
     SessionLiveState,
-    SessionRole,
     VotingContext,
 )
 
@@ -134,9 +134,6 @@ MOTIONS_ALLOWED: dict[States, set[Motions]] = {
     },
 }
 
-# we also need related events or automatic/internal cron job in order to change, for example, caucus to GSL
-# TODO: change is_chair boolean flag from handlers to something like a Role class, with "DELEGATE", "OBSERVER", "ADMIN" and "CHAIR" types
-
 
 # Validations and helpers
 def generate_next_motion_id(state: SessionLiveState) -> int:
@@ -211,14 +208,14 @@ def reset_timer(state: SessionLiveState, seconds: int = 0) -> None:
 
 def require_delegate(actor: SessionActor) -> DelegationContext:
     # helper that returns the delegation context (old Delegation model) while validating
-    if actor.role != SessionRole.DELEGATE or actor.delegation is None:
+    if actor.role != enums.SessionRole.DELEGATE or actor.delegation is None:
         raise InvalidProceduralMove("Delegate role required")
     return actor.delegation
 
 
 def require_chair(actor: SessionActor) -> None:
     """Returns"""
-    if actor.role != SessionRole.CHAIR:
+    if actor.role != enums.SessionRole.CHAIR:
         raise InvalidProceduralMove("Chair role required")
 
 

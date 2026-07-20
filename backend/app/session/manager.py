@@ -8,7 +8,6 @@ from .models import SessionActor, SessionLiveState
 
 
 class ConnectionManager:
-    # TODO: refactor additional field 'delegation' when working with auth
 
     def __init__(self):
         # Initialize dictionary with room_name and dict with websocket -> delegation
@@ -17,7 +16,6 @@ class ConnectionManager:
 
     #
     async def connect(self, websocket: WebSocket, session_id: int, actor: SessionActor):
-        await websocket.accept()
         self.active_connections.setdefault(session_id, {})[websocket] = actor
 
         # when someone connects, send current state as SessionLiveState
