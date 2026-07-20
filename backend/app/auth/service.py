@@ -26,7 +26,7 @@ def verify_jwt_token(
             audience="authenticated",
         )
 
-        return AuthUser(user_id=UUID(payload.get("id")), email=payload.get("email"))
+        return AuthUser(user_id=UUID(payload.get("sub")), email=payload.get("email"))
 
     except jwt.ExpiredSignatureError:
         raise InvalidTokenError("Token has expired")

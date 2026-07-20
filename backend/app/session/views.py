@@ -70,7 +70,6 @@ async def websocket_endpoint(
     manager=Depends(get_connection_manager),
     engine=Depends(get_session_engine),
     logger=Depends(get_logger),
-    session: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ):
     await websocket.accept()
@@ -79,10 +78,13 @@ async def websocket_endpoint(
         auth_user = verify_jwt_token(
             settings=settings, token=auth_message["access_token"]
         )
-
-        assignment = await access.resolve_committee_assignment(
-            session=session, user_id=auth_user.user_id, session_id=session_id
-        )
+        
+        # short db scope for access lookup at first connection
+        session_factory = websocket.app.state.db_session_factory
+        async with session_factory() as db: 
+            assignment = await access.resolve_committee_assignment(
+                session=db, user_id=auth_user.user_id, session_id=session_id
+            )
 
         actor = service.build_actor(
             manager=manager,

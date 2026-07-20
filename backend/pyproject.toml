@@ -10,7 +10,8 @@ dependencies = [
     "ruff>=0.15.17",
 	"supabase",
 	"pyjwt", 
-	"sqlalchemy"
+	"sqlalchemy",
+	"asyncpg"
 ]
 
 [tool.ruff]
