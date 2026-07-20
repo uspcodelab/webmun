@@ -23,6 +23,4 @@ app.state.connection_manager = manager
 app.state.engine = engine
 
 # include commitees here?
-app.include_router(
-    session_router, prefix="/committees", tags=["committees"]
-)
+app.include_router(session_router, prefix="/committees", tags=["committees"])

@@ -350,10 +350,12 @@ def handle_answer_roll_call(
 
 
 # Chair events
-def handle_open_session(state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor) -> SessionLiveState:
-    
+def handle_open_session(
+    state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor
+) -> SessionLiveState:
+
     require_chair(actor)
-    if (state.current_state != States.SETUP):
+    if state.current_state != States.SETUP:
         raise InvalidProceduralMove("Session can only be opened from setup")
 
     state.current_state = States.ROLL_CALL
@@ -368,23 +370,29 @@ def handle_open_session(state: SessionLiveState, event: schemas.OpenSessionEvent
 
     return state
 
-def handle_close_session(state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor) -> SessionLiveState:
-   
+
+def handle_close_session(
+    state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor
+) -> SessionLiveState:
+
     require_chair(actor)
-   
-    if (state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED)): # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
+
+    if (
+        state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED)
+    ):  # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
         raise InvalidProceduralMove("Session can only be opened from setup")
 
     state.current_state = States.FINISHED
     state.current_speaker = None
-    state.gsl_queue = [] # I'm supposing this queue has the first element popped when someone speaks, so it should be empty when session is closed. In case this list is to be kept, we can remove this line. 
+    state.gsl_queue = []  # I'm supposing this queue has the first element popped when someone speaks, so it should be empty when session is closed. In case this list is to be kept, we can remove this line.
     state.can_set_motion = False
-    state.debate = None # Same as queue
+    state.debate = None  # Same as queue
     state.timer_is_running = False
     state.timer_expiration = None
     state.timer_remaining_seconds = 0
 
     return state
+
 
 # TODO: create helpers for timers -> stop_timer, set_timer, pause_timer, etc
 def handle_toggle_timer(
@@ -700,8 +708,8 @@ def handle_close_roll_call(
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot close roll call right now")
-    
-    # mark all delegations as absent in the first case. This will enable us to use 
+
+    # mark all delegations as absent in the first case. This will enable us to use
     # RollCallContext to tally votes
     for delegation in state.delegations:
         state.roll_call.registry.setdefault(delegation.id, RollCallChoice.ABSENT)

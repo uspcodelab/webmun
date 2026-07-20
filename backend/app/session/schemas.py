@@ -6,8 +6,9 @@ import app.session.enums as enums
 
 # --- General Schemas ---
 
+
 class DelegationSchema(BaseModel):
-    user_email: EmailStr # TODO: enable multiple users per delegation
+    user_email: EmailStr  # TODO: enable multiple users per delegation
     name: str
     seat: str  # TODO: check if its better to use an int here on the frontend
     code: str  # TODO: check if this is needed

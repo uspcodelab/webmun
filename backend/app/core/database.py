@@ -13,20 +13,17 @@ engine = create_async_engine(
     pool_pre_ping=True,
     connect_args={
         "prepared_statement_cache_size": 0  # Crucial para o Supavisor não quebrar!
-    }
+    },
 )
 
 async_sessionmaker_factory = async_sessionmaker(
-    bind=engine, 
-    autocommit=False, 
-    autoflush=False, 
-    expire_on_commit=False
+    bind=engine, autocommit=False, autoflush=False, expire_on_commit=False
 )
 
 Base = declarative_base()
+
 
 # Dependência assíncrona pythônica para o Depends do FastAPI
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_sessionmaker_factory() as session:
         yield session
-

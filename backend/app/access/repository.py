@@ -6,8 +6,7 @@ from .models import CommitteeAssignment
 
 
 async def get_committee_assignment(
-        session: AsyncSession,
-        user_id: UUID, session_id: int
+    session: AsyncSession, user_id: UUID, session_id: int
 ) -> CommitteeAssignment | None:
     query = text("""
         SELECT
@@ -21,11 +20,7 @@ async def get_committee_assignment(
     """)
 
     result = await session.execute(
-        query,
-        {
-            "session_id": session_id,
-            "user_id": user_id
-        }
+        query, {"session_id": session_id, "user_id": user_id}
     )
 
     row = result.mappings().one_or_none()
@@ -36,8 +31,5 @@ async def get_committee_assignment(
         user_id=row["user_id"],
         session_id=session_id,
         role=row["role"],
-        delegation_id=row["delegation_id"]
+        delegation_id=row["delegation_id"],
     )
-
-
-

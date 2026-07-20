@@ -14,6 +14,8 @@ from app.session.models import (
     RollCallContext,
     SessionActor,
     SessionLiveState,
+)
+from app.session.enums import (
     SessionRole,
 )
 from app.session.service import SessionService

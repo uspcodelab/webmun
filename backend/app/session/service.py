@@ -13,7 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.models import CommitteeAssignment
 import app.session.enums as enums
-from app.session.repository import bulk_get_uuids_by_email, bulk_insert_assignments, create_session
+from app.session.repository import (
+    bulk_get_uuids_by_email,
+    bulk_insert_assignments,
+    create_session,
+)
 import app.session.schemas as schemas
 from app.session.engine import SessionEngine
 
@@ -29,10 +33,13 @@ from .models import (
 class ActorResolutionError(Exception):
     pass
 
+
 class SessionCreationError(Exception):
     pass
 
+
 # SessionService class defined with Dependency Injection
+
 
 def build_actor(
     manager: ConnectionManager,
@@ -54,9 +61,7 @@ def build_actor(
         if state is None:
             raise ActorResolutionError("session not found")
 
-        delegation = next(
-            (d for d in state.delegations if d.id == delegation_id), None
-        )
+        delegation = next((d for d in state.delegations if d.id == delegation_id), None)
         if delegation is None:
             raise ActorResolutionError("delegation not found")
 
@@ -73,10 +78,11 @@ def build_actor(
 
 
 async def create_session_service(
-        session: AsyncSession,
-        manager: ConnectionManager,
-        session_schema: schemas.SessionCreationSchema, 
-        creator_uuid: UUID):
+    session: AsyncSession,
+    manager: ConnectionManager,
+    session_schema: schemas.SessionCreationSchema,
+    creator_uuid: UUID,
+):
     # loop through delegationSchema and convert each to DelegationContext
     delegations = [
         # id now begins at 0 instead of 1
@@ -85,35 +91,44 @@ async def create_session_service(
     ]
 
     # insert into database and return the session id here
-    session_id = await create_session(session=session, name=session_schema.name or "", delegations=delegations)
+    session_id = await create_session(
+        session=session, name=session_schema.name or "", delegations=delegations
+    )
     if session_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not create session with given schema"
+            detail="Could not create session with given schema",
         )
-    
-    emails_to_uuid_map = await bulk_get_uuids_by_email(session, session_schema.delegations) 
+
+    emails_to_uuid_map = await bulk_get_uuids_by_email(
+        session, session_schema.delegations
+    )
     if len(delegations) != len(emails_to_uuid_map):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Some users were not found"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Some users were not found"
         )
 
     final_delegations = [
         CommitteeAssignment(
             user_id=emails_to_uuid_map[d.user_email],
             session_id=session_id,
-            delegation_id=i, # R: I hope this works since I think enumerate is deterministic
+            delegation_id=i,  # R: I hope this works since I think enumerate is deterministic
             role="DELEGATE",
         )
         for i, d in enumerate(session_schema.delegations)
     ]
-    
+
     # append this chair at last so we can also retrieve it
-    final_delegations.append(CommitteeAssignment(user_id=creator_uuid, session_id=session_id, delegation_id=None,role="CHAIR")) 
+    final_delegations.append(
+        CommitteeAssignment(
+            user_id=creator_uuid,
+            session_id=session_id,
+            delegation_id=None,
+            role="CHAIR",
+        )
+    )
 
     await bulk_insert_assignments(session=session, delegations=final_delegations)
-
 
     manager.room_states[session_id] = SessionLiveState(
         session_id=session_id,
@@ -126,13 +141,15 @@ async def create_session_service(
     )
     manager.active_connections.setdefault(session_id, {})
 
+
 async def handle_client_messages(
     manager: ConnectionManager,
     engine: SessionEngine,
     logger: logging.Logger,
-    session_id: int, 
-    actor: SessionActor, 
-    data):
+    session_id: int,
+    actor: SessionActor,
+    data,
+):
     adapter = TypeAdapter(schemas.SessionEvent)
 
     # if schema is None:

@@ -26,7 +26,8 @@ import app.access.service as access
 import app.session.service as service
 
 router = APIRouter()
-    
+
+
 # Workaround to make FastApi add all the Schemas to the OpenApi file
 @router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
 async def dummy(
@@ -37,30 +38,38 @@ async def dummy(
 ):
     return Response(status_code=status.HTTP_404_NOT_FOUND)
 
+
 @router.get("/health", status_code=status.HTTP_200_OK)
 async def health():
     return Response(status_code=status.HTTP_200_OK)
 
+
 # Create committee route, receives a contentbody following CommitteeCreationSchema's format
 @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
 async def create_session_endpoint(
-        session_schema: SessionCreationSchema,
-        session: AsyncSession = Depends(get_db_session),
-        manager = Depends(get_connection_manager),
-        current_user = Depends(verify_jwt_token),
+    session_schema: SessionCreationSchema,
+    session: AsyncSession = Depends(get_db_session),
+    manager=Depends(get_connection_manager),
+    current_user=Depends(verify_jwt_token),
 ):
     # Mock a session being created
-    await service.create_session_service(manager=manager, session=session, session_schema=session_schema, creator_uuid=current_user.id)
+    await service.create_session_service(
+        manager=manager,
+        session=session,
+        session_schema=session_schema,
+        creator_uuid=current_user.id,
+    )
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.websocket("/ws/{session_id}")
 async def websocket_endpoint(
     websocket: WebSocket,
     session_id: int,
-    manager = Depends(get_connection_manager),
-    engine = Depends(get_session_engine),
-    logger = Depends(get_logger),
+    manager=Depends(get_connection_manager),
+    engine=Depends(get_session_engine),
+    logger=Depends(get_logger),
     session: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ):
@@ -68,16 +77,13 @@ async def websocket_endpoint(
     try:
         auth_message = await websocket.receive_json()
         auth_user = verify_jwt_token(
-            settings = settings,
-            token=auth_message["access_token"]
+            settings=settings, token=auth_message["access_token"]
         )
-        
+
         assignment = await access.resolve_committee_assignment(
-            session=session,
-            user_id=auth_user.user_id, 
-            session_id=session_id
-        ) 
-        
+            session=session, user_id=auth_user.user_id, session_id=session_id
+        )
+
         actor = service.build_actor(
             manager=manager,
             session_id=session_id,

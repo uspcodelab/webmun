@@ -8,7 +8,6 @@ from .models import SessionActor, SessionLiveState
 
 
 class ConnectionManager:
-
     def __init__(self):
         # Initialize dictionary with room_name and dict with websocket -> delegation
         self.active_connections: dict[int, dict[WebSocket, SessionActor]] = {}
@@ -37,9 +36,11 @@ class ConnectionManager:
     def count_present_delegations(self, session_id: int) -> int:
         """Count unique delegations currently connected to the session."""
         actors = self.active_connections.get(session_id, {}).values()
-        return len({actor.delegation.id for actor in actors if actor.delegation is not None})
+        return len(
+            {actor.delegation.id for actor in actors if actor.delegation is not None}
+        )
 
-    # More things from connection manager here 
+    # More things from connection manager here
     async def broadcast_state(self, session_id: int):
         """Sends current state to all clients in the room"""
         state = self.room_states.get(session_id)
