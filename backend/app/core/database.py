@@ -12,9 +12,14 @@ from fastapi import Request
 def create_db(
     settings: Settings,
 ) -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    database_url = settings.DATABASE_URL.get_secret_value()
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace(
+            "postgresql://", "postgresql+asyncpg://", 1
+        )
 
     engine = create_async_engine(
-        settings.DATABASE_URL.get_secret_value(),
+        database_url,
         pool_pre_ping=True,
         connect_args={"prepared_statement_cache_size": 0},
     )
