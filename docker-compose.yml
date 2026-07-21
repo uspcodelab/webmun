@@ -4,10 +4,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
-    ports:
-      - "5173:5173"
     env_file:
       - ./frontend/.env.local
+    network_mode: host
     volumes:
       - ./frontend:/app
       - packages:/app/node_modules
@@ -16,7 +15,16 @@ services:
         condition: service_healthy
         restart: true
     command: >
-      sh -c 'npm run generate:schema && npm run dev -- --host 0.0.0.0 --port 5173'
+      sh -ec '
+        lock_hash=$$(sha256sum package-lock.json | cut -d " " -f 1);
+        if [ ! -f node_modules/.webmun-lock-hash ] ||
+           [ "$$(cat node_modules/.webmun-lock-hash)" != "$$lock_hash" ]; then
+          npm ci;
+          printf "%s" "$$lock_hash" > node_modules/.webmun-lock-hash;
+        fi;
+        npm run generate:schema;
+        exec npm run dev -- --host 0.0.0.0 --port 5173
+      '
     develop:
       watch:
         - action: restart
