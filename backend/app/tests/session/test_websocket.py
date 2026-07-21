@@ -6,11 +6,7 @@ from app.session.models import SessionActor
 
 class FakeWebSocket:
     def __init__(self) -> None:
-        self.accepted = False
         self.sent_json: list[dict] = []
-
-    async def accept(self) -> None:
-        self.accepted = True
 
     async def send_json(self, data: dict) -> None:
         self.sent_json.append(data)
@@ -27,7 +23,7 @@ def connection_manager() -> ConnectionManager:
 
 
 @pytest.mark.anyio
-async def test_connect_accepts_socket_and_stores_actor(
+async def test_connect_stores_actor(
     connection_manager: ConnectionManager,
     chair_actor: SessionActor,
 ) -> None:
@@ -35,7 +31,6 @@ async def test_connect_accepts_socket_and_stores_actor(
 
     await connection_manager.connect(websocket, session_id=1, actor=chair_actor)
 
-    assert websocket.accepted is True
     assert connection_manager.active_connections[1][websocket] == chair_actor
     assert connection_manager.get_actor(websocket, 1) == chair_actor
     assert connection_manager.count_connected(1) == 1
