@@ -1,5 +1,6 @@
 import { useEffect, useState} from 'react';
-import { useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { UpdateStore, useCommitteeStore } from '../store/useCommitteeStore.ts'
 import MotionsList from "@/components/session/motions-list"
 import SpeakerList from "@/components/session/speaker-list"
@@ -31,6 +32,8 @@ export function sendMessage(data: any) {
 
 export default function SessionPage() {
 
+    const { loading, token } = useAuth()
+
     const debateType = useCommitteeStore((state) => state.debate?.debate_type)
 
     const motions = [
@@ -61,7 +64,8 @@ export default function SessionPage() {
     ]
 
     // id that matches the name given in the Route path, at App.tsx 
-    const { committeeId } = useParams<{ committeeId: string }>();
+    const { sessionId } = useParams<{ sessionId: string }>();
+    const parsedSessionId = Number(sessionId);
     //const {start_time} = useCommitteeStore();
     const all = useCommitteeStore();
 
@@ -69,13 +73,18 @@ export default function SessionPage() {
     //const [, setUptime] = useState(0);
 
     useEffect(() => {
-        // Initialize WebSocket
-        socket = new WebSocket(`ws://localhost:8000/committees/ws/0?role=CHAIR&display_name=Chair`);
+        if (!token || !Number.isInteger(parsedSessionId) || parsedSessionId < 1) {
+            return;
+        }
 
-        socket.onopen = () => 
-            {
-                setStatus("Connected");
-            }
+        socket = new WebSocket(
+            `${import.meta.env.VITE_WS_URL}/ws/${parsedSessionId}`,
+        );
+
+        socket.onopen = () => {
+            socket?.send(JSON.stringify({ access_token: token }));
+            setStatus("Connected");
+        }
 
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -86,7 +95,13 @@ export default function SessionPage() {
         socket.onclose = () => setStatus("Disconnected");
 
         return () => socket?.close(); // Cleanup on unmount
-    }, [committeeId]);
+    }, [parsedSessionId, token]);
+
+    if (loading) return <p>Loading session…</p>;
+    if (!token) return <Navigate to="/login" replace />;
+    if (!Number.isInteger(parsedSessionId) || parsedSessionId < 1) {
+        return <p>Invalid session ID.</p>;
+    }
 
     // Useeffect for local uptime timer 
     /*useEffect(() => {

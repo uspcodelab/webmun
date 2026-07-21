@@ -11,7 +11,9 @@ services:
       - packages:/app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000
-      - VITE_WS_URL=ws://localhost:8000/ws
+      - VITE_WS_URL=ws://localhost:8000/committees
+      - VITE_SUPABASE_URL=${SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY}
     depends_on:
       backend:
         condition: service_healthy
