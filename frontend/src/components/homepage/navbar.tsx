@@ -70,7 +70,7 @@ export default function Navbar() {
                             <NavigationMenuContent>
                                 <ul className="grid w-100 gap-2 md:w-125 md:grid-cols-2 lg:w-150">
                                     <ListItem title="Documentação">
-                                        Leia nossa documentação e aprenda a usar todas as funcionalidades do WebMun!
+                                        Leia nossa documentação e aprenda a usar todas as nossas funcionalidades!
                                     </ListItem>
                                     <ListItem title="Preços">
                                         Confira nossos planos, preços e isenções.
@@ -108,7 +108,7 @@ export default function Navbar() {
                 <Button variant="outline" onClick={() => (window.location.href = "/create-committee")}>
                     TEST CREATE COMMITTEE
                 </Button>
-                <Button>Inscrever-se</Button>
+                <Button>Criar Conta</Button>
                 <Button variant="outline" onClick={() => (window.location.href = "/login")}>
                     Login
                 </Button>
