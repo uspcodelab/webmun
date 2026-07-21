@@ -1,13 +1,25 @@
 # This file defines internal models not used as schemas for the application
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel
 
 import app.session.enums as enums
 
+@dataclass(frozen=True)
+class StoredSession:
+    id: int
+    committee_id: int
+    name: str | None
+    status: str 
+    started_at: datetime 
+    ended_at: datetime 
+    state_snapshot: dict | None
 
+# TODO: separate this into a DelegationContext with a name/user_id or profile and SeatContext for a map
 class DelegationContext(BaseModel):
     id: int
     name: str

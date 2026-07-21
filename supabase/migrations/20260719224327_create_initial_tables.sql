@@ -66,6 +66,7 @@ create table committee_assignments (
 create table sessions (
 	id bigint primary key generated always as identity,
 	committee_id bigint not null references committees(id) on delete cascade,
+	name varchar(64),
 	status activity_status not null default 'planned',
 	started_at timestamptz,
 	ended_at timestamptz,

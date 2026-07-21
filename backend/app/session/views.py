@@ -11,6 +11,7 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
+from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.service import AccessDenied
@@ -27,6 +28,7 @@ from app.session.models import SessionLiveState
 from app.session.schemas import SessionCreationSchema, SessionEvent
 
 import app.access.service as access
+import app.session.repository as repository
 import app.session.service as service
 import logging
 
@@ -41,37 +43,102 @@ async def dummy(
     enum1: DelegateEvents,
     enum2: ChairEvents,
 ):
+    """Dummy workaround to make FastAPI add all schemas to the OpenAPI file"""
     return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
 @router.get("/health", status_code=status.HTTP_200_OK)
 async def health():
+    """Healthcheck route"""
     return Response(status_code=status.HTTP_200_OK)
 
 
-# Create committee route, receives a contentbody following CommitteeCreationSchema's format
-@router.post("/", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/", status_code=status.HTTP_200_OK)
 async def create_session_endpoint(
     session_schema: SessionCreationSchema,
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
     current_user: Annotated[AuthUser, Depends(get_current_user)], # TODO: map out that only admins can create sessions
 ):
-    # Mock a session being created
-    await service.create_session_service(
-        manager=manager,
-        session=session,
-        session_schema=session_schema,
-        creator_uuid=current_user.user_id,
-    )
+    """POST endpoint to create a new session"""
+    try:
+        await access.verify_user_role(
+            session=session,
+            user_id=current_user.user_id,
+            committee_id=session_schema.committee_id,
+            required_role="chair",
+        )
 
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+        res = await service.create_session_service(
+            session=session,
+            session_schema=session_schema,
+        )
+        return {"id": res, "status": "Created"}
+
+    except AccessDenied as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        )
+    except service.SessionCreationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) 
+
+
+@router.post("/{session_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
+async def activate_session_endpoint(
+    session_id: int,
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+    manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
+    current_user: Annotated[AuthUser, Depends(get_current_user)],
+):
+    """Endpoint to activate a planned session"""
+    try:
+        stored = await repository.get_session_info(
+            session=db_session,
+            committee_session_id=session_id,
+        )
+        if stored is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Session not found",
+            )
+
+        await access.verify_user_role(
+            session=db_session,
+            user_id=current_user.user_id,
+            committee_id=stored.committee_id,
+            required_role="chair",
+        )
+
+        await service.activate_session(
+            session=db_session, 
+            manager=manager,
+            committee_session_id=session_id)
+    except AccessDenied as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        )
+    except service.SessionFetchError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+    except service.SessionUpdateError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc)
+        )
+
 
 
 @router.websocket("/ws/{session_id}")
 async def websocket_endpoint(
     websocket: WebSocket,
     session_id: int,
+    committee_id: int,
     manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
     engine: Annotated[SessionEngine, Depends(get_session_engine)],
     logger: Annotated[logging.Logger, Depends(get_logger)],
@@ -97,14 +164,14 @@ async def websocket_endpoint(
         session_factory = websocket.app.state.db_session_factory
         async with session_factory() as db: 
             assignment = await access.resolve_committee_assignment(
-                session=db, user_id=auth_user.user_id, session_id=session_id
+                session=db, user_id=auth_user.user_id, committee_id=committee_id
             )
 
         actor = service.build_actor(
             manager=manager,
             session_id=session_id,
-            role=SessionRole(assignment.role),
-            delegation_id=assignment.delegation_id,
+            role=SessionRole(assignment.role.upper()),
+            delegation_id=assignment.representation_id,
         )
 
         await manager.connect(websocket, session_id, actor)
@@ -135,4 +202,3 @@ async def websocket_endpoint(
 
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason=reason)
         return
-

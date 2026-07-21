@@ -29,5 +29,5 @@ async def get_db_session(
     """Dependency Injection for DB session. Uses app state for storing db setup"""
     session_factory = request.app.state.db_session_factory
 
-    async with session_factory as session:
+    async with session_factory() as session:
         yield session

@@ -2,22 +2,20 @@
 # The 2nd layer between the API route and inner things such as database, FSM engine, Redis, etc. Should orchestrate everything
 # Also calls the manager in order to broadcast states, etc
 
+from dataclasses import replace
 import logging
 from datetime import datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from pydantic import TypeAdapter
+from pydantic import EmailStr, TypeAdapter
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.models import CommitteeAssignment
 import app.session.enums as enums
-from app.session.repository import (
-    bulk_get_uuids_by_email,
-    bulk_insert_assignments,
-    create_session,
-)
 import app.session.schemas as schemas
+import app.session.repository as repository
 from app.session.engine import SessionEngine
 
 from .manager import ConnectionManager
@@ -26,6 +24,7 @@ from .models import (
     RollCallContext,
     SessionActor,
     SessionLiveState,
+    StoredSession,
 )
 
 
@@ -36,6 +35,11 @@ class ActorResolutionError(Exception):
 class SessionCreationError(Exception):
     pass
 
+class SessionFetchError(Exception):
+    pass
+
+class SessionUpdateError(Exception):
+    pass
 
 
 def build_actor(
@@ -73,24 +77,100 @@ def build_actor(
             display_name=delegation.name,
         )
 
-
 async def create_session_service(
     session: AsyncSession,
+    session_schema: schemas.SessionCreationSchema,
+) -> int:
+    """Create a planned session"""
+    session_id = await repository.create_session(
+        session=session, committee_id=session_schema.committee_id, name=session_schema.name
+    )
+
+    if session_id is None: 
+        raise SessionCreationError("Could not create session with given schema")
+
+    await session.commit()
+
+    return session_id 
+
+
+async def activate_session(
+    session: AsyncSession, 
     manager: ConnectionManager,
+    committee_session_id: int,
+):
+    """Activate a planned session"""
+    stored = await repository.get_session_info(
+        session=session, committee_session_id=committee_session_id
+    )
+
+    if stored is None:
+        raise SessionFetchError("Could not fetch session info")
+    if stored.status != 'planned':
+        raise SessionFetchError("Session already started")
+
+    delegations = await repository.bulk_get_delegation_context(
+        session=session, committee_id=stored.committee_id
+    )
+
+    if delegations is None:
+        raise SessionFetchError("Could not fetch session delegations info")
+
+    live_state = SessionLiveState(
+        session_id=stored.id,
+        start_time=datetime.now(),
+        delegations=delegations,
+        current_state=enums.States.SETUP,
+        gsl_default_time_seconds=60,
+        roll_call=RollCallContext(registry={}),
+        voting_choice={},
+    )
+
+    updated = replace(
+        stored, 
+        status='active',
+        started_at=datetime.now(),
+        state_snapshot=live_state.model_dump(mode='json')
+    )
+    
+    try: 
+        await repository.update_session_info(
+            session=session, session_info=updated
+        )
+    except repository.RepositoryError: 
+        raise SessionUpdateError("Could not update session info")
+
+    await session.commit()
+
+    manager.room_states[committee_session_id] = live_state
+    manager.active_connections.setdefault(committee_session_id, {})
+
+async def pause_session(
+    session: AsyncSession, 
+    manager: ConnectionManager,
+    committee_session_id: int,
+) -> None:
+    pass
+
+async def close_session(
+    session: AsyncSession, 
+    manager: ConnectionManager,
+    committee_session_id: int,
+) -> None:
+    pass
+
+"""
+async def old_create_session_service(
+    session: AsyncSession,
     session_schema: schemas.SessionCreationSchema,
     creator_uuid: UUID,
 ):
-    # loop through delegationSchema and convert each to DelegationContext
-    delegations = [
-        # id now begins at 0 instead of 1
-        DelegationContext(id=i, name=d.name, seat=d.seat, code=d.code)
-        for i, d in enumerate(session_schema.delegations)
-    ]
 
     # insert into database and return the session id here
     session_id = await create_session(
         session=session, name=session_schema.name or "", delegations=delegations
     )
+
     if session_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -137,6 +217,7 @@ async def create_session_service(
         voting_choice={},
     )
     manager.active_connections.setdefault(session_id, {})
+"""
 
 
 async def handle_client_messages(
