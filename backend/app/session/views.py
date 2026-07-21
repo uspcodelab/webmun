@@ -138,7 +138,6 @@ async def activate_session_endpoint(
 async def websocket_endpoint(
     websocket: WebSocket,
     session_id: int,
-    committee_id: int,
     manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
     engine: Annotated[SessionEngine, Depends(get_session_engine)],
     logger: Annotated[logging.Logger, Depends(get_logger)],
@@ -160,11 +159,11 @@ async def websocket_endpoint(
             settings=settings, token=auth_message["access_token"]
         )
         
-        # short db scope for access lookup at first connection
+        # The session determines its committee; never accept it from the client.
         session_factory = websocket.app.state.db_session_factory
-        async with session_factory() as db: 
-            assignment = await access.resolve_committee_assignment(
-                session=db, user_id=auth_user.user_id, committee_id=committee_id
+        async with session_factory() as db:
+            assignment = await access.resolve_session_assignment(
+                session=db, user_id=auth_user.user_id, session_id=session_id
             )
 
         actor = service.build_actor(

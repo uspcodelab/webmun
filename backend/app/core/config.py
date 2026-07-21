@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from pydantic import AnyHttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -17,7 +18,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
 
     # pydantic config to read .env files
-    model_config = SettingsConfigDict(env_file="../../../.env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parents[3] / ".env",
+        extra="ignore",
+    )
 
 
 @lru_cache

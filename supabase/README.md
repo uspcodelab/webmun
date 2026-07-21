@@ -20,8 +20,8 @@ supabase start
 ```
 
 This will pull the necessary images and start their containers. This will output infos you might need, such as:
-- Authentication Keys: save `Secret` to `SUPABASE_JWT_SECRET` on `.env`
 - REST, DATABASE Url: save to `SUPABASE_URL` and `DATABASE_URL`, respectivelly
+- Authentication Keys: you might need to run `supabase status -o env`, and get the `PUBLISHABLE_KEY` for frontend use. For backend, we cache JWKS keys. JWT_SECRET is only needed when using legacy HS256 tokens (check the docs to see how to get this key - but we won't use that)
 
 Then, you can run existing migrations (or apply new ones) with:
 
