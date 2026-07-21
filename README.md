@@ -12,3 +12,17 @@ This project stack is composed of:
 - Redis for in-memory database
 
 Further improvements are planned to make this a cloud-native application.
+
+# Local development
+
+To start the backend, frontend and supabase, issue:
+
+```
+make dev
+```
+
+To stop these services, do:
+
+```
+make stop
+```

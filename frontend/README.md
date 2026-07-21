@@ -10,7 +10,7 @@ Prerequisites: Node 20+
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env.local
 ```
 
 2. Run the project using `npm`
