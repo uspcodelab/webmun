@@ -9,7 +9,9 @@ import {
     ItemFooter,
     ItemTitle,
 } from "@/components/ui/item"
-import { IdCardLanyard, Warehouse, Boxes, Printer, Award, LifeBuoy, DraftingCompass } from 'lucide-react';
+import { IdCardLanyard, Warehouse, Boxes, Printer, Award, LifeBuoy, DraftingCompass, BadgePercent } from 'lucide-react';
+import { Link } from "react-router-dom"
+import { Separator } from "@/components/ui/separator"
 
 const pricingPlans = [
     {
@@ -17,7 +19,7 @@ const pricingPlans = [
         accent: "Ø",
         delegates: "Até 60 participantes (incluindo delegados e staff)",
         committees: "Até 2 comites",
-        features: ["Incricao Customizavel", "Gerenciamento de Usuarios", "Portal de Sessao ao Vivo", ],
+        features: ["Incricao Customizavel", "Gerenciamento de Usuarios", "Portal de Sessao ao Vivo",],
         price: "R$0,00",
     },
     {
@@ -33,7 +35,7 @@ const pricingPlans = [
         accent: "$$",
         delegates: "Até 400 participantes (incluindo delegados e staff)",
         committees: "Até 12 comites",
-        features: ["Todos os beneficios do plano anterior","Agrupamento de participantes com Advisors", "Acesso e Ferramentas de Advisors","Add-on de Fila de impressao e Certificados personalizados incluidos", "Suporte por chat e email", "Apoio para configuracao da MUN no portal"],
+        features: ["Todos os beneficios do plano anterior", "Agrupamento de participantes com Advisors", "Acesso e Ferramentas de Advisors", "Add-on de Fila de impressao e Certificados personalizados incluidos", "Suporte por chat e email", "Apoio para configuracao da MUN no portal"],
         price: "R$ N/A",
     },
     {
@@ -41,7 +43,7 @@ const pricingPlans = [
         accent: "$$$",
         delegates: "Até 850 participantes (incluindo delegados e staff)",
         committees: "Até 24 comites",
-        features: ["Todos os beneficios do plano anterior", "Add-on de credenciamento e controle de acesso incluidos", "Suporte por chat, email e videochamada","Responsavel de apoio dedicado para a sua MUN"],
+        features: ["Todos os beneficios do plano anterior", "Add-on de credenciamento e controle de acesso incluidos", "Suporte por chat, email e videochamada", "Responsavel de apoio dedicado para a sua MUN"],
         price: "R$ N/A",
     },
     {
@@ -148,7 +150,7 @@ export default function Pricing() {
                     </div>
 
                 </section>
-                
+
 
                 <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {pricingPlans.map((plan) => (
@@ -183,7 +185,7 @@ export default function Pricing() {
                     ))}
                 </section>
                 <p className="text-base text-black sm:text-lg">
-                    *Nossos precos sao mostrados por dia de conferencia. O periodo de inscricao e preparacao da sua MUN nao sera cobrado. 
+                    *Nossos precos sao mostrados por dia de conferencia. O periodo de inscricao e preparacao da sua MUN nao sera cobrado.
                 </p>
                 <section className="relative overflow-hidden rounded-3xl bg-linear-to-r from-secondary via-secondary/90 to-secondary/70 px-8 py-12 text-secondary-foreground shadow-lg sm:px-10 sm:py-14">
 
@@ -237,46 +239,95 @@ export default function Pricing() {
                     </div>
                 </section>
                 <section >
-                    
-                        <Item
-                            variant="outline"
-                            className="h-full flex-nowrap flex-col items-start justify-between rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                        >
-                            <div className="flex w-full flex-col gap-4">
-                                <ItemMedia className="text-3xl font-semibold text-muted-foreground">
-                                    <DraftingCompass className="h-12 w-12" />
-                                </ItemMedia>
-                                <ItemContent className="w-full gap-3">
-                                    <ItemTitle className="text-3xl font-medium tracking-tight sm:text-4xl">
-                                        Tudo sob medida
-                                    </ItemTitle>
-                                    <div className="space-y-1 text-left text-sm leading-6 text-foreground">
-                                        <p>Delegacoes Ilimitadas</p>
-                                        <p>Comites Ilimitados</p>
-                                        <p>Todos os Add-ons</p>
-                                    </div>
-                                    <ItemActions className="flex flex-col items-start gap-1 text-sm text-primary">
-                                        <span>+ Site customizado</span>
-                                        <span>+ Funcionalidades personalizadas</span>
-                                        <span>+ Suporte 24/7</span>
-                                    </ItemActions>
-                                </ItemContent>
-                            </div>
-                            <ItemFooter className="mt-auto w-full basis-auto justify-end pt-6 text-right text-lg font-medium text-muted-foreground">
-                                Entre em contato conosco para fazer um orçamento.
-                            </ItemFooter>
-                        </Item>
-                </section>
-                <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(90deg,var(--color-purple-600)_0%,var(--color-blue-500)_17%,var(--color-cyan-400)_34%,var(--color-green-400)_50%,var(--color-yellow-400)_67%,var(--color-orange-400)_84%,var(--color-red-500)_100%)] px-8 py-12 text-white shadow-lg sm:px-10 sm:py-14">
 
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.26),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.18),transparent_30%)]" />
-                    <div className="pointer-events-none absolute -left-16 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full bg-white/15 blur-3xl" />
+                    <Item
+                        variant="outline"
+                        className="h-full flex-nowrap flex-col items-start justify-between rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                    >
+                        <div className="flex w-full flex-col gap-4">
+                            <ItemMedia className="text-3xl font-semibold text-muted-foreground">
+                                <DraftingCompass className="h-12 w-12" />
+                            </ItemMedia>
+                            <ItemContent className="w-full gap-3">
+                                <ItemTitle className="text-3xl font-medium tracking-tight sm:text-4xl">
+                                    Tudo sob medida
+                                </ItemTitle>
+                                <div className="space-y-1 text-left text-sm leading-6 text-foreground">
+                                    <p>Delegacoes Ilimitadas</p>
+                                    <p>Comites Ilimitados</p>
+                                    <p>Todos os Add-ons</p>
+                                </div>
+                                <ItemActions className="flex flex-col items-start gap-1 text-sm text-primary">
+                                    <span>+ Site customizado</span>
+                                    <span>+ Funcionalidades personalizadas</span>
+                                    <span>+ Suporte 24/7</span>
+                                </ItemActions>
+                            </ItemContent>
+                        </div>
+                        <ItemFooter className="mt-auto w-full basis-auto justify-end pt-6 text-right text-lg font-medium text-muted-foreground">
+                            Entre em contato conosco para fazer um orçamento.
+                        </ItemFooter>
+                    </Item>
+                </section>
+                <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-background/80 px-8 py-12 shadow-sm sm:px-10 sm:py-14">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.04),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.03),transparent_30%)]" />
+                    <div className="pointer-events-none absolute -left-16 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
                     <div className="relative max-w-3xl space-y-4">
-                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/80">Isencoes e descontos</p>
-                        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Veja se sua MUN se qualifica para uma isencao ou desconto</h1>
-                        <p className="text-base text-white/90 sm:text-lg">
+                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Isencoes e descontos</p>
+                        <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">Veja se sua MUN se qualifica para uma isencao ou desconto</h1>
+                        <p className="text-base text-muted-foreground sm:text-lg">
                             Isencoes podem ser concedidas para MUNs que se qualificam, como MUNs de escolas rede pública, ou MUNs pequenas de baixo orçamento. Entre em contato conosco para saber mais.
                         </p>
+                    </div>
+                </section>
+                <Item
+                    variant="outline"
+                    className="h-full flex-nowrap flex-col items-start justify-between rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                >
+                    <div className="flex w-full flex-col gap-4">
+                        <ItemMedia className="text-3xl font-semibold text-muted-foreground">
+                            <BadgePercent className="h-12 w-12" />
+                        </ItemMedia>
+                        <ItemContent className="w-full gap-3">
+                            <ItemTitle className="text-3xl font-medium tracking-tight sm:text-4xl">
+                                Elegibilidade para isencoes e descontos
+                            </ItemTitle>
+                            <div className="space-y-1 text-left text-sm leading-6 text-foreground">
+                                <p>Pequenas MUNs de baixo orçamento e carater nao lucrativo</p>
+                                <p>MUNs de escolas rede pública</p>
+                                <p>Outros casos especiais</p>
+                            </div>
+                            <ItemActions className="flex flex-col items-start gap-1 text-sm text-primary">
+                                <span>+ Ajudamos a democratizar o acesso a MUNs</span>
+                                <span>+ Queremos tornar o WebMun acessível a todos</span>
+                                <span>+ Damos suporte a projetos sociais</span>
+                            </ItemActions>
+                        </ItemContent>
+                    </div>
+                    <ItemFooter className="mt-auto w-full basis-auto justify-end pt-6 text-right text-lg font-medium text-muted-foreground">
+                        Entre em contato conosco para verificar sua elegibilidade.
+                    </ItemFooter>
+                </Item>
+                <Separator className="my-8" />
+                <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-background/80 px-8 py-12 shadow-sm sm:px-10 sm:py-14">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(15,23,42,0.04),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.03),transparent_30%)]" />
+                    <div className="pointer-events-none absolute -left-16 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
+                    <div className="relative flex flex-col gap-6">
+                        <div className="max-w-3xl space-y-4">
+                            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sua MUN nao se encaixa nos nossos planos?</p>
+                            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">Fazemos pacotes personalizados!</h1>
+                            <p className="text-base text-muted-foreground sm:text-lg">
+                                Mais de uma funcionalidade, menos de outra? Fazemos pacotes personalizados para atender as necessidades da sua MUN.
+                            </p>
+                        </div>
+                        <div className="flex justify-end">
+                            <Link
+                                to="/contact"
+                                className="inline-flex items-center justify-center rounded-full border border-primary/20 bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+                            >
+                                Fale conosco
+                            </Link>
+                        </div>
                     </div>
                 </section>
             </main>

@@ -72,7 +72,7 @@ export default function Navbar() {
                                     <ListItem title="Documentação">
                                         Leia nossa documentação e aprenda a usar todas as nossas funcionalidades!
                                     </ListItem>
-                                    <ListItem title="Preços">
+                                    <ListItem title="Preços" to="/pricing">
                                         Confira nossos planos, preços e isenções.
                                     </ListItem>
                                     <ListItem title="Licença de uso e termos de serviço">
