@@ -10,7 +10,7 @@ Prerequisites: Node 20+
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env.local
 ```
 
 2. Run the project using `npm`
@@ -18,6 +18,7 @@ cp .env.example .env
 npm run dev
 ```
 
-# Credits
+# Supabase Auth
 
-Gemini AI, for setting up and insight on the tools used here
+We use Supabase's SDK in order to connect to the Auth API and login users. You can check more on the official docs.
+I you want to know how to develop with Supabase Auth, this [guide](https://supabase.com/docs/guides/getting-started/tutorials/with-react?queryGroups=database-method&database-method=dashboard) might be good.
