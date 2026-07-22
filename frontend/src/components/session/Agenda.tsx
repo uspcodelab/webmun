@@ -61,8 +61,8 @@ const sortedAgendaTopics = [...agendaTopics].sort((left, right) => compareTopicN
 export default function Agenda() {
     return (
         <Dialog>
-            <DialogTrigger>
-                Ver agenda
+            <DialogTrigger asChild>
+                <Button variant="outline">Ver Agenda</Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
