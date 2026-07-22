@@ -226,6 +226,9 @@ export default function Pricing() {
                         </Item>
                     ))}
                 </section>
+                <p className="text-base text-black sm:text-lg">
+                    *Os add-ons de controle de estoque e entregas, controle de patrimonio & almoxarifado e fila de impressao automatizada possuem integracao com o sistema de crachas com QR code caso contratado.
+                </p>
                 <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(90deg,var(--color-purple-600)_0%,var(--color-blue-500)_17%,var(--color-cyan-400)_34%,var(--color-green-400)_50%,var(--color-yellow-400)_67%,var(--color-orange-400)_84%,var(--color-red-500)_100%)] px-8 py-12 text-white shadow-lg sm:px-10 sm:py-14">
 
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.26),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.18),transparent_30%)]" />
@@ -269,6 +272,7 @@ export default function Pricing() {
                         </ItemFooter>
                     </Item>
                 </section>
+                <Separator className="my-8" />
                 <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-background/80 px-8 py-12 shadow-sm sm:px-10 sm:py-14">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.04),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.03),transparent_30%)]" />
                     <div className="pointer-events-none absolute -left-16 top-1/2 h-44 w-44 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
