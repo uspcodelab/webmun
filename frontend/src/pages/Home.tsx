@@ -3,6 +3,7 @@ import Footer from "@/components/homepage/footer"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { LayoutDashboard, Users, Radio, FileText, GraduationCap, PackagePlus, Wallet, FlaskConical } from 'lucide-react';
 
 export default function Home() {
@@ -108,7 +109,53 @@ export default function Home() {
                     </div>
                 </section>
 
-                <section>how it works</section>
+                <section className="mx-8 overflow-hidden rounded-[2rem] p-10">
+                    <div className="max-w-2xl space-y-3">
+                        <h2 className="text-3xl font-black tracking-[-0.03em] text-foreground sm:text-4xl">Como funciona?</h2>
+                        <p className="text-base leading-7 text-muted-foreground sm:text-lg">
+                            Uma visão rápida do fluxo principal, desde a configuração inicial até a operação da sua conferência.
+                        </p>
+                    </div>
+
+                    <ItemGroup className="mt-10 gap-5">
+                        {[
+                            {
+                                number: "1",
+                                title: "Crie sua conta e cadastre sua conferência",
+                                description: "Comece se cadastrando e depois crie sua MUN, cadastre sua equipe, definia os comitês e a estrutura básica do evento.",
+                            },
+                            {
+                                number: "2",
+                                title: "Inscrição dos participantes",
+                                description: "Crie seu formulario de inscricao customizado, receba os dados dos participantes e aloque-os em seus comitês.",
+                            },
+                            {
+                                number: "3",
+                                title: "Conduza a sessão ao vivo",
+                                description: "Use as ferramentas da plataforma durante o evento para moções, lista de oradores, presença, votação eletronicamente tabulada e acompanhamento em tempo real.",
+                            },
+                            {
+                                number: "4",
+                                title: "Acompanhe resultados e arquivos",
+                                description: "Finalize com históricos, documentos, certificados e relatórios organizados e distribuidos para a equipe e os participantes.",
+                            },
+                        ].map((step) => (
+                            <Item key={step.number} variant="outline" className="items-start gap-4 rounded-[1.75rem] border-border/70 bg-white px-5 py-5 shadow-[0_16px_50px_rgba(0,0,0,0.04)] transition hover:border-[#002776]/20 hover:shadow-[0_20px_60px_rgba(0,0,0,0.07)] sm:px-6 sm:py-6">
+                                <ItemMedia variant="icon" className="mt-0.5 flex h-12 w-12 items-center justify-center rounded-full border border-[#002776]/15 bg-[#002776] text-sm font-black text-white shadow-[0_12px_30px_rgba(0,39,118,0.18)]">
+                                    {step.number}
+                                </ItemMedia>
+                                <ItemContent className="gap-2">
+                                    <ItemTitle className="text-2xl font-black tracking-[-0.03em] text-foreground">
+                                        {step.title}
+                                    </ItemTitle>
+                                    <ItemDescription className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
+                                        {step.description}
+                                    </ItemDescription>
+                                </ItemContent>
+                            </Item>
+                        ))}
+                    </ItemGroup>
+                </section>
                 <section className="relative overflow-hidden bg-[linear-gradient(120deg,#fffdf7_0%,#fff4d6_38%,#eaf7ff_100%)] shadow-[0_20px_80px_rgba(0,0,0,0.08)] p-8">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,204,41,0.38),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(0,95,184,0.24),transparent_34%),radial-gradient(circle_at_center_left,rgba(0,155,58,0.22),transparent_24%)]" />
                     <div className="absolute -right-10 top-0 h-32 w-32 rounded-full border border-[#009B3A]/30 bg-[#009B3A]/20 blur-2xl" />
@@ -126,49 +173,52 @@ export default function Home() {
                         </div>
 
                         <div className="flex flex-col items-center gap-3 rounded-[1.5rem] border border-[#009B3A]/20 bg-white/30 p-6 backdrop-blur-sm">
-                            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#002776]">Quem faz isso acontecer?</p>
+                            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Quem faz isso acontecer?</p>
 
                             <Button onClick={() => (window.location.href = "/our-team")} className=" rounded-full px-5 py-2.5 bg-primary-800 hover:bg-primary-600">Nossa equipe</Button>
 
                         </div>
                     </div>
                 </section>
-                <section className="mx-8 overflow-hidden ">
-                    <div className="flex flex-row gap-4 ">
-                        <div className="relative flex flex-1 flex-col items-start overflow-hidden text-left sm:p-10">
-                            <Wallet className="mb-4 h-18 w-18 self-center text-muted-foreground" />
-                            <p className="inline-flex self-center rounded-full px-4 py-1  text-center font-bold uppercase tracking-[0.28em] ">
-                                Preços
-                            </p>
-                            <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] sm:text-5xl">No tamanho certo e dentro do seu bolso</h2>
-                            <p className="max-w-xl text-base my-8 leading-8 text-muted-foreground sm:text-lg">
-                                Oferecemos planos de preços flexíveis para atender às necessidades de MUNs de todos os tamanhos, desde pequenas conferências estudantis até grandes eventos internacionais. Nossos planos são projetados para fornecer o máximo valor, garantindo que você tenha acesso a todas as funcionalidades essenciais sem comprometer seu orçamento.
-                            </p>
-                            <p className="max-w-xl mb-8 text-base leading-8 text-muted-foreground sm:text-lg">
-                                Além disso, oferecemos isenções e descontos para MUNs com recursos limitados, garantindo que todos tenham a oportunidade de aproveitar nossa plataforma.
-                            </p>
-                            <Button onClick={() => (window.location.href = "/pricing")} className="self-center rounded-full border border-[#002776]/15 bg-white/70 px-8 py-4 text-lg font-semibold text-[#002776] backdrop-blur-xl shadow-[0_8px_30px_rgba(0,39,118,0.14)] transition hover:bg-white/85 hover:shadow-[0_12px_40px_rgba(0,39,118,0.18)]">
+                <section className="mx-8 overflow-hidden">
+                    <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
+                        <div className="relative flex h-full flex-col items-start overflow-hidden text-left sm:p-10">
+                            <div className="flex flex-1 flex-col items-start">
+                                <Wallet className="mb-4 h-18 w-18 self-center text-muted-foreground" />
+                                <p className="inline-flex self-center rounded-full border px-4 py-1 text-center font-bold uppercase tracking-[0.28em] ">
+                                    Preços
+                                </p>
+                                <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] sm:text-5xl">No tamanho certo e dentro do seu bolso</h2>
+                                <p className="my-8 max-w-xl text-base leading-8 text-muted-foreground sm:text-lg">
+                                    Oferecemos planos de preços flexíveis para atender às necessidades de MUNs de todos os tamanhos, desde pequenas conferências estudantis até grandes eventos internacionais. Nossos planos são projetados para fornecer o máximo valor, garantindo que você tenha acesso a todas as funcionalidades essenciais sem comprometer seu orçamento.
+                                </p>
+                                <p className="max-w-xl text-base leading-8 text-muted-foreground sm:text-lg">
+                                    Além disso, oferecemos isenções e descontos para MUNs com recursos limitados, garantindo que todos tenham a oportunidade de aproveitar nossa plataforma.
+                                </p>
+                            </div>
+                            <Button onClick={() => (window.location.href = "/pricing")} className="mt-8 self-center rounded-full border border-[#002776]/15 bg-white/70 px-8 py-4 text-lg font-semibold text-primary shadow-[0_8px_30px_rgba(0,39,118,0.14)] backdrop-blur-xl transition hover:bg-white/85 hover:shadow-[0_12px_40px_rgba(0,39,118,0.18)]">
                                 Ver preços
                             </Button>
-
                         </div>
-                        <Separator orientation="vertical" className="hidden lg:flex" />
-                        <div className="relative flex flex-1 flex-col items-start overflow-hidden text-left sm:p-10">
-                            <FlaskConical className="mb-4 h-18 w-18 self-center text-muted-foreground" />
-                            <p className="inline-flex self-center border rounded-full px-4 py-1  text-center font-bold uppercase tracking-[0.28em] ">
-                                Demonstração
-                            </p>
-                            <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] sm:text-5xl">Quer ver como funciona?</h2>
-                            <p className="max-w-xl text-base my-8 leading-8 text-muted-foreground sm:text-lg">
-                                Ainda nao esta convencido? Esta com dificuldade de visualiza ou escolher as funcionalidades que oferecemos?
-                            </p>
-                            <p className="max-w-xl text-base leading-8 text-muted-foreground sm:text-lg">
-                                Entre em contato conosco para agendar uma demonstração do WebMun para conhecer todas as funcionalidades da plataforma e ter certeza que somos a melhor solucao para sua MUN.
-                            </p>
-                            <p className=" max-w-xl text-sm my-8 font-semibold leading-6 text-muted-foreground sm:text-base">
-                                *Num futuro proximo, teremos uma demonstração online disponível para todos, sem agendamento.
-                            </p>
-                            <Button onClick={() => (window.location.href = "/pricing")} className="self-center rounded-full border border-[#002776]/15 bg-white/70 px-8 py-4 text-lg font-semibold text-[#002776] backdrop-blur-xl shadow-[0_8px_30px_rgba(0,39,118,0.14)] transition hover:bg-white/85 hover:shadow-[0_12px_40px_rgba(0,39,118,0.18)]">
+                        <Separator orientation="vertical" className="hidden lg:flex lg:self-stretch" />
+                        <div className="relative flex h-full flex-col items-start overflow-hidden text-left sm:p-10">
+                            <div className="flex flex-1 flex-col items-start">
+                                <FlaskConical className="mb-4 h-18 w-18 self-center text-muted-foreground" />
+                                <p className="inline-flex self-center rounded-full border px-4 py-1 text-center font-bold uppercase tracking-[0.28em] ">
+                                    Demonstração
+                                </p>
+                                <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] sm:text-5xl">Quer ver como funciona? Nos mostramos!</h2>
+                                <p className="my-8 max-w-xl text-base leading-8 text-muted-foreground sm:text-lg">
+                                    Ainda nao esta convencido? Esta com dificuldade de visualiza ou escolher as funcionalidades que oferecemos?
+                                </p>
+                                <p className="max-w-xl text-base leading-8 text-muted-foreground sm:text-lg">
+                                    Entre em contato conosco para agendar uma demonstração do WebMun para conhecer todas as funcionalidades da plataforma e ter certeza que somos a melhor solucao para sua MUN.
+                                </p>
+                                <p className="my-8 max-w-xl text-sm font-semibold leading-6 text-muted-foreground sm:text-base">
+                                    *Num futuro proximo, teremos uma demonstração online disponível para todos, sem agendamento.
+                                </p>
+                            </div>
+                            <Button onClick={() => (window.location.href = "/pricing")} className="mt-8 self-center rounded-full border border-[#002776]/15 bg-white/70 px-8 py-4 text-lg font-semibold text-primary shadow-[0_8px_30px_rgba(0,39,118,0.14)] backdrop-blur-xl transition hover:bg-white/85 hover:shadow-[0_12px_40px_rgba(0,39,118,0.18)]">
                                 Agendar demonstração
                             </Button>
                         </div>
@@ -229,31 +279,30 @@ export default function Home() {
                                 </p>
                                 <h2 className="text-3xl font-black tracking-[-0.03em] sm:text-5xl">Coloque sua MUN no WebMun hoje mesmo! </h2>
                                 <p className="max-w-xl text-base leading-8 text-white/85 sm:text-lg">
-                                    Coloque sua MUN no WebMun hoje mesmo!
+                                    E super rapido, voce pode criar sua MUN e comecar a usar a plataforma em menos de 15 minutos. Nao perca tempo, comece agora mesmo!
                                 </p>
                             </div>
 
                             <div className="relative mt-8 flex flex-col gap-3 sm:flex-row">
-                                <Button onClick={() => (window.location.href = "/pricing")} className="rounded-full bg-white px-6 py-3 text-[#002776] hover:bg-white/90">
-                                    Ver preços
+                                <Button onClick={() => (window.location.href = "/pricing")} className="rounded-full bg-white px-6 py-3 text-primary hover:bg-white/90">
+                                    Crie uma conta e cadastre sua MUN
                                 </Button>
-                                <div className="flex items-center rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-medium text-white/90 backdrop-blur-sm">
-                                    Demo disponível sob demanda
-                                </div>
+
                             </div>
                         </div>
 
-                        <div className="relative flex flex-col justify-between gap-4 bg-white/95 p-8 sm:p-10">
+                        <div className="relative flex flex-col justify-between gap-4 p-8 sm:p-10">
                             <div className="space-y-3">
-                                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#009B3A]">O que esperar</p>
-                                <div className="space-y-3 rounded-[1.5rem] border border-border/70 bg-card p-5 shadow-sm">
-                                    <p className="text-sm font-medium text-muted-foreground">Preços</p>
-                                    <p className="text-lg font-semibold text-foreground">Estrutura clara para comparar planos e escolher o ideal.</p>
+                                <p className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-white/90">Quer mais do WebMun?</p>
+                                <h2 className="text-3xl font-black tracking-[-0.03em] sm:text-5xl text-white">Vire nosso parceiro</h2>
+                                <p className="text-lg font-semibold text-white">Simulacoes parceiras recebem funcionalidades novas de maneira antecipada e outros beneficios.</p>
+                                <div className="relative mt-8 flex flex-col gap-3 ">
+                                    <Button onClick={() => (window.location.href = "/pricing")} className="rounded-full bg-white px-6 py-3 text-primary hover:bg-white/90">
+                                        Entre em contato conosco para se tornar um parceiro
+                                    </Button>
+
                                 </div>
-                                <div className="space-y-3 rounded-[1.5rem] border border-border/70 bg-card p-5 shadow-sm">
-                                    <p className="text-sm font-medium text-muted-foreground">Demo</p>
-                                    <p className="text-lg font-semibold text-foreground">Apresentação prática, concedida sob demanda para eventos e equipes.</p>
-                                </div>
+
                             </div>
                         </div>
                     </div>
