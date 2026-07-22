@@ -1,13 +1,33 @@
 # Test suite for service layer
 import json
+from uuid import UUID
 
 import pytest
 
+from app.access.models import CommitteeAssignment
 from app.session import enums
 from app.session.manager import ConnectionManager
 from app.session.models import SessionActor, SessionLiveState
+from app.session.repository import get_session_info
 from app.session.enums import SessionRole
-from app.session.service import ActorResolutionError, build_actor, handle_client_messages
+from app.session.service import (
+    ActorResolutionError,
+    SessionFetchError,
+    build_actor,
+    handle_client_messages,
+    prepare_session_connect,
+)
+from unittest.mock import AsyncMock, MagicMock
+
+
+@pytest.fixture
+def brazil_assignment():
+    return CommitteeAssignment(
+        user_id=UUID("44444444-4444-4444-4444-444444444444"),
+        committee_id=0,
+        role="delegate",
+        representation_id=0,
+    )
 
 
 def test_can_build_actor(
@@ -26,7 +46,9 @@ def test_can_build_actor(
     assert actor.role == SessionRole.DELEGATE
     assert actor.delegation is not None
     assert actor.delegation.id == connection_manager.room_states[0].delegations[0].id
-    assert actor.delegation.name == connection_manager.room_states[0].delegations[0].name
+    assert (
+        actor.delegation.name == connection_manager.room_states[0].delegations[0].name
+    )
 
 
 def test_cannot_build_actor_with_nonexistent_state(
@@ -68,6 +90,86 @@ def test_cannot_build_actor_with_nonexistent_delegation(
             delegation_id=999,
         )
 
+
+@pytest.mark.anyio
+async def test_prepare_connect_without_db(
+    connection_manager: ConnectionManager,
+    session_state: SessionLiveState,
+    brazil_assignment: CommitteeAssignment,
+) -> None:
+    connection_manager.room_states[0] = session_state
+    mock_session = None
+
+    actor = await prepare_session_connect(
+        session=mock_session,  # type: ignore due to mock session not needing to be called. if it is, we fail
+        manager=connection_manager,
+        committee_session_id=0,
+        assignment=brazil_assignment,
+    )
+
+    assert actor.role == enums.SessionRole.DELEGATE
+    assert actor.delegation is not None
+    assert actor.delegation.id == brazil_assignment.representation_id
+
+
+@pytest.mark.anyio
+async def test_prepare_connect_fetches_db(
+    connection_manager: ConnectionManager,
+    brazil_assignment: CommitteeAssignment,
+    monkeypatch,
+) -> None:
+    mock_session = MagicMock
+    mock_stored_state = MagicMock()
+    mock_stored_state.status = "active"
+    mock_stored_state.state_snapshot = {"session_id": 0}
+
+    mock_get_session_info = AsyncMock(return_value=mock_stored_state)
+
+    monkeypatch.setattr(
+        "app.session.repository.get_session_info", mock_get_session_info
+    )
+
+    # prevent model_validate from breaking validation
+    monkeypatch.setattr(
+        SessionLiveState,
+        "model_validate",
+        MagicMock(return_value=mock_stored_state.state_snapshot),
+    )
+
+    monkeypatch.setattr("app.session.service.build_actor", MagicMock())
+
+    await prepare_session_connect(
+        session=mock_session,  # type: ignore
+        manager=connection_manager,
+        committee_session_id=0,
+        assignment=brazil_assignment,
+    )
+
+    mock_get_session_info.assert_called_once_with(mock_session, 0)
+
+
+@pytest.mark.anyio
+async def test_cant_prepare_connect_storedlive_missing(
+    connection_manager: ConnectionManager,
+    brazil_assignment: CommitteeAssignment,
+    monkeypatch,
+) -> None:
+    with pytest.raises(SessionFetchError, match="Could not fetch session info"):
+        mock_session = MagicMock
+        mock_get_session_info = AsyncMock(return_value=None)
+
+        monkeypatch.setattr(
+            "app.session.repository.get_session_info", mock_get_session_info
+        )
+
+        await prepare_session_connect(
+            session=mock_session,  # type: ignore
+            manager=connection_manager,
+            committee_session_id=0,
+            assignment=brazil_assignment,
+        )
+
+
 @pytest.mark.anyio
 async def test_handle_client_messages_dispatches_and_broadcasts(
     connection_manager: ConnectionManager,
@@ -97,7 +199,9 @@ async def test_handle_client_messages_dispatches_and_broadcasts(
         manager=connection_manager,
         engine=fake_engine,
         logger=__import__("logging").getLogger("test"),
-        session_id=session_state.session_id, actor=delegate_actor, data=data
+        session_id=session_state.session_id,
+        actor=delegate_actor,
+        data=data,
     )
 
     # tests if engine dispatched the message

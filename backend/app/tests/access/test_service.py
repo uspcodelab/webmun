@@ -92,4 +92,6 @@ async def test_role_check_returns_matching_assignment(monkeypatch):
 
     monkeypatch.setattr("app.access.service.get_committee_assignment", chair_assignment)
 
-    assert await verify_user_role(object(), assignment.user_id, 1, "chair") is assignment
+    assert (
+        await verify_user_role(object(), assignment.user_id, 1, "chair") is assignment
+    )
