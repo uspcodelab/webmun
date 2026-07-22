@@ -24,6 +24,7 @@ from .models import (
     SessionLiveState,
     SessionRole,
     VotingContext,
+    AgendaItem
 )
 
 
@@ -652,6 +653,32 @@ def handle_set_agenda(
 ) -> SessionLiveState: ...
 
 
+def handle_mark_agenda_item(state: SessionLiveState, event: schemas.MarkAgendaItemEvent, actor: SessionActor
+) -> SessionLiveState: 
+    if event.payload.discussed != None : 
+        state.agenda_topics[event.payload.index].already_discussed = event.payload.discussed   
+    if event.payload.indiscussion != None :
+        if event.payload.indiscussion: state.active_topic_index = event.payload.index
+        else: state.active_topic_index = None
+    return state
+
+def handle_set_agenda_item(state: SessionLiveState, event: schemas.SetAgendaItemEvent, actor: SessionActor
+) -> SessionLiveState:
+    item = AgendaItem(index=event.payload.index,
+                      topic=event.payload.topic,
+                      already_discussed=False)
+    state.agenda_topics[event.payload.index] = item
+    return state
+    
+
+def handle_delete_agenda_item(state: SessionLiveState, event: schemas.DeleteAgendaItemEvent, actor: SessionActor
+) -> SessionLiveState:
+
+    state.agenda_topics.pop(event.payload.index)
+
+    if(state.active_topic_index == event.payload.index): state.active_topic_index = None
+    return state
+
 def handle_manual_phase_set(
     state: SessionLiveState, event: schemas.SetPhaseEvent, actor: SessionActor
 ) -> SessionLiveState: ...
@@ -730,7 +757,6 @@ def handle_insert_queue(
     state.gsl_queue.append(delegate.id)
     return state
 
-
 # Signature for events/handlers, uses legacy(ish) 3.11 TypeAlias
 EventHandler: TypeAlias = Callable[
     [SessionLiveState, Any, SessionActor],  # overall signature
@@ -754,6 +780,9 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.CLOSE_PROCEDURAL_VOTING: handle_close_procedural_voting,
     ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
     ChairEvents.SET_AGENDA: handle_set_agenda,
+    ChairEvents.SET_AGENDA_ITEM: handle_set_agenda_item,
+    ChairEvents.MARK_AGENDA_ITEM: handle_mark_agenda_item,
+    ChairEvents.DELETE_AGENDA_ITEM: handle_delete_agenda_item,
     ChairEvents.MANUAL_PHASE_SET: handle_manual_phase_set,
     ChairEvents.CLOSE_SESSION: handle_close_session,
     ChairEvents.CHOOSE_SPEAKER: handle_choose_speaker,

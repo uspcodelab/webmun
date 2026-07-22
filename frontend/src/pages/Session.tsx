@@ -123,9 +123,11 @@ export default function SessionPage() {
                     />
                 </div>
                 <div className="flex h-full w-[25%] shrink-0 flex-col bg-white">
-                    {debateType === DebateTypes.UNMODERATED_DEBATE && <UnmoderatedDebate />}
-                    {debateType === DebateTypes.MODERATED_DEBATE && <ModeratedDebate />}
-                    {debateType === DebateTypes.SPEAKERS_LIST && <SpeakerList />}
+                    {//{debateType === DebateTypes.UNMODERATED_DEBATE && <UnmoderatedDebate />}
+                    //{debateType === DebateTypes.MODERATED_DEBATE && <ModeratedDebate />}
+                    //{debateType === DebateTypes.SPEAKERS_LIST && <SpeakerList />}
+                    }
+                    <SpeakerList />
                     <MotionsList motions={motions} />
                 </div>
             </div>

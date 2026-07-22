@@ -5,6 +5,24 @@ export type ClientOptions = {
 };
 
 /**
+ * AgendaItem
+ */
+export type AgendaItem = {
+    /**
+     * Index
+     */
+    index: string;
+    /**
+     * Topic
+     */
+    topic: string;
+    /**
+     * Already Discussed
+     */
+    already_discussed: boolean;
+};
+
+/**
  * AnswerRollCallEvent
  */
 export type AnswerRollCallEvent = {
@@ -32,7 +50,7 @@ export type BodyDummyCommitteesDummyGet = {
     /**
      * Types
      */
-    types: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent | MarkRollCallBulkEvent;
+    types: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetAgendaItemEvent | MarkAgendaItemEvent | DeleteAgendaItemEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent | MarkRollCallBulkEvent;
     schemas: SessionLiveState;
 };
 
@@ -68,12 +86,15 @@ export const ChairEvents = {
     RESOLVE_MOTION_EVENT: 'ResolveMotionEvent',
     CLOSE_PROCEDURAL_VOTING_EVENT: 'CloseProceduralVotingEvent',
     CLOSE_INFORMAL_VOTING_EVENT: 'CloseInformalVotingEvent',
-    SET_AGENDA_EVENT: 'SetAgendaEvent',
     SET_PHASE_EVENT: 'SetPhaseEvent',
     CLOSE_SESSION_EVENT: 'CloseSessionEvent',
+    SET_AGENDA_ITEM_EVENT: 'SetAgendaItemEvent',
+    MARK_AGENDA_ITEM_EVENT: 'MarkAgendaItemEvent',
+    DELETE_AGENDA_ITEM_EVENT: 'DeleteAgendaItemEvent',
+    SET_AGENDA: 'SetAgenda',
     SPEAKER_EVENT: 'SpeakerEvent',
     MARK_ROLL_CALL_EVENT: 'MarkRollCallEvent',
-    MARK_ROLL_CALL_BULK_EVENT: 'Mark Roll Call Bulk Event',
+    MARK_ROLL_CALL_BULK_EVENT: 'MarkRollCallBulkEvent',
     CLOSE_ROLL_CALL_EVENT: 'CloseRollCallEvent',
     INSERT_QUEUE_EVENT: 'InsertQueueEvent'
 } as const;
@@ -419,6 +440,27 @@ export type DelegationSchema = {
 };
 
 /**
+ * DeleteAgendaItemEvent
+ */
+export type DeleteAgendaItemEvent = {
+    /**
+     * Type
+     */
+    type: 'DeleteAgendaItemEvent';
+    payload: DeleteAgendaItemPayload;
+};
+
+/**
+ * DeleteAgendaItemPayload
+ */
+export type DeleteAgendaItemPayload = {
+    /**
+     * Index
+     */
+    index: string;
+};
+
+/**
  * EmptyPayload
  */
 export type EmptyPayload = {
@@ -479,13 +521,42 @@ export type LeaveQueueEvent = {
 };
 
 /**
+ * MarkAgendaItemEvent
+ */
+export type MarkAgendaItemEvent = {
+    /**
+     * Type
+     */
+    type: 'MarkAgendaItemEvent';
+    payload: MarkAgendaItemPayload;
+};
+
+/**
+ * MarkAgendaItemPayload
+ */
+export type MarkAgendaItemPayload = {
+    /**
+     * Index
+     */
+    index: string;
+    /**
+     * Indiscussion
+     */
+    indiscussion?: boolean | null;
+    /**
+     * Discussed
+     */
+    discussed?: boolean | null;
+};
+
+/**
  * MarkRollCallBulkEvent
  */
 export type MarkRollCallBulkEvent = {
     /**
      * Type
      */
-    type: 'Mark Roll Call Bulk Event';
+    type: 'MarkRollCallBulkEvent';
     payload: MarkRollCallBulkPayload;
 };
 
@@ -764,14 +835,13 @@ export type SessionLiveState = {
     /**
      * Agenda Topics
      */
-    agenda_topics?: Array<[
-        string,
-        boolean
-    ]>;
+    agenda_topics?: {
+        [key: string]: AgendaItem;
+    };
     /**
      * Active Topic Index
      */
-    active_topic_index?: number | null;
+    active_topic_index?: string | null;
     voting?: VotingContext | null;
     /**
      * Voting Choice
@@ -789,8 +859,33 @@ export type SetAgendaEvent = {
     /**
      * Type
      */
-    type: 'SetAgendaEvent';
+    type: 'SetAgenda';
     payload: ChairSetAgendaPayload;
+};
+
+/**
+ * SetAgendaItemEvent
+ */
+export type SetAgendaItemEvent = {
+    /**
+     * Type
+     */
+    type: 'SetAgendaItemEvent';
+    payload: SetAgendaItemPayload;
+};
+
+/**
+ * SetAgendaItemPayload
+ */
+export type SetAgendaItemPayload = {
+    /**
+     * Index
+     */
+    index: string;
+    /**
+     * Topic
+     */
+    topic: string;
 };
 
 /**

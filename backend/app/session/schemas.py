@@ -139,6 +139,19 @@ class ChairSetPhasePayload(BaseModel):
 class ChairInsertQueuePayload(BaseModel):
     target: int  # Delegate Id
 
+class SetAgendaItemPayload(BaseModel):
+    index: str
+    topic: str
+
+class MarkAgendaItemPayload(BaseModel):
+    index: str # Agenda Item Id
+    indiscussion: bool | None = None
+    discussed: bool | None = None
+
+class DeleteAgendaItemPayload(BaseModel):
+    index: str # Agenda Item Id
+
+
 
 # These two normally don't need to have an id
 class ChairCloseInformalVotingPayload(BaseModel):
@@ -232,6 +245,17 @@ class ChairInsertQueueEvent(BaseModel):
     type: Literal[enums.ChairEvents.INSERT_QUEUE]
     payload: ChairInsertQueuePayload
 
+class MarkAgendaItemEvent(BaseModel):
+    type: Literal[enums.ChairEvents.MARK_AGENDA_ITEM]
+    payload: MarkAgendaItemPayload
+
+class SetAgendaItemEvent(BaseModel):
+    type: Literal[enums.ChairEvents.SET_AGENDA_ITEM]
+    payload: SetAgendaItemPayload
+
+class DeleteAgendaItemEvent(BaseModel):
+    type: Literal[enums.ChairEvents.DELETE_AGENDA_ITEM]
+    payload: DeleteAgendaItemPayload
 
 # --- Discriminated Union ---
 SessionEvent = Annotated[
@@ -252,6 +276,9 @@ SessionEvent = Annotated[
     | ResolveMotionEvent
     | SpeakerEvent
     | SetAgendaEvent
+    | SetAgendaItemEvent
+    | MarkAgendaItemEvent
+    | DeleteAgendaItemEvent
     | SetPhaseEvent
     | MarkRollCallEvent
     | CloseRollCallEvent

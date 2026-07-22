@@ -99,6 +99,7 @@ class SessionService:
         # if schema is None:
         # raise ValueError("Unsupported event type")
 
+        self.uvicorn_logger.info(data)
         event = adapter.validate_json(data)
         state = self.manager.room_states[session_id]
 

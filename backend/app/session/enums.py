@@ -45,14 +45,17 @@ class ChairEvents(str, Enum):
     CLOSE_INFORMAL_VOTING = "CloseInformalVotingEvent"
 
     # Disruptive events (i.e manual override events)
-    SET_AGENDA = "SetAgendaEvent"
     MANUAL_PHASE_SET = "SetPhaseEvent"
     CLOSE_SESSION = "CloseSessionEvent"
 
     # Manual actions
+    SET_AGENDA_ITEM = "SetAgendaItemEvent"
+    MARK_AGENDA_ITEM = "MarkAgendaItemEvent"
+    DELETE_AGENDA_ITEM = "DeleteAgendaItemEvent"
+    SET_AGENDA = "SetAgenda"
     CHOOSE_SPEAKER = "SpeakerEvent"
     MARK_ROLLCALL = "MarkRollCallEvent"
-    MARK_ROLLCALL_BULK = "Mark Roll Call Bulk Event"
+    MARK_ROLLCALL_BULK = "MarkRollCallBulkEvent"
     CLOSE_ROLLCALL = "CloseRollCallEvent"
     INSERT_QUEUE = "InsertQueueEvent"
 

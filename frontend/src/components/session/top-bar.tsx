@@ -8,42 +8,13 @@ import  Agenda  from "./Agenda"
 
 const isChair = true // Replace with actual logic to determine if the user is the chair
 
-const agendaTopics = [
-    [3, "Medidas de cooperacao internacional"],
-    [1, "Atualizacao da situacao humanitaria"],
-    [2, "Corredores de evacuacao"],
-    ["2.2", "Corredores humanitarios prioritarios"],
-    ["2.1.2", "Pontos de passagem seguros"],
-    ["3.2", "Acordos de cooperacao regional"],
-] as const
-
-const compareTopicNumbers = (left: number | string, right: number | string) => {
-    const leftParts = String(left).split(".").map(Number)
-    const rightParts = String(right).split(".").map(Number)
-    const maxLength = Math.max(leftParts.length, rightParts.length)
-
-    for (let index = 0; index < maxLength; index += 1) {
-        const leftPart = leftParts[index] ?? 0
-        const rightPart = rightParts[index] ?? 0
-
-        if (leftPart !== rightPart) {
-            return leftPart - rightPart
-        }
-    }
-
-    return leftParts.length - rightParts.length
-}
-
-const getTopicDepth = (topicNumber: number | string) => String(topicNumber).split(".").length - 1
-
-const sortedAgendaTopics = [...agendaTopics].sort((left, right) => compareTopicNumbers(left[0], right[0]))
-
 export default function TopBar() {
+    const agendaTopics = useCommitteeStore((state) => state.agenda_topics)
     const activeTopicIndex = useCommitteeStore((state) => state.active_topic_index)
+
     const currentTopicLabel =
-        activeTopicIndex !== null && activeTopicIndex !== undefined
-            ? (sortedAgendaTopics[activeTopicIndex]?.[1] ?? "Nenhum tópico em discussão")
-            : "Nenhum tópico em discussão"
+        activeTopicIndex !== null && activeTopicIndex !== undefined && agendaTopics !== undefined && agendaTopics[activeTopicIndex] !== undefined
+            ? agendaTopics[activeTopicIndex].topic : "Nenhum tópico em discussão"
 
 
     return (<>
