@@ -188,8 +188,10 @@ async def websocket_endpoint(
 
         except WebSocketDisconnect:
             manager.disconnect(websocket, session_id)
-
-    except (TokenExpiredError, TokenInvalidError, AccessDenied, service.ActorResolutionError, WebSocketDisconnect, service.SessionFetchError) as exc:
+    except WebSocketDisconnect:
+        # this is reached when the ws is disconnected before reaching manager.connect. in this case, just return
+        return
+    except (TokenExpiredError, TokenInvalidError, AccessDenied, service.ActorResolutionError, service.SessionFetchError) as exc:
         if isinstance(exc, WebSocketDisconnect):
             reason = "websocket_disconnect"
         elif isinstance(exc, TokenExpiredError):
