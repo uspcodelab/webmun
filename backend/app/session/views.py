@@ -22,7 +22,7 @@ from app.core.dep import get_connection_manager, get_logger, get_session_engine
 from app.core.config import get_settings
 from app.core.database import get_db_session
 from app.session.engine import SessionEngine
-from app.session.enums import ChairEvents, DelegateEvents, SessionRole
+from app.session.enums import ChairEvents, DelegateEvents
 from app.session.manager import ConnectionManager
 from app.session.models import SessionLiveState
 from app.session.schemas import SessionCreationSchema, SessionEvent
@@ -57,7 +57,7 @@ async def health():
 async def create_session_endpoint(
     session_schema: SessionCreationSchema,
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    current_user: Annotated[AuthUser, Depends(get_current_user)], # TODO: map out that only admins can create sessions
+    current_user: Annotated[AuthUser, Depends(get_current_user)], 
 ):
     """POST endpoint to create a new session"""
     try:
@@ -166,12 +166,12 @@ async def websocket_endpoint(
                 session=db, user_id=auth_user.user_id, session_id=session_id
             )
 
-        actor = service.build_actor(
-            manager=manager,
-            session_id=session_id,
-            role=SessionRole(assignment.role.upper()),
-            delegation_id=assignment.representation_id,
-        )
+            actor = await service.prepare_session_connect(
+                session=db,
+                manager=manager,
+                committee_session_id=session_id,
+                assignment=assignment
+            )
 
         await manager.connect(websocket, session_id, actor)
         try:
@@ -189,13 +189,17 @@ async def websocket_endpoint(
         except WebSocketDisconnect:
             manager.disconnect(websocket, session_id)
 
-    except (TokenExpiredError, TokenInvalidError, AccessDenied, service.ActorResolutionError) as exc:
-        if isinstance(exc, TokenExpiredError):
+    except (TokenExpiredError, TokenInvalidError, AccessDenied, service.ActorResolutionError, WebSocketDisconnect, service.SessionFetchError) as exc:
+        if isinstance(exc, WebSocketDisconnect):
+            reason = "websocket_disconnect"
+        elif isinstance(exc, TokenExpiredError):
             reason = "token_expired"
         elif isinstance(exc, TokenInvalidError):
             reason = "token_invalid"
         elif isinstance(exc, AccessDenied):
             reason = "access_denied"
+        elif isinstance(exc, service.SessionFetchError):
+            reason = "session_unavailable"
         else:
             reason = "actor_resolution_error"
 

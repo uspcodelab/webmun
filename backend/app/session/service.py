@@ -157,7 +157,44 @@ async def close_session(
     manager: ConnectionManager,
     committee_session_id: int,
 ) -> None:
-    pass
+    pass 
+
+async def prepare_session_connect(
+    session: AsyncSession, 
+    manager: ConnectionManager, 
+    committee_session_id: int,
+    assignment: CommitteeAssignment,
+) -> SessionActor:
+    """Service that prepares for session connect.
+    Primarily used as a fallback in case the SessionLiveState is not in manager
+    """
+    live_state = manager.room_states.get(committee_session_id)
+
+    if live_state is None:
+        stored_state = await repository.get_session_info(session, committee_session_id)
+        if stored_state is None:
+            raise SessionFetchError("Could not fetch session info")
+        if stored_state.status != 'active':
+            raise SessionFetchError("Session is not active")
+        if stored_state.state_snapshot is None:
+            raise SessionFetchError("No state snapshot found")
+        
+        # fetch state_snapshot and validate to be a SessionLiveState
+        live_state = SessionLiveState.model_validate(stored_state.state_snapshot)
+        
+        # put SessionLiveState on ConnectionManager
+        manager.room_states[committee_session_id] = live_state
+        manager.active_connections.setdefault(committee_session_id, {})
+
+    actor = build_actor(
+        manager=manager,
+        session_id=committee_session_id,
+        role=enums.SessionRole(assignment.role.upper()),
+        delegation_id=assignment.representation_id,
+    )
+        
+    return actor
+
 
 """
 async def old_create_session_service(
