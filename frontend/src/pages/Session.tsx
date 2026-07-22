@@ -77,24 +77,28 @@ export default function SessionPage() {
             return;
         }
 
-        socket = new WebSocket(
+        const ws = new WebSocket(
             `${import.meta.env.VITE_WS_URL}/ws/${parsedSessionId}`,
         );
+		socket = ws;
 
-        socket.onopen = () => {
-            socket?.send(JSON.stringify({ access_token: token }));
+        ws.onopen = () => {
+            ws?.send(JSON.stringify({ access_token: token }));
             setStatus("Connected");
         }
 
-        socket.onmessage = (event) => {
+        ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            console.log(data);
             UpdateStore(data);
-            console.log(all);
         };
 
-        socket.onclose = () => setStatus("Disconnected");
+        ws.onclose = () => setStatus("Disconnected");
 
-        return () => socket?.close(); // Cleanup on unmount
+        return () => {
+			ws.close();
+			if (socket === ws) socket = null;
+		}
     }, [parsedSessionId, token]);
 
     if (loading) return <p>Loading session…</p>;

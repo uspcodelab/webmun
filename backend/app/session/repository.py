@@ -3,6 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.access.models import CommitteeAssignment
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 from app.session.models import DelegationContext, StoredSession
 
@@ -88,7 +89,7 @@ async def update_session_info(
                 "status": session_info.status,
                 "started_at": session_info.started_at,
                 "ended_at": session_info.ended_at,
-                "state_snapshot": session_info.state_snapshot,
+                "state_snapshot": json.dumps(session_info.state_snapshot),
                 "committee_session_id": session_info.id
             }
         )

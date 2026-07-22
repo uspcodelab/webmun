@@ -1,17 +1,17 @@
-from fastapi import Request
+from fastapi.requests import HTTPConnection
 from app.session.manager import ConnectionManager
 from app.session.engine import SessionEngine
 import logging
 
 
-def get_connection_manager(request: Request) -> ConnectionManager:
+def get_connection_manager(connection: HTTPConnection) -> ConnectionManager:
     """Dependency injection for the app connection manager"""
-    return request.app.state.connection_manager
+    return connection.app.state.connection_manager
 
 
-def get_session_engine(request: Request) -> SessionEngine:
+def get_session_engine(connection: HTTPConnection) -> SessionEngine:
     """Dependency injection for the app session engine"""
-    return request.app.state.session_engine
+    return connection.app.state.session_engine
 
 
 def get_logger() -> logging.Logger:

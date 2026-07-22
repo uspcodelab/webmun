@@ -33,7 +33,7 @@ BEGIN
   VALUES (gen_random_uuid(), id_alemanha, 'alemanha@codelab.usp.br', format('{"sub":"%s","email":"alemanha@codelab.usp.br"}', id_alemanha)::jsonb, 'email', now(), now(), now()) ON CONFLICT (provider, provider_id) DO NOTHING;
 
   INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
-  VALUES (id_brazil, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'brazil@codelab.usp.br', crypt('password123', gen_salt('bf')), now(), '{"name": "alemanha"}'::jsonb, now(), now(), '', '', '', '') ON CONFLICT (id) DO NOTHING;
+  VALUES (id_brazil, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'brazil@codelab.usp.br', crypt('password123', gen_salt('bf')), now(), '{"name": "brazil"}'::jsonb, now(), now(), '', '', '', '') ON CONFLICT (id) DO NOTHING;
   INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
   VALUES (gen_random_uuid(), id_brazil, 'brazil@codelab.usp.br', format('{"sub":"%s","email":"brazil@codelab.usp.br"}', id_brazil)::jsonb, 'email', now(), now(), now()) ON CONFLICT (provider, provider_id) DO NOTHING;
 
