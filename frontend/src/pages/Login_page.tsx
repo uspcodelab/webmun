@@ -1,12 +1,13 @@
+import { Link } from "react-router-dom"
 import { LoginForm } from "@/components/auth/login-form"
 export default function LoginPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-2">
         <div className="flex justify-center gap-2 md:justify-start">
-          <a href="#" className="flex items-center gap-2 font-medium">
+          <Link to="/" className="flex items-center gap-2 font-medium">
             <img src="Images\branding\logo.png" alt="WebMun logo" className="md:h-24 sm:h-12 w-auto object-contain" />
-          </a>
+          </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
