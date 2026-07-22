@@ -45,8 +45,8 @@ export default function DelegationMap({
         return Math.max(1, buttonsPerSemicircle)
     }
 
-    const delegations = useCommitteeStore((state) => state.delegations)
-    delegations.sort((a, b) => a.seat > b.seat ? 1 : -1)
+    const delegationsStore = useCommitteeStore((state) => state.delegations)
+    const delegations = delegationsStore.toSorted((a, b) => a.seat > b.seat ? 1 : -1)
     let delegationIndex = -1
 
     const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)

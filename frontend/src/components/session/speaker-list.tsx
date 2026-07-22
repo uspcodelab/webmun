@@ -22,7 +22,9 @@ const isAlredyInQueue = true // Replace with actual logic to determine if the us
 
 export default function SpeakerList() {
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
-    const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
+    const cS = useCommitteeStore((state) => state.current_speaker)
+    const delegations = useCommitteeStore((state) => state.delegations)
+    const currentSpeaker = delegations[cS ?? -1]
     const waitingCount = gslQueue.length
 
 
@@ -34,11 +36,11 @@ export default function SpeakerList() {
             </div>
             <ScrollArea className="mr-4 mb-2 ml-4 mt-0 min-h-0 flex-1 rounded-md border ">
                 {gslQueue.map((delegate, index) => {
-                    const isSpeaking = !!currentSpeaker && currentSpeaker.id === delegate.id
+                    const isSpeaking = currentSpeaker && currentSpeaker.id === delegations[delegate].id
                     const position = index + 1
 
                     return (
-                        <div key={delegate.id}>
+                        <div key={delegations[delegate].id}>
                             <Item size="sm" className="mb-0">
                                 <ItemMedia
                                     variant="icon"
@@ -52,8 +54,8 @@ export default function SpeakerList() {
                                 </ItemMedia>
                                 <ItemContent>
                                     <ItemTitle>
-                                        {delegate.name}
-                                        <Flags code={delegate.code} className="h-5" />
+                                        {delegations[delegate].name}
+                                        <Flags code={delegations[delegate].code} className="h-5" />
                                     </ItemTitle>
                                 </ItemContent>
                             </Item>

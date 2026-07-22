@@ -9,7 +9,7 @@ import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 import VotingPopup from '@/components/session/voting-popup.tsx';
-import { DebateTypes } from '@/schemas/types.gen';
+import { DebateTypes, type BodyDummyCommitteesDummyGet as Types} from '@/schemas/types.gen';
 
 let socket : WebSocket | null = null;
 
@@ -17,7 +17,7 @@ let socket : WebSocket | null = null;
 Use this function to send events to the backend, 
 any data with one of the Event types in schemas/types.gen.ts should work
 */
-export function sendMessage(data: any) {
+export function sendMessage(data: Types["types"]) {
     if (socket && socket.readyState === WebSocket.OPEN) 
     {
         socket.send(JSON.stringify(data));

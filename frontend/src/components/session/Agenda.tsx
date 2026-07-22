@@ -62,7 +62,7 @@ export default function Agenda() {
     return (
         <Dialog>
             <DialogTrigger>
-                <Button variant="outline" >Ver agenda</Button>
+                Ver agenda
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
