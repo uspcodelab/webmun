@@ -2,10 +2,10 @@
 
 import * as React from "react"
 
-import { NavMain } from "@/components/userDashboard/nav-main"
+import { DropdownMenus } from "@/components/userDashboard/dropdown-menus"
 import { NavProjects } from "@/components/userDashboard/nav-projects"
 import { NavUser } from "@/components/userDashboard/nav-user"
-import { TeamSwitcher } from "@/components/userDashboard/team-switcher"
+import { MUNSwitcher } from "@/components/userDashboard/mun-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -48,10 +48,10 @@ const data = {
       plan: "Free",
     },
   ],
-  navMain: [
+  conferenceMenus: [
     {
-      title: "Playground",
-      url: "#",
+      title: "Overviews",
+      url: "/dashboard/conference/overview",
       icon: (
         <TerminalSquareIcon
         />
@@ -60,21 +60,21 @@ const data = {
       items: [
         {
           title: "History",
-          url: "#",
+          url: "/dashboard/playground/history",
         },
         {
           title: "Starred",
-          url: "#",
+          url: "/dashboard/playground/starred",
         },
         {
           title: "Settings",
-          url: "#",
+          url: "/dashboard/playground/settings",
         },
       ],
     },
     {
       title: "Models",
-      url: "#",
+      url: "/dashboard/models",
       icon: (
         <BotIcon
         />
@@ -82,21 +82,21 @@ const data = {
       items: [
         {
           title: "Genesis",
-          url: "#",
+          url: "/dashboard/models/genesis",
         },
         {
           title: "Explorer",
-          url: "#",
+          url: "/dashboard/models/explorer",
         },
         {
           title: "Quantum",
-          url: "#",
+          url: "/dashboard/models/quantum",
         },
       ],
     },
     {
       title: "Documentation",
-      url: "#",
+      url: "/dashboard/documentation",
       icon: (
         <BookOpenIcon
         />
@@ -104,25 +104,25 @@ const data = {
       items: [
         {
           title: "Introduction",
-          url: "#",
+          url: "/dashboard/documentation/introduction",
         },
         {
           title: "Get Started",
-          url: "#",
+          url: "/dashboard/documentation/get-started",
         },
         {
           title: "Tutorials",
-          url: "#",
+          url: "/dashboard/documentation/tutorials",
         },
         {
           title: "Changelog",
-          url: "#",
+          url: "/dashboard/documentation/changelog",
         },
       ],
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: (
         <Settings2Icon
         />
@@ -130,19 +130,19 @@ const data = {
       items: [
         {
           title: "General",
-          url: "#",
+          url: "/dashboard/settings/general",
         },
         {
           title: "Team",
-          url: "#",
+          url: "/dashboard/settings/team",
         },
         {
           title: "Billing",
-          url: "#",
+          url: "/dashboard/settings/billing",
         },
         {
           title: "Limits",
-          url: "#",
+          url: "/dashboard/settings/limits",
         },
       ],
     },
@@ -150,7 +150,7 @@ const data = {
   projects: [
     {
       name: "Design Engineering",
-      url: "#",
+      url: "/dashboard/projects/design-engineering",
       icon: (
         <FrameIcon
         />
@@ -158,7 +158,7 @@ const data = {
     },
     {
       name: "Sales & Marketing",
-      url: "#",
+      url: "/dashboard/projects/sales-marketing",
       icon: (
         <PieChartIcon
         />
@@ -166,7 +166,7 @@ const data = {
     },
     {
       name: "Travel",
-      url: "#",
+      url: "/dashboard/projects/travel",
       icon: (
         <MapIcon
         />
@@ -179,10 +179,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <MUNSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <DropdownMenus items={data.conferenceMenus} label="Conferencia" />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>

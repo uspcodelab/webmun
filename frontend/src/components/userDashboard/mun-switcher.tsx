@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sidebar"
 import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
 
-export function TeamSwitcher({
+export function MUNSwitcher({
   teams,
 }: {
   teams: {
@@ -61,7 +61,7 @@ export function TeamSwitcher({
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Teams
+              MUNs
             </DropdownMenuLabel>
             {teams.map((team, index) => (
               <DropdownMenuItem

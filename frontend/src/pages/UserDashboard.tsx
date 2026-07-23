@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/components/userDashboard/app-sidebar"
+import { AppSidebar } from "@/components/userDashboard/UserDash-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,8 +13,28 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { Link, Outlet, useLocation } from "react-router-dom"
+
+function formatBreadcrumb(pathname: string) {
+  if (pathname === "/dashboard") {
+    return "Overview"
+  }
+
+  const segment = pathname.split("/").filter(Boolean).at(-1)
+
+  if (!segment) {
+    return "Overview"
+  }
+
+  return segment
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase())
+}
 
 export default function UserDash() {
+  const { pathname } = useLocation()
+  const currentSection = formatBreadcrumb(pathname)
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -29,25 +49,20 @@ export default function UserDash() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">
-                    Build Your Application
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard">Dashboard</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                  <BreadcrumbPage>{currentSection}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-          </div>
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+          <Outlet />
         </div>
       </SidebarInset>
     </SidebarProvider>

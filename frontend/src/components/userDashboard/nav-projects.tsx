@@ -7,6 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Link, useLocation } from "react-router-dom"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -28,6 +29,7 @@ export function NavProjects({
   }[]
 }) {
   const { isMobile } = useSidebar()
+  const { pathname } = useLocation()
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -35,11 +37,11 @@ export function NavProjects({
       <SidebarMenu>
         {projects.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
-              <a href={item.url}>
+            <SidebarMenuButton asChild isActive={pathname === item.url}>
+              <Link to={item.url}>
                 {item.icon}
                 <span>{item.name}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
