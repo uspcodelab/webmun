@@ -376,8 +376,8 @@ def handle_close_session(state: SessionLiveState, event: schemas.CloseSessionEve
    
     require_chair(actor)
    
-    if (state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED)): # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
-        raise InvalidProceduralMove("Session can only be opened from setup")
+    if (state.current_state in (States.SETUP, States.ROLL_CALL, States.FINISHED)): # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
+        raise InvalidProceduralMove("Session can't be closed from setup, roll call, or finished")
 
     state.current_state = States.FINISHED
     state.current_speaker = None
