@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import ManualQuorum from "@/components/session/manual-quorum"
-import { RollCallChoice, ChairEvents, States, type CloseRollCallEvent, type CloseSessionEvent } from "@/schemas/types.gen"
+import { RollCallChoice, ChairEvents, States, type CloseRollCallEvent, type CloseSessionEvent, type OpenSessionEvent } from "@/schemas/types.gen"
 import { sendMessage } from "@/pages/Session"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 
@@ -51,7 +51,7 @@ export default function TestButton() {
           <ManualQuorum />
           <div className="flex flex-row gap-2 mt-4">
             {currentState === States.SETUP_ROOM &&
-              <Button variant="outline" className="bg-green-800 text-white hover:bg-green-700" disabled>Abrir Sessao e iniciar Quórum</Button>}
+              <Button variant="outline" className="bg-green-800 text-white hover:bg-green-700" onClick={() => sendMessage({ type: ChairEvents.OPEN_SESSION_EVENT, payload: {} } as OpenSessionEvent)}>Abrir Sessao e iniciar Quórum</Button>}
             {currentState === States.ROLL_CALL &&
               <Button variant="destructive" onClick={() => sendMessage({ type: ChairEvents.CLOSE_ROLL_CALL_EVENT, payload: {} } as CloseRollCallEvent)}>
                 Fechar Quórum
