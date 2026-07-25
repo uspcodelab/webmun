@@ -690,8 +690,10 @@ def handle_choose_speaker(
     require_chair(actor)
 
     seconds = event.payload.seconds or get_default_speaker_seconds(state)
-    # TODO: enable passing onto next speaker if needed on GSL phase
-    state.current_speaker = event.payload.speaker_id
+    if event.payload.speaker_id == None and state.current_state in (States.OPEN_GSL, States.CLOSED_GSL) and state.gsl_queue:
+        state.current_speaker = state.gsl_queue.pop(0)
+    else: 
+        state.current_speaker = event.payload.speaker_id
 
     state.timer_is_running = False
     state.timer_expiration = None  # will be calculated when timer is toggled

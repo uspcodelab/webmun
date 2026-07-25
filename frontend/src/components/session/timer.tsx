@@ -11,14 +11,15 @@ const isChair = true // Replace with actual logic to determine if the user is th
 
 export default function Timer() {
 
-
+    const delegations = useCommitteeStore((state) => state.delegations);
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker);
-    const speaker = currentSpeaker ?? {
+    const speaker = currentSpeaker !== null && currentSpeaker !== undefined ? delegations[currentSpeaker] : {
         id: -1,
         seat: "",
         name: "Mesa",
         code: "null",
     };
+
     const timerIsRunning = useCommitteeStore((state) => state.timer_is_running) ?? false;
     const timerExpiration = useCommitteeStore((state) => state.timer_expiration);
     const timerRemaining = useCommitteeStore((state) => state.timer_remaining_seconds);
