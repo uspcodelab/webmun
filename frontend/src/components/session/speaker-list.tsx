@@ -15,6 +15,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { sendMessage } from "@/pages/Session"
+import { type SpeakerEvent, ChairEvents } from "@/schemas/types.gen"
 
 const isChair = true // Replace with actual logic to determine if the user is the chair
 const isAlredyInQueue = true // Replace with actual logic to determine if the user is already in the queue
@@ -83,6 +85,7 @@ export default function SpeakerList() {
                                 variant="outline"
                                 className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
                                 disabled={waitingCount === 0}
+                                onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: {} } as SpeakerEvent)}
                             >
                                 <span className="md:hidden">Proximo</span>
                                 <span className="hidden md:inline">Proximo Orador</span>

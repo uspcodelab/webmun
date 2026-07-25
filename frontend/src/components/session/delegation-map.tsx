@@ -16,7 +16,7 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { CircleFlag } from 'react-circle-flags'
 import { sendMessage } from "@/pages/Session"
-import { type ChairInsertQueueEvent, type MarkRollCallEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
+import { type ChairInsertQueueEvent, type MarkRollCallEvent, type SpeakerEvent , ChairEvents, RollCallChoice } from "@/schemas/types.gen"
 import {
     Tooltip,
     TooltipContent,
@@ -149,7 +149,7 @@ export default function DelegationMap({
                                                     <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.INSERT_QUEUE_EVENT, payload: { target: delegations[currentDelegationIndex]?.id } } as ChairInsertQueueEvent)}>
                                                         Colocar na Lista de Discursos
                                                     </ContextMenuItem>
-                                                    <ContextMenuItem>
+                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: { speaker_id: delegations[currentDelegationIndex]?.id } } as SpeakerEvent)}>
                                                         Dar a palavra
                                                     </ContextMenuItem>
                                                 </ContextMenuGroup>
