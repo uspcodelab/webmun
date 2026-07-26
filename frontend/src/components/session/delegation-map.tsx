@@ -49,12 +49,19 @@ export default function DelegationMap({
     const delegations = delegationsStore.toSorted((a, b) => a.seat > b.seat ? 1 : -1)
     let delegationIndex = -1
 
+    const rcregistry = useCommitteeStore((state) => state.roll_call.registry)
     const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
     const totalDelegations = useCommitteeStore((state) => state.delegations.length ?? 0)
     const simpleMajority = Math.floor(presentDelegations / 2) + 1
     const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)
     const currentState = useCommitteeStore((state) => state.current_state)
 
+    const ringColors : Record<string, string> = {
+        "None" : "ring-sky-300/30",
+        "Absent" : "ring-red-500/50",
+        "Present" : "ring-yellow-500/50",
+        "Present and Voting" : "ring-lime-600/50"
+    }
 
     return (
         <div className="relative h-full w-full overflow-hidden">
@@ -107,6 +114,9 @@ export default function DelegationMap({
                                 const currentDelegationIndex = delegationIndex + 1
                                 delegationIndex = currentDelegationIndex
 
+                                const presence = rcregistry ? rcregistry[delegations[currentDelegationIndex].id] : "None"
+                                const ringcolor = ringColors[presence?? "None"]
+
                                 if (`${circleIndex + 1}-${seatIndex + 1}` != delegations[currentDelegationIndex]?.seat) {
                                     return (<div></div>)
                                 }
@@ -127,7 +137,7 @@ export default function DelegationMap({
                                                         <Button
                                                             type="button"
                                                             variant="outline"
-                                                            className="h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ring-sky-300/30 ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
+                                                            className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
                                                         >
                                                             <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
                                                                 <CircleFlag
