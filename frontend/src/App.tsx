@@ -6,6 +6,7 @@ import LoginPage from './pages/Login_page';
 import Home from './pages/Home';
 import CreateCommittee from './pages/CreateCommittee';
 import UserDash from './pages/UserDashboard';
+import Pricing from './pages/Info Pages/Pricing';
 
 function RequireAuth({ children }: { children: ReactNode }) {
 	const { loading, token } = useAuth();
@@ -26,6 +27,8 @@ function App() {
 					path="/sessions/:sessionId"
 					element={<RequireAuth><SessionPage /></RequireAuth>}
 				/>
+				<Route path="/pricing" element={<Pricing />} />
+				<Route path="/committees/:committeeId/session" element={<SessionPage />} />
 				<Route path="/login" element={<LoginPage />} />
 				<Route path="/create-committee" element={<CreateCommittee />} />
 				<Route path="/dashboard" element={<UserDash />} />
