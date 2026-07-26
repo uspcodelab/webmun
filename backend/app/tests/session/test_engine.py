@@ -698,7 +698,6 @@ def test_chair_insert_queue_uses_delegation_id(
     assert state.gsl_queue == [0]
 
 
-@pytest.mark.xfail(strict=True, reason="OpenSessionEvent handler is not implemented.")
 def test_chair_open_session_starts_roll_call(
     engine: eng.SessionEngine,
     session_state: md.SessionLiveState,

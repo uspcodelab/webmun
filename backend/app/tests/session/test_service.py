@@ -1,37 +1,43 @@
 # Test suite for service layer
 import json
+from uuid import UUID
 
 import pytest
 
+from app.access.models import CommitteeAssignment
 from app.session import enums
-from app.session.models import SessionActor, SessionLiveState, SessionRole
-from app.session.schemas import DelegationSchema, SessionCreationSchema
-from app.session.service import ActorResolutionError, SessionService
+from app.session.manager import ConnectionManager
+from app.session.models import SessionActor, SessionLiveState
+from app.session.repository import get_session_info
+from app.session.enums import SessionRole
+from app.session.service import (
+    ActorResolutionError,
+    SessionFetchError,
+    build_actor,
+    handle_client_messages,
+    prepare_session_connect,
+)
+from unittest.mock import AsyncMock, MagicMock
 
 
 @pytest.fixture
-def delegation_schema_list():
-    brazil = DelegationSchema(seat="1-2", name="Brazil", code="br")
-    usa = DelegationSchema(seat="3-4", name="USA", code="us")
-    russia = DelegationSchema(seat="5-6", name="Russia", code="ru")
-    return [brazil, usa, russia]
-
-
-@pytest.fixture 
-def session_test_schema(delegation_schema_list: list[DelegationSchema]):
-    return SessionCreationSchema(
-        session_id=0,
-        delegations=delegation_schema_list
+def brazil_assignment():
+    return CommitteeAssignment(
+        user_id=UUID("44444444-4444-4444-4444-444444444444"),
+        committee_id=0,
+        role="delegate",
+        representation_id=0,
     )
 
 
 def test_can_build_actor(
-    service: SessionService, 
+    connection_manager: ConnectionManager,
     session_state: SessionLiveState,
 ) -> None:
-    service.manager.room_states[0] = session_state
+    connection_manager.room_states[0] = session_state
 
-    actor = service.build_actor(
+    actor = build_actor(
+        manager=connection_manager,
         session_id=0,
         role=SessionRole.DELEGATE,
         delegation_id=0,
@@ -39,97 +45,168 @@ def test_can_build_actor(
 
     assert actor.role == SessionRole.DELEGATE
     assert actor.delegation is not None
-    assert actor.delegation.id == service.manager.room_states[0].delegations[0].id
-    assert actor.delegation.name == service.manager.room_states[0].delegations[0].name
+    assert actor.delegation.id == connection_manager.room_states[0].delegations[0].id
+    assert (
+        actor.delegation.name == connection_manager.room_states[0].delegations[0].name
+    )
 
 
 def test_cannot_build_actor_with_nonexistent_state(
-    service: SessionService, 
+    connection_manager: ConnectionManager,
 ) -> None:
     with pytest.raises(ActorResolutionError, match="session not found"):
-            service.build_actor(
-                session_id=0,
-                role=SessionRole.DELEGATE,
-                delegation_id=0,
-            )
+        build_actor(
+            manager=connection_manager,
+            session_id=0,
+            role=SessionRole.DELEGATE,
+            delegation_id=0,
+        )
 
 
 def test_cannot_build_actor_with_no_delegation_id(
-    service: SessionService, 
+    connection_manager: ConnectionManager,
     session_state: SessionLiveState,
 ) -> None:
     with pytest.raises(ActorResolutionError, match="needs delegate id"):
-            service.manager.room_states[0] = session_state
-            service.build_actor(
-                session_id=0,
-                role=SessionRole.DELEGATE,
-            )
+        connection_manager.room_states[0] = session_state
+        build_actor(
+            manager=connection_manager,
+            session_id=0,
+            role=SessionRole.DELEGATE,
+        )
 
 
 def test_cannot_build_actor_with_nonexistent_delegation(
-    service: SessionService, 
+    connection_manager: ConnectionManager,
     session_state: SessionLiveState,
 ) -> None:
     with pytest.raises(ActorResolutionError, match="delegation not found"):
-            service.manager.room_states[0] = session_state
+        connection_manager.room_states[0] = session_state
 
-            service.build_actor(
-                session_id=0,
-                role=SessionRole.DELEGATE,
-                delegation_id=999,
-            )
+        build_actor(
+            manager=connection_manager,
+            session_id=0,
+            role=SessionRole.DELEGATE,
+            delegation_id=999,
+        )
 
-def test_can_create_session(
-    service: SessionService,
-    session_test_schema: SessionCreationSchema,
+
+@pytest.mark.anyio
+async def test_prepare_connect_without_db(
+    connection_manager: ConnectionManager,
+    session_state: SessionLiveState,
+    brazil_assignment: CommitteeAssignment,
 ) -> None:
-    service.create_session(session_test_schema)
+    connection_manager.room_states[0] = session_state
+    mock_session = None
 
-    assert len(service.manager.room_states) == 1
-    assert len(service.manager.room_states[0].delegations) == 3
-    assert service.manager.room_states[0].delegations[0].name == "Brazil"
-    assert service.manager.room_states[0].delegations[1].id == 1
+    actor = await prepare_session_connect(
+        session=mock_session,  # type: ignore due to mock session not needing to be called. if it is, we fail
+        manager=connection_manager,
+        committee_session_id=0,
+        assignment=brazil_assignment,
+    )
+
+    assert actor.role == enums.SessionRole.DELEGATE
+    assert actor.delegation is not None
+    assert actor.delegation.id == brazil_assignment.representation_id
+
+
+@pytest.mark.anyio
+async def test_prepare_connect_fetches_db(
+    connection_manager: ConnectionManager,
+    brazil_assignment: CommitteeAssignment,
+    monkeypatch,
+) -> None:
+    mock_session = MagicMock
+    mock_stored_state = MagicMock()
+    mock_stored_state.status = "active"
+    mock_stored_state.state_snapshot = {"session_id": 0}
+
+    mock_get_session_info = AsyncMock(return_value=mock_stored_state)
+
+    monkeypatch.setattr(
+        "app.session.repository.get_session_info", mock_get_session_info
+    )
+
+    # prevent model_validate from breaking validation
+    monkeypatch.setattr(
+        SessionLiveState,
+        "model_validate",
+        MagicMock(return_value=mock_stored_state.state_snapshot),
+    )
+
+    monkeypatch.setattr("app.session.service.build_actor", MagicMock())
+
+    await prepare_session_connect(
+        session=mock_session,  # type: ignore
+        manager=connection_manager,
+        committee_session_id=0,
+        assignment=brazil_assignment,
+    )
+
+    mock_get_session_info.assert_called_once_with(mock_session, 0)
+
+
+@pytest.mark.anyio
+async def test_cant_prepare_connect_storedlive_missing(
+    connection_manager: ConnectionManager,
+    brazil_assignment: CommitteeAssignment,
+    monkeypatch,
+) -> None:
+    with pytest.raises(SessionFetchError, match="Could not fetch session info"):
+        mock_session = MagicMock
+        mock_get_session_info = AsyncMock(return_value=None)
+
+        monkeypatch.setattr(
+            "app.session.repository.get_session_info", mock_get_session_info
+        )
+
+        await prepare_session_connect(
+            session=mock_session,  # type: ignore
+            manager=connection_manager,
+            committee_session_id=0,
+            assignment=brazil_assignment,
+        )
 
 
 @pytest.mark.anyio
 async def test_handle_client_messages_dispatches_and_broadcasts(
-    service: SessionService, 
+    connection_manager: ConnectionManager,
+    fake_engine,
     session_state: SessionLiveState,
-    delegate_actor: SessionActor, 
+    delegate_actor: SessionActor,
 ) -> None:
     session_state.current_state = enums.States.OPEN_GSL
-    service.manager.room_states[session_state.session_id] = session_state
+    connection_manager.room_states[session_state.session_id] = session_state
 
     broadcasts = []
 
     async def fake_broadcast_state(session_id: int):
         broadcasts.append(session_id)
-    
+
     # replaces real broadcast state with this one
-    service.manager.broadcast_state = fake_broadcast_state
+    connection_manager.broadcast_state = fake_broadcast_state
 
-    data = json.dumps({
-        "type": enums.DelegateEvents.JOIN_QUEUE,
-        "payload": {},
-    })
-
-    await service.handle_client_messages(
-        session_id=session_state.session_id,
-        actor=delegate_actor, 
-        data=data
+    data = json.dumps(
+        {
+            "type": enums.DelegateEvents.JOIN_QUEUE,
+            "payload": {},
+        }
     )
 
-    # tests if engine dispatched the message 
+    await handle_client_messages(
+        manager=connection_manager,
+        engine=fake_engine,
+        logger=__import__("logging").getLogger("test"),
+        session_id=session_state.session_id,
+        actor=delegate_actor,
+        data=data,
+    )
 
-    assert service.engine.dispatched["state"] is session_state # type: ignore
-    assert service.engine.dispatched["event"].type == enums.DelegateEvents.JOIN_QUEUE # type: ignore
-    assert service.engine.dispatched["actor"] is delegate_actor # type: ignore
+    # tests if engine dispatched the message
+
+    assert fake_engine.dispatched["state"] is session_state
+    assert fake_engine.dispatched["event"].type == enums.DelegateEvents.JOIN_QUEUE
+    assert fake_engine.dispatched["actor"] is delegate_actor
     assert broadcasts == [session_state.session_id]
-
-
-
-
-
-
-
-

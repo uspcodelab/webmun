@@ -1,79 +1,209 @@
 # An adapter. Accepts HTTP/Websockets messages, validates envelopes, calls/attaches services and return/send errors
 # The 1st layer when connecting to clients
 
+from typing import Annotated
+
 from fastapi import (
     APIRouter,
+    Depends,
     Response,
     WebSocket,
     WebSocketDisconnect,
-    WebSocketException,
     status,
 )
+from fastapi.exceptions import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.access.service import AccessDenied
+from app.auth.dep import get_current_user
+from app.auth.service import AuthUser, verify_jwt_token, TokenInvalidError, TokenExpiredError
+from app.core.config import Settings
+from app.core.dep import get_connection_manager, get_logger, get_session_engine
+from app.core.config import get_settings
+from app.core.database import get_db_session
+from app.session.engine import SessionEngine
 from app.session.enums import ChairEvents, DelegateEvents
-from app.session.models import SessionLiveState, SessionRole
+from app.session.manager import ConnectionManager
+from app.session.models import SessionLiveState
 from app.session.schemas import SessionCreationSchema, SessionEvent
 
-from .service import (
-    ActorResolutionError,
-    SessionService,
-)
+import app.access.service as access
+import app.session.repository as repository
+import app.session.service as service
+import logging
+
+router = APIRouter()
 
 
-# We'll use the Factory design patter here, by receiving the service object and returning
-# the whole router with the service injected on it
-def create_session_router(service: SessionService) -> APIRouter:
-    router = APIRouter()
+# Workaround to make FastApi add all the Schemas to the OpenApi file
+@router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
+async def dummy(
+    name: SessionEvent,
+    schemas: SessionLiveState,
+    enum1: DelegateEvents,
+    enum2: ChairEvents,
+):
+    """Dummy workaround to make FastAPI add all schemas to the OpenAPI file"""
+    return Response(status_code=status.HTTP_404_NOT_FOUND)
 
-    # Workaround to make FastApi add all the Schemas to the OpenApi file
-    @router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
-    async def dummy(
-        name: SessionEvent,
-        schemas: SessionLiveState,
-        enum1: DelegateEvents,
-        enum2: ChairEvents,
-    ):
-        return Response(status_code=status.HTTP_404_NOT_FOUND)
 
-    @router.get("/health", status_code=status.HTTP_200_OK)
-    async def health():
-        return Response(status_code=status.HTTP_200_OK)
+@router.get("/health", status_code=status.HTTP_200_OK)
+async def health():
+    """Healthcheck route"""
+    return Response(status_code=status.HTTP_200_OK)
 
-    # Create committee route, receives a contentbody following CommitteeCreationSchema's format
-    @router.post("/", status_code=status.HTTP_204_NO_CONTENT)
-    async def create_session_endpoint(session_schema: SessionCreationSchema):
-        # Mock a session being created
-        service.create_session(session_schema)
 
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/", status_code=status.HTTP_200_OK)
+async def create_session_endpoint(
+    session_schema: SessionCreationSchema,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    current_user: Annotated[AuthUser, Depends(get_current_user)], 
+):
+    """POST endpoint to create a new session"""
+    try:
+        await access.verify_user_role(
+            session=session,
+            user_id=current_user.user_id,
+            committee_id=session_schema.committee_id,
+            required_role="chair",
+        )
 
-    @router.websocket("/ws/{session_id}")
-    async def websocket_endpoint(
-        websocket: WebSocket,
-        session_id: int,
-        role: SessionRole,
-        delegation_id: int | None = None,
-        display_name: str | None = None,
-    ):
+        res = await service.create_session_service(
+            session=session,
+            session_schema=session_schema,
+        )
+        return {"id": res, "status": "Created"}
 
-        try:
-            actor = service.build_actor(session_id, role, delegation_id, display_name)
-        except ActorResolutionError as exc:
-            raise WebSocketException(
-                code=status.WS_1008_POLICY_VIOLATION, reason=str(exc)
+    except AccessDenied as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        )
+    except service.SessionCreationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) 
+
+
+@router.post("/{session_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
+async def activate_session_endpoint(
+    session_id: int,
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+    manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
+    current_user: Annotated[AuthUser, Depends(get_current_user)],
+):
+    """Endpoint to activate a planned session"""
+    try:
+        stored = await repository.get_session_info(
+            session=db_session,
+            committee_session_id=session_id,
+        )
+        if stored is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Session not found",
             )
 
-        await service.manager.connect(websocket, session_id, actor)
+        await access.verify_user_role(
+            session=db_session,
+            user_id=current_user.user_id,
+            committee_id=stored.committee_id,
+            required_role="chair",
+        )
+
+        await service.activate_session(
+            session=db_session, 
+            manager=manager,
+            committee_session_id=session_id)
+    except AccessDenied as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        )
+    except service.SessionFetchError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+    except service.SessionUpdateError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc)
+        )
+
+
+
+@router.websocket("/ws/{session_id}")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    session_id: int,
+    manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
+    engine: Annotated[SessionEngine, Depends(get_session_engine)],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    settings: Annotated[Settings, Depends(get_settings)],
+):
+    """
+    Endpoint for connecting to a committee session.
+
+    Overall flow: accepts websocket -> user sends token -> we verify it ->
+    if valid, lookup an assigment -> builds actor, connects to manager, and receive The
+    current session state
+    """
+
+    await websocket.accept()
+    try:
+        auth_message = await websocket.receive_json()
+        # we use pure verify_jwt_token due to websocket not handling bearer-header support
+        auth_user = verify_jwt_token(
+            settings=settings, token=auth_message["access_token"]
+        )
+        
+        # The session determines its committee; never accept it from the client.
+        session_factory = websocket.app.state.db_session_factory
+        async with session_factory() as db:
+            assignment = await access.resolve_session_assignment(
+                session=db, user_id=auth_user.user_id, session_id=session_id
+            )
+
+            actor = await service.prepare_session_connect(
+                session=db,
+                manager=manager,
+                committee_session_id=session_id,
+                assignment=assignment
+            )
+
+        await manager.connect(websocket, session_id, actor)
         try:
             while True:
                 data = await websocket.receive_text()
                 await service.handle_client_messages(
+                    manager=manager,
+                    engine=engine,
+                    logger=logger,
                     session_id=session_id,
                     actor=actor,
                     data=data,
                 )
 
         except WebSocketDisconnect:
-            service.manager.disconnect(websocket, session_id)
+            manager.disconnect(websocket, session_id)
+    except WebSocketDisconnect:
+        # this is reached when the ws is disconnected before reaching manager.connect. in this case, just return
+        return
+    except (TokenExpiredError, TokenInvalidError, AccessDenied, service.ActorResolutionError, service.SessionFetchError) as exc:
+        if isinstance(exc, WebSocketDisconnect):
+            reason = "websocket_disconnect"
+        elif isinstance(exc, TokenExpiredError):
+            reason = "token_expired"
+        elif isinstance(exc, TokenInvalidError):
+            reason = "token_invalid"
+        elif isinstance(exc, AccessDenied):
+            reason = "access_denied"
+        elif isinstance(exc, service.SessionFetchError):
+            reason = "session_unavailable"
+        else:
+            reason = "actor_resolution_error"
 
-    return router
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason=reason)
+        return
