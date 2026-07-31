@@ -667,6 +667,10 @@ def handle_choose_speaker(
 
     seconds = event.payload.seconds or get_default_speaker_seconds(state)
     # TODO: enable passing onto next speaker if needed on GSL phase
+
+    if event.payload.speaker_id not in state.delegations:
+        raise InvalidProceduralMove("Delegation does not exist") 
+
     state.current_speaker = event.payload.speaker_id
 
     state.timer_is_running = False
