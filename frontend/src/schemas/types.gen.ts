@@ -698,7 +698,9 @@ export type SessionLiveState = {
     /**
      * Delegations
      */
-    delegations: Array<DelegationContext>;
+    delegations: {
+        [key: string]: DelegationContext;
+    };
     current_state?: States;
     /**
      * Timer Is Running

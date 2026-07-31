@@ -7,7 +7,6 @@ import {
     ItemMedia,
     ItemTitle,
 } from "@/components/ui/item"
-import { Badge } from "@/components/ui/badge"
 import Flags from "@/components/ui/flags"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import {
@@ -22,7 +21,12 @@ const isChair = true // Replace with actual logic to determine if the user is th
 export default function ModeratedDebate() {
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
-    const waitingCount = gslQueue.length
+    const delegationsById = useCommitteeStore((state) => state.delegations)
+    const queuedDelegations = gslQueue.flatMap((delegationId) => {
+        const delegation = delegationsById[String(delegationId)]
+        return delegation ? [delegation] : []
+    })
+    const waitingCount = queuedDelegations.length
 
 //TODO: Actually implement speaker history
     return (
@@ -32,8 +36,8 @@ export default function ModeratedDebate() {
                 <p className="ml-auto">Historico de Oradores:</p>
             </div>
             <ScrollArea className="mr-4 mb-2 ml-4 mt-0 min-h-0 flex-1 rounded-md border ">
-                {gslQueue.map((delegate, index) => {
-                    const isSpeaking = !!currentSpeaker && currentSpeaker.id === delegate.id
+                {queuedDelegations.map((delegate, index) => {
+                    const isSpeaking = currentSpeaker === delegate.id
                     const position = index + 1
 
                     return (
@@ -56,7 +60,7 @@ export default function ModeratedDebate() {
                                     </ItemTitle>
                                 </ItemContent>
                             </Item>
-                            {index < gslQueue.length - 1 && (
+                            {index < queuedDelegations.length - 1 && (
                                 <Separator className="mx-4" />
                             )}
                         </div>
