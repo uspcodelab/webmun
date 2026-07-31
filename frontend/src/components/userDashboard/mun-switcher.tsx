@@ -17,23 +17,37 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
+import { AudioLinesIcon, ChevronsUpDownIcon, GalleryVerticalEndIcon, PlusIcon, TerminalIcon } from "lucide-react"
 
-export function MUNSwitcher({
-  teams,
-}: {
-  teams: {
-    name: string
-    logo: React.ReactNode
-    plan: string
-  }[]
-}) {
+
+
+export function MUNSwitcher() {
+  
+  const Conferences = [
+  {
+    name: "Acme Inc",
+    logo: <GalleryVerticalEndIcon />,
+    plan: "Enterprise",
+  },
+  {
+    name: "Acme Corp.",
+    logo: <AudioLinesIcon />,
+    plan: "Startup",
+  },
+  {
+    name: "Evil Corp.",
+    logo: <TerminalIcon />,
+    plan: "Free",
+  },
+]
+  
   const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
+  const [activeConference, setActiveTeam] = React.useState(Conferences[0])
 
-  if (!activeTeam) {
+  if (!activeConference) {
     return null
   }
+  
 
   return (
     <SidebarMenu>
@@ -45,11 +59,11 @@ export function MUNSwitcher({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                {activeTeam.logo}
+                {activeConference.logo}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{activeTeam.name}</span>
-                <span className="truncate text-xs">{activeTeam.plan}</span>
+                <span className="truncate font-medium">{activeConference.name}</span>
+                <span className="truncate text-xs">{activeConference.plan}</span>
               </div>
               <ChevronsUpDownIcon className="ml-auto" />
             </SidebarMenuButton>
@@ -61,9 +75,9 @@ export function MUNSwitcher({
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-xs text-muted-foreground">
-              MUNs
+              Conferences
             </DropdownMenuLabel>
-            {teams.map((team, index) => (
+            {Conferences.map((team, index) => (
               <DropdownMenuItem
                 key={team.name}
                 onClick={() => setActiveTeam(team)}
@@ -81,7 +95,7 @@ export function MUNSwitcher({
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <PlusIcon className="size-4" />
               </div>
-              <div className="font-medium text-muted-foreground">Add team</div>
+              <div className="font-medium text-muted-foreground">Create a new conference</div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
