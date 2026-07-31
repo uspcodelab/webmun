@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from .models import CommitteeAssignment
 
+
 # TODO: pass this to a conference/ domain
 async def get_committee_assignment(
     session: AsyncSession, user_id: UUID, committee_id: int

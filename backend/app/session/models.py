@@ -9,15 +9,17 @@ from pydantic import BaseModel
 
 import app.session.enums as enums
 
+
 @dataclass(frozen=True)
 class StoredSession:
     id: int
     committee_id: int
     name: str | None
-    status: str 
-    started_at: datetime 
-    ended_at: datetime 
+    status: str
+    started_at: datetime
+    ended_at: datetime
     state_snapshot: dict | None
+
 
 # TODO: separate this into a DelegationContext with a name/user_id or profile and SeatContext for a map
 class DelegationContext(BaseModel):
@@ -89,8 +91,8 @@ class SessionLiveState(BaseModel):
     session_id: int
     start_time: datetime
 
-    # temporary list of delegations in this committee
-    delegations: list[DelegationContext]
+    # list of present representations (rep_id)
+    delegations: dict[int, DelegationContext]
 
     # General state for FSM engine
     current_state: enums.States = enums.States.SETUP

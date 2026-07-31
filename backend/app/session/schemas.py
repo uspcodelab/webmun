@@ -4,9 +4,11 @@ import app.session.enums as enums
 
 # --- General Schemas ---
 
+
 class SessionCreationSchema(BaseModel):
     """Schema to create a session. Follows a DB schema + extra configs format"""
-    committee_id: int 
+
+    committee_id: int
     name: str | None = None
 
 

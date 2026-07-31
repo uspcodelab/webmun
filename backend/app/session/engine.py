@@ -247,9 +247,7 @@ def handle_submit_motion(
         id=generate_next_motion_id(state),
         priority=get_motion_priority(payload.type),
         type=payload.type,
-        delegate_id=actor.delegation.id
-        if actor.delegation is not None
-        else -1,  # fallback to chair being the one who sent it?
+        delegate_id=actor.delegation.id if actor.delegation is not None else None,
         total_duration_minutes=payload.total_duration_minutes,
         per_speaker_seconds=payload.per_speaker_seconds,
         target_topic=payload.target_topic,
@@ -359,7 +357,7 @@ def handle_open_session(
         raise InvalidProceduralMove("Session can only be opened from setup")
 
     state.current_state = States.ROLL_CALL
-    state.roll_call = RollCallContext(registry={}, current_delegation=0)
+    state.roll_call = RollCallContext(registry={}, current_delegation=None)
     state.voting_choice = {}
     state.gsl_queue = []
     state.current_speaker = None
@@ -669,6 +667,10 @@ def handle_choose_speaker(
 
     seconds = event.payload.seconds or get_default_speaker_seconds(state)
     # TODO: enable passing onto next speaker if needed on GSL phase
+
+    if event.payload.speaker_id not in state.delegations:
+        raise InvalidProceduralMove("Delegation does not exist")
+
     state.current_speaker = event.payload.speaker_id
 
     state.timer_is_running = False
@@ -685,6 +687,9 @@ def handle_mark_roll_call(
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
 
+    if event.payload.delegation_id not in state.delegations:
+        raise InvalidProceduralMove("Delegation does not exist")
+
     state.roll_call.registry[event.payload.delegation_id] = event.payload.choice
 
     return state
@@ -696,6 +701,10 @@ def handle_mark_roll_call_bulk(
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
+
+    for delegation_id in event.payload.Rollcalls.keys():
+        if delegation_id not in state.delegations:
+            raise InvalidProceduralMove("One delegation does not exist")
 
     state.roll_call.registry.update(event.payload.Rollcalls)
 
@@ -711,16 +720,16 @@ def handle_close_roll_call(
 
     # mark all delegations as absent in the first case. This will enable us to use
     # RollCallContext to tally votes
-    for delegation in state.delegations:
-        state.roll_call.registry.setdefault(delegation.id, RollCallChoice.ABSENT)
+    for delegation_id in state.delegations:
+        state.roll_call.registry.setdefault(delegation_id, RollCallChoice.ABSENT)
 
     # may also empty roll call if needed, to avoid loading stale values
     state.current_state = States.OPEN_GSL
     state.voting_choice = {
-        delegation: RollCallChoice.PRESENT_AND_VOTING
+        delegation_id: RollCallChoice.PRESENT_AND_VOTING
         if choice == RollCallChoice.PRESENT_AND_VOTING
         else RollCallChoice.PRESENT
-        for delegation, choice in state.roll_call.registry.items()
+        for delegation_id, choice in state.roll_call.registry.items()
         if choice in {RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING}
     }
     return state
@@ -731,7 +740,9 @@ def handle_insert_queue(
 ) -> SessionLiveState:
     require_chair(actor)
     del_id: int = event.payload.target
-    delegate = state.delegations[del_id]
+    delegate = state.delegations.get(del_id)
+    if delegate is None:
+        raise InvalidProceduralMove("Delegate not found")
     state.gsl_queue.append(delegate.id)
     return state
 

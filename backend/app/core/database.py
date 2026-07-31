@@ -14,9 +14,7 @@ def create_db(
 ) -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
     database_url = settings.DATABASE_URL.get_secret_value()
     if database_url.startswith("postgresql://"):
-        database_url = database_url.replace(
-            "postgresql://", "postgresql+asyncpg://", 1
-        )
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
     engine = create_async_engine(
         database_url,
