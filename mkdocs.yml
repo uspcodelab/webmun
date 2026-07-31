@@ -1,0 +1,21 @@
+site_name: WebMUN Developer Documentation
+
+docs_dir: docs
+site_dir: site
+use_directory_urls: false
+dev_addr: localhost:9999
+
+theme:
+  name: mkdocs
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Architecture: architecture.md
+  - Real-time:
+      - Overview: realtime/overview.md
+      - Events and payloads: realtime/events-and-payloads.md
+      - Session state: realtime/session-state.md
