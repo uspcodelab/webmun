@@ -643,6 +643,7 @@ def test_chair_can_choose_speaker(
     assert state.timer_expiration is None
     assert state.timer_remaining_seconds == 45
 
+
 @pytest.mark.anyio
 def test_chair_cannot_choose_nonexistent_speaker(
     engine: eng.SessionEngine,
@@ -651,11 +652,12 @@ def test_chair_cannot_choose_nonexistent_speaker(
 ) -> None:
     event = sch.SpeakerEvent(
         type=enums.ChairEvents.CHOOSE_SPEAKER,
-        payload=sch.ChairForceSpeakerPayload(speaker_id=1000)
+        payload=sch.ChairForceSpeakerPayload(speaker_id=1000),
     )
 
     with pytest.raises(eng.InvalidProceduralMove, match="Delegation does not exist"):
         engine.dispatch(open_gsl_state, event, chair_actor)
+
 
 def test_delegate_cannot_choose_speaker(
     engine: eng.SessionEngine,
@@ -689,9 +691,11 @@ def test_chair_cannot_mark_roll_call_nonexistent_delegations(
     session_state.current_state = enums.States.ROLL_CALL
     event = sch.MarkRollCallEvent(
         type=enums.ChairEvents.MARK_ROLLCALL,
-        payload=sch.MarkRollCallPayload(delegation_id=99, choice=enums.RollCallChoice.PRESENT_AND_VOTING)
+        payload=sch.MarkRollCallPayload(
+            delegation_id=99, choice=enums.RollCallChoice.PRESENT_AND_VOTING
+        ),
     )
-    
+
     with pytest.raises(eng.InvalidProceduralMove):
         engine.dispatch(session_state, event, chair_actor)
 
@@ -722,14 +726,14 @@ def test_chair_cannot_mark_roll_call_bulk_nonexistent_delegations(
 
     roll_calls_dict = {
         1: enums.RollCallChoice.PRESENT,
-        1000: enums.RollCallChoice.PRESENT_AND_VOTING
+        1000: enums.RollCallChoice.PRESENT_AND_VOTING,
     }
 
     event = sch.MarkRollCallBulkEvent(
         type=enums.ChairEvents.MARK_ROLLCALL_BULK,
-        payload=sch.MarkRollCallBulkPayload(Rollcalls=roll_calls_dict)
+        payload=sch.MarkRollCallBulkPayload(Rollcalls=roll_calls_dict),
     )
-    
+
     with pytest.raises(eng.InvalidProceduralMove):
         engine.dispatch(session_state, event, chair_actor)
 

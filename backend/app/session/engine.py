@@ -669,7 +669,7 @@ def handle_choose_speaker(
     # TODO: enable passing onto next speaker if needed on GSL phase
 
     if event.payload.speaker_id not in state.delegations:
-        raise InvalidProceduralMove("Delegation does not exist") 
+        raise InvalidProceduralMove("Delegation does not exist")
 
     state.current_speaker = event.payload.speaker_id
 
@@ -686,7 +686,7 @@ def handle_mark_roll_call(
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
-    
+
     if event.payload.delegation_id not in state.delegations:
         raise InvalidProceduralMove("Delegation does not exist")
 

@@ -21,7 +21,7 @@ async def resolve_committee_assignment(
     if assignment is None:
         raise AccessDenied("User has no committee assignment")
 
-    if assignment.role == 'delegate' and assignment.representation_id is None:
+    if assignment.role == "delegate" and assignment.representation_id is None:
         raise AccessDenied("Delegate role has no delegation id")
 
     return assignment
@@ -57,8 +57,6 @@ async def verify_user_role(
         raise AccessDenied("User has no committee assignment")
 
     if assignment.role != required_role:
-        raise AccessDenied(
-            f"User requires the {required_role} role for this committee"
-        )
+        raise AccessDenied(f"User requires the {required_role} role for this committee")
 
     return assignment

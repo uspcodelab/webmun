@@ -35,8 +35,10 @@ class ActorResolutionError(Exception):
 class SessionCreationError(Exception):
     pass
 
+
 class SessionFetchError(Exception):
     pass
+
 
 class SessionUpdateError(Exception):
     pass
@@ -77,25 +79,28 @@ def build_actor(
             display_name=delegation.name,
         )
 
+
 async def create_session_service(
     session: AsyncSession,
     session_schema: schemas.SessionCreationSchema,
 ) -> int:
     """Create a planned session"""
     session_id = await repository.create_session(
-        session=session, committee_id=session_schema.committee_id, name=session_schema.name
+        session=session,
+        committee_id=session_schema.committee_id,
+        name=session_schema.name,
     )
 
-    if session_id is None: 
+    if session_id is None:
         raise SessionCreationError("Could not create session with given schema")
 
     await session.commit()
 
-    return session_id 
+    return session_id
 
 
 async def activate_session(
-    session: AsyncSession, 
+    session: AsyncSession,
     manager: ConnectionManager,
     committee_session_id: int,
 ):
@@ -106,7 +111,7 @@ async def activate_session(
 
     if stored is None:
         raise SessionFetchError("Could not fetch session info")
-    if stored.status != 'planned':
+    if stored.status != "planned":
         raise SessionFetchError("Session already started")
 
     delegations = await repository.bulk_get_delegation_context(
@@ -127,17 +132,15 @@ async def activate_session(
     )
 
     updated = replace(
-        stored, 
-        status='active',
+        stored,
+        status="active",
         started_at=datetime.now(),
-        state_snapshot=live_state.model_dump(mode='json')
+        state_snapshot=live_state.model_dump(mode="json"),
     )
-    
-    try: 
-        await repository.update_session_info(
-            session=session, session_info=updated
-        )
-    except repository.RepositoryError: 
+
+    try:
+        await repository.update_session_info(session=session, session_info=updated)
+    except repository.RepositoryError:
         raise SessionUpdateError("Could not update session info")
 
     await session.commit()
@@ -145,23 +148,26 @@ async def activate_session(
     manager.room_states[committee_session_id] = live_state
     manager.active_connections.setdefault(committee_session_id, {})
 
+
 async def pause_session(
-    session: AsyncSession, 
+    session: AsyncSession,
     manager: ConnectionManager,
     committee_session_id: int,
 ) -> None:
     pass
 
+
 async def close_session(
-    session: AsyncSession, 
+    session: AsyncSession,
     manager: ConnectionManager,
     committee_session_id: int,
 ) -> None:
-    pass 
+    pass
+
 
 async def prepare_session_connect(
-    session: AsyncSession, 
-    manager: ConnectionManager, 
+    session: AsyncSession,
+    manager: ConnectionManager,
     committee_session_id: int,
     assignment: CommitteeAssignment,
 ) -> SessionActor:
@@ -174,14 +180,14 @@ async def prepare_session_connect(
         stored_state = await repository.get_session_info(session, committee_session_id)
         if stored_state is None:
             raise SessionFetchError("Could not fetch session info")
-        if stored_state.status != 'active':
+        if stored_state.status != "active":
             raise SessionFetchError("Session is not active")
         if stored_state.state_snapshot is None:
             raise SessionFetchError("No state snapshot found")
-        
+
         # fetch state_snapshot and validate to be a SessionLiveState
         live_state = SessionLiveState.model_validate(stored_state.state_snapshot)
-        
+
         # put SessionLiveState on ConnectionManager
         manager.room_states[committee_session_id] = live_state
         manager.active_connections.setdefault(committee_session_id, {})
@@ -192,7 +198,7 @@ async def prepare_session_connect(
         role=enums.SessionRole(assignment.role.upper()),
         delegation_id=assignment.representation_id,
     )
-        
+
     return actor
 
 

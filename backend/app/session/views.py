@@ -16,7 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.service import AccessDenied
 from app.auth.dep import get_current_user
-from app.auth.service import AuthUser, verify_jwt_token, TokenInvalidError, TokenExpiredError
+from app.auth.service import (
+    AuthUser,
+    verify_jwt_token,
+    TokenInvalidError,
+    TokenExpiredError,
+)
 from app.core.config import Settings
 from app.core.dep import get_connection_manager, get_logger, get_session_engine
 from app.core.config import get_settings
@@ -57,7 +62,7 @@ async def health():
 async def create_session_endpoint(
     session_schema: SessionCreationSchema,
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    current_user: Annotated[AuthUser, Depends(get_current_user)], 
+    current_user: Annotated[AuthUser, Depends(get_current_user)],
 ):
     """POST endpoint to create a new session"""
     try:
@@ -83,7 +88,7 @@ async def create_session_endpoint(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
-        ) 
+        )
 
 
 @router.post("/{session_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
@@ -113,9 +118,8 @@ async def activate_session_endpoint(
         )
 
         await service.activate_session(
-            session=db_session, 
-            manager=manager,
-            committee_session_id=session_id)
+            session=db_session, manager=manager, committee_session_id=session_id
+        )
     except AccessDenied as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -128,10 +132,8 @@ async def activate_session_endpoint(
         )
     except service.SessionUpdateError as exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(exc)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
         )
-
 
 
 @router.websocket("/ws/{session_id}")
@@ -158,7 +160,7 @@ async def websocket_endpoint(
         auth_user = verify_jwt_token(
             settings=settings, token=auth_message["access_token"]
         )
-        
+
         # The session determines its committee; never accept it from the client.
         session_factory = websocket.app.state.db_session_factory
         async with session_factory() as db:
@@ -170,7 +172,7 @@ async def websocket_endpoint(
                 session=db,
                 manager=manager,
                 committee_session_id=session_id,
-                assignment=assignment
+                assignment=assignment,
             )
 
         await manager.connect(websocket, session_id, actor)
@@ -191,7 +193,13 @@ async def websocket_endpoint(
     except WebSocketDisconnect:
         # this is reached when the ws is disconnected before reaching manager.connect. in this case, just return
         return
-    except (TokenExpiredError, TokenInvalidError, AccessDenied, service.ActorResolutionError, service.SessionFetchError) as exc:
+    except (
+        TokenExpiredError,
+        TokenInvalidError,
+        AccessDenied,
+        service.ActorResolutionError,
+        service.SessionFetchError,
+    ) as exc:
         if isinstance(exc, WebSocketDisconnect):
             reason = "websocket_disconnect"
         elif isinstance(exc, TokenExpiredError):

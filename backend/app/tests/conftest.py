@@ -22,12 +22,8 @@ def delegation_dict():
     brazil = DelegationContext(id=0, seat="1-2", name="Brazil", code="br")
     usa = DelegationContext(id=1, seat="3-4", name="USA", code="us")
     russia = DelegationContext(id=2, seat="5-6", name="Russia", code="ru")
-    
-    return {
-        0: brazil, 
-        1: usa, 
-        2: russia
-    }
+
+    return {0: brazil, 1: usa, 2: russia}
 
 
 @pytest.fixture

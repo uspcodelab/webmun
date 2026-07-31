@@ -7,12 +7,15 @@ import json
 
 from app.session.models import DelegationContext, StoredSession
 
+
 class RepositoryError(Exception):
     """Base exception for all repository issues"""
+
     pass
 
+
 async def create_session(
-    session: AsyncSession, 
+    session: AsyncSession,
     committee_id: int,
     name: str | None,
 ) -> int | None:
@@ -26,10 +29,7 @@ async def create_session(
         RETURNING id
    """)
 
-    result = await session.execute(
-        query,
-        { "name": name, "committee_id": committee_id }
-    )
+    result = await session.execute(query, {"name": name, "committee_id": committee_id})
 
     row = result.mappings().one_or_none()
     if row is None:
@@ -37,9 +37,9 @@ async def create_session(
 
     return row["id"]
 
+
 async def get_session_info(
-    session: AsyncSession,
-    committee_session_id: int
+    session: AsyncSession, committee_session_id: int
 ) -> StoredSession | None:
     """Gets info for a session"""
     query = text("""
@@ -48,23 +48,24 @@ async def get_session_info(
     """)
 
     result = await session.execute(
-        query, 
+        query,
         {"committee_session_id": committee_session_id},
     )
 
     row = result.mappings().one_or_none()
     if row is None:
-        return None 
+        return None
 
     return StoredSession(
-        id=row["id"], 
+        id=row["id"],
         committee_id=row["committee_id"],
         name=row["name"],
         status=row["status"],
         started_at=row["started_at"],
         ended_at=row["ended_at"],
-        state_snapshot=row["state_snapshot"]
+        state_snapshot=row["state_snapshot"],
     )
+
 
 async def update_session_info(
     session: AsyncSession,
@@ -80,7 +81,7 @@ async def update_session_info(
             state_snapshot = :state_snapshot
         WHERE id = :committee_session_id
     """)
-    
+
     try:
         await session.execute(
             query,
@@ -90,10 +91,10 @@ async def update_session_info(
                 "started_at": session_info.started_at,
                 "ended_at": session_info.ended_at,
                 "state_snapshot": json.dumps(session_info.state_snapshot),
-                "committee_session_id": session_info.id
-            }
+                "committee_session_id": session_info.id,
+            },
         )
-    except SQLAlchemyError: 
+    except SQLAlchemyError:
         raise RepositoryError("Session update failed")
 
 
@@ -121,6 +122,7 @@ async def bulk_insert_assignments(
         params,
     )
 
+
 # TODO: pass this out to conferences/ domain
 async def bulk_get_delegation_context(
     session: AsyncSession,
@@ -139,22 +141,15 @@ async def bulk_get_delegation_context(
         WHERE c.committee_id = :committee_id
     """)
 
-
-    result = await session.execute(
-        representation_query, 
-        {"committee_id": committee_id}
-    )
+    result = await session.execute(representation_query, {"committee_id": committee_id})
 
     if result is None:
         return None
-    
+
     # dict comprehension
-    return {r["id"]: DelegationContext(
-                id=r["id"], 
-                name=r["name"], 
-                seat=r["seat"], 
-                code=r["code"])
-            for r in result.mappings().all()}
-
-
-
+    return {
+        r["id"]: DelegationContext(
+            id=r["id"], name=r["name"], seat=r["seat"], code=r["code"]
+        )
+        for r in result.mappings().all()
+    }

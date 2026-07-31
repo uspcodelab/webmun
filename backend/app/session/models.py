@@ -9,15 +9,17 @@ from pydantic import BaseModel
 
 import app.session.enums as enums
 
+
 @dataclass(frozen=True)
 class StoredSession:
     id: int
     committee_id: int
     name: str | None
-    status: str 
-    started_at: datetime 
-    ended_at: datetime 
+    status: str
+    started_at: datetime
+    ended_at: datetime
     state_snapshot: dict | None
+
 
 # TODO: separate this into a DelegationContext with a name/user_id or profile and SeatContext for a map
 class DelegationContext(BaseModel):
@@ -108,7 +110,9 @@ class SessionLiveState(BaseModel):
 
     # Caucus variables
     # TODO: how to add a popup placard that fades away after some moment in frontend? related to CHOOSE_SPEAKER
-    caucus_list: list[int] = []  # special list that is only used during moderated caucus, has different semantic functionality than gsl queue
+    caucus_list: list[
+        int
+    ] = []  # special list that is only used during moderated caucus, has different semantic functionality than gsl queue
     debate: DebateContext | None = (
         None  # used specially for Moderated, unmoderated and possibly tour de table
     )

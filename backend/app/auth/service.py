@@ -4,12 +4,15 @@ from uuid import UUID
 from pydantic import BaseModel
 from app.core.config import Settings
 
+
 # Self documented errors: might be better for protection
 class TokenInvalidError(Exception):
-    pass 
+    pass
+
 
 class TokenExpiredError(Exception):
     pass
+
 
 class AuthUser(BaseModel):
     user_id: UUID
@@ -19,9 +22,7 @@ class AuthUser(BaseModel):
 @lru_cache
 def get_jwk_client(supabase_url: str) -> jwt.PyJWKClient:
     """Cache Supabase's public signing keys for asymmetric access tokens."""
-    return jwt.PyJWKClient(
-        f"{supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
-    )
+    return jwt.PyJWKClient(f"{supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json")
 
 
 def verify_jwt_token(
@@ -35,9 +36,11 @@ def verify_jwt_token(
         if algorithm == "HS256":
             key = settings.SUPABASE_JWT_SECRET.get_secret_value()
         elif algorithm == "ES256":
-            key = get_jwk_client(str(settings.SUPABASE_URL)).get_signing_key_from_jwt(
-                token
-            ).key
+            key = (
+                get_jwk_client(str(settings.SUPABASE_URL))
+                .get_signing_key_from_jwt(token)
+                .key
+            )
         else:
             raise TokenInvalidError("Unsupported access token algorithm")
 
