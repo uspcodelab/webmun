@@ -89,8 +89,8 @@ class SessionLiveState(BaseModel):
     session_id: int
     start_time: datetime
 
-    # temporary list of delegations in this committee
-    delegations: list[DelegationContext]
+    # list of present representations (rep_id)
+    delegations: dict[int, DelegationContext]
 
     # General state for FSM engine
     current_state: enums.States = enums.States.SETUP
@@ -108,9 +108,7 @@ class SessionLiveState(BaseModel):
 
     # Caucus variables
     # TODO: how to add a popup placard that fades away after some moment in frontend? related to CHOOSE_SPEAKER
-    caucus_list: list[
-        int
-    ] = []  # special list that is only used during moderated caucus, has different semantic functionality than gsl queue
+    caucus_list: list[int] = []  # special list that is only used during moderated caucus, has different semantic functionality than gsl queue
     debate: DebateContext | None = (
         None  # used specially for Moderated, unmoderated and possibly tour de table
     )

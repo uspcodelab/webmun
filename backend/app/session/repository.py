@@ -104,16 +104,16 @@ async def bulk_insert_assignments(
     params = [
         {
             "user_id": d.user_id,
-            "session_id": d.session_id,
+            "session_id": d.committee_id,
             "role": d.role,
-            "delegation_id": d.delegation_id,
+            "delegation_id": d.representation_id,
         }
         for d in delegations
     ]
 
     query = text("""
         INSERT INTO public.committee_assignments (user_id, committee_id, role, representation_id)
-        VALUES (:user_id, :session_id, :role, :delegation_id)
+        VALUES (:user_id, :committee_id, :role, :representation_id)
     """)
 
     await session.execute(
@@ -125,12 +125,10 @@ async def bulk_insert_assignments(
 async def bulk_get_delegation_context(
     session: AsyncSession,
     committee_id: int,
-) -> list[DelegationContext] | None:
+) -> dict[int, DelegationContext] | None:
     """
-    Get by bulk a list of representations to insert in the live state
-    Note: this returns a list of DelegationContext. This is not ideal. 
-    We need a clear separation between delegation name/code and the map. 
-    Since it's not what we have for now, we'll keep this here
+    Get by bulk a list of representations to insert in the live state.
+    Returns the dict of (representation_id -> DelegationContext)
     """
 
     representation_query = text("""
@@ -150,12 +148,13 @@ async def bulk_get_delegation_context(
     if result is None:
         return None
     
-    return [DelegationContext(
+    # dict comprehension
+    return {r["id"]: DelegationContext(
                 id=r["id"], 
                 name=r["name"], 
                 seat=r["seat"], 
                 code=r["code"])
-            for r in result.mappings().all()]
+            for r in result.mappings().all()}
 
 
 

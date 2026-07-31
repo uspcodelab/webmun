@@ -62,7 +62,7 @@ def build_actor(
         if state is None:
             raise ActorResolutionError("session not found")
 
-        delegation = next((d for d in state.delegations if d.id == delegation_id), None)
+        delegation = state.delegations.get(delegation_id)
         if delegation is None:
             raise ActorResolutionError("delegation not found")
 
