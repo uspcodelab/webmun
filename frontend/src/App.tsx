@@ -4,6 +4,7 @@ import Pricing from './pages/Info Pages/Pricing';
 import OurTeam from './pages/Info Pages/OurTeam';
 import ContactUs from './pages/Info Pages/Contact-us';
 import LoginPage from './pages/Login_page';
+import SignupPage from './pages/Signup';
 import UserDash from './pages/UserDashboard';
 import DashboardSection from './pages/DashboardSection';
 import CreateCommittee from './pages/CreateCommittee';
@@ -22,6 +23,7 @@ function App() {
 				<Route path="/our-team" element={<OurTeam />} />
 				<Route path="/contact-us" element={<ContactUs />} />
 				<Route path="/login" element={<LoginPage />} />
+				<Route path="/signup" element={<SignupPage />} />
 				<Route path="/dashboard" element={<UserDash />}>
 					<Route index element={<DashboardSection />} />
 					<Route path="conference/about/basic-info" element={<BasicInfo />} />
