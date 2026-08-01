@@ -1,6 +1,7 @@
 # An adapter. Accepts HTTP/Websockets messages, validates envelopes, calls/attaches services and return/send errors
 # The 1st layer when connecting to clients
 
+import logging
 from typing import Annotated
 
 from fastapi import (
@@ -14,28 +15,25 @@ from fastapi import (
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.access.service as access
+import app.session.repository as repository
+import app.session.service as service
 from app.access.service import AccessDenied
 from app.auth.dep import get_current_user
 from app.auth.service import (
     AuthUser,
-    verify_jwt_token,
-    TokenInvalidError,
     TokenExpiredError,
+    TokenInvalidError,
+    verify_jwt_token,
 )
-from app.core.config import Settings
-from app.core.dep import get_connection_manager, get_logger, get_session_engine
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
+from app.core.dep import get_connection_manager, get_logger, get_session_engine
 from app.session.engine import SessionEngine
 from app.session.enums import ChairEvents, DelegateEvents
 from app.session.manager import ConnectionManager
 from app.session.models import SessionLiveState
 from app.session.schemas import SessionCreationSchema, SessionEvent
-
-import app.access.service as access
-import app.session.repository as repository
-import app.session.service as service
-import logging
 
 router = APIRouter()
 
@@ -83,12 +81,12 @@ async def create_session_endpoint(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(exc),
-        )
+        ) from exc
     except service.SessionCreationError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
-        )
+        ) from exc
 
 
 @router.post("/{session_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
@@ -124,16 +122,16 @@ async def activate_session_endpoint(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(exc),
-        )
+        ) from exc
     except service.SessionFetchError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
-        )
+        ) from exc
     except service.SessionUpdateError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
-        )
+        ) from exc
 
 
 @router.websocket("/ws/{session_id}")

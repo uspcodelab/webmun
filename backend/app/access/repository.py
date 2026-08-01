@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from .models import CommitteeAssignment
 
 

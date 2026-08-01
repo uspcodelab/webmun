@@ -52,11 +52,13 @@ jobs:
       - name: install locked dependencies
         run: uv sync --locked
       - name: format code 
-        run: uv run ruff format --check .
+        run: uv run --active ruff format --check .
       - name: lint code 
-        run: uv run ruff check .
+        run: uv run --active ruff check .
       - name: run tests 
-        run: uv run pytest --cov=app --cov-report=term-missing --cov-report=xml:../coverage/backend-coverage.xml
+        run: | 
+          mkdir -p ../coverage
+          uv run pytest --cov=app --cov-report=term-missing --cov-report=xml:../coverage/backend-coverage.xml
 
       - name: upload artifacts 
         uses: actions/upload-artifact@v4
@@ -84,13 +86,20 @@ jobs:
 
   sonar-qube:
     name: Sonar Qube 
-    needs: [backend, frontend]
+    needs: [backend]
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' # only run on PRs or direct push to main (or manual dispatch)
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage-report
+          path: coverage/
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
         env:

@@ -1,7 +1,9 @@
-import jwt
 from functools import lru_cache
 from uuid import UUID
+
+import jwt
 from pydantic import BaseModel
+
 from app.core.config import Settings
 
 
@@ -54,7 +56,7 @@ def verify_jwt_token(
         return AuthUser(user_id=UUID(payload["sub"]), email=payload.get("email"))
 
     except jwt.exceptions.ExpiredSignatureError:
-        raise TokenExpiredError("Access token expired")
+        raise TokenExpiredError("Access token expired") from None
 
     except (jwt.exceptions.PyJWTError, KeyError, TypeError, ValueError):
-        raise TokenInvalidError("Access token invalid")
+        raise TokenInvalidError("Access token invalid") from None

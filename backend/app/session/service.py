@@ -2,20 +2,17 @@
 # The 2nd layer between the API route and inner things such as database, FSM engine, Redis, etc. Should orchestrate everything
 # Also calls the manager in order to broadcast states, etc
 
-from dataclasses import replace
 import logging
+from dataclasses import replace
 from datetime import datetime
-from uuid import UUID
 
-from fastapi import HTTPException, status
-from pydantic import EmailStr, TypeAdapter
-from sqlalchemy.exc import SQLAlchemyError
+from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.access.models import CommitteeAssignment
 import app.session.enums as enums
-import app.session.schemas as schemas
 import app.session.repository as repository
+import app.session.schemas as schemas
+from app.access.models import CommitteeAssignment
 from app.session.engine import SessionEngine
 
 from .manager import ConnectionManager
@@ -24,7 +21,6 @@ from .models import (
     RollCallContext,
     SessionActor,
     SessionLiveState,
-    StoredSession,
 )
 
 
@@ -141,7 +137,7 @@ async def activate_session(
     try:
         await repository.update_session_info(session=session, session_info=updated)
     except repository.RepositoryError:
-        raise SessionUpdateError("Could not update session info")
+        raise SessionUpdateError("Could not update session info") from None
 
     await session.commit()
 
@@ -200,67 +196,6 @@ async def prepare_session_connect(
     )
 
     return actor
-
-
-"""
-async def old_create_session_service(
-    session: AsyncSession,
-    session_schema: schemas.SessionCreationSchema,
-    creator_uuid: UUID,
-):
-
-    # insert into database and return the session id here
-    session_id = await create_session(
-        session=session, name=session_schema.name or "", delegations=delegations
-    )
-
-    if session_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not create session with given schema",
-        )
-
-    emails_to_uuid_map = await bulk_get_uuids_by_email(
-        session, session_schema.delegations
-    )
-    if len(delegations) != len(emails_to_uuid_map):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Some users were not found"
-        )
-
-    final_delegations = [
-        CommitteeAssignment(
-            user_id=emails_to_uuid_map[d.user_email],
-            session_id=session_id,
-            delegation_id=i,  # R: I hope this works since I think enumerate is deterministic
-            role="DELEGATE",
-        )
-        for i, d in enumerate(session_schema.delegations)
-    ]
-
-    # append this chair at last so we can also retrieve it
-    final_delegations.append(
-        CommitteeAssignment(
-            user_id=creator_uuid,
-            session_id=session_id,
-            delegation_id=None,
-            role="CHAIR",
-        )
-    )
-
-    await bulk_insert_assignments(session=session, delegations=final_delegations)
-
-    manager.room_states[session_id] = SessionLiveState(
-        session_id=session_id,
-        start_time=datetime.now(),
-        delegations=delegations,
-        current_state=enums.States.SETUP,
-        gsl_default_time_seconds=60,
-        roll_call=RollCallContext(registry={}),
-        voting_choice={},
-    )
-    manager.active_connections.setdefault(session_id, {})
-"""
 
 
 async def handle_client_messages(
