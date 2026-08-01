@@ -1,4 +1,7 @@
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=uspcodelab_webmun&metric=coverage)](https://sonarcloud.io/summary/new_code?id=uspcodelab_webmun)
+[![CI](https://github.com/uspcodelab/webmun/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uspcodelab/webmun/actions/workflows/ci.yml)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571.svg?style=for-the-badge&logo=fastapi)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 
 # WebMUN
 
