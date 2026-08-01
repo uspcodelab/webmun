@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  cancel-in-progress: true
+
+jobs:
+  pr-quality:
+    name: PR quality
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const title = context.payload.pull_request.title.trim();
+            const conventionalCommit =
+              /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9][a-z0-9._/-]*\))?!?: .+$/;
+
+            if (!conventionalCommit.test(title)) {
+              core.setFailed(
+                'Use a Conventional Commit PR title, e.g. "feat(session): add timer controls".'
+              );
+            }
+    
+
+  backend:
+    name: Backend linting & testing
+    runs-on: ubuntu-latest
+    defaults:
+      run: 
+        working-directory: backend
+    steps:
+      # this clones our repository into the runner
+      - uses: actions/checkout@v5
+      # setups uv for formating, linting and testing
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      - name: install locked dependencies
+        run: uv sync --locked
+      - name: format code 
+        run: uv run ruff format --check .
+      - name: lint code 
+        run: uv run ruff check .
+      - name: run tests 
+        run: uv run pytest --cov=app --cov-report=term-missing --cov-report=xml:backend-coverage.xml
+
+      - name: upload artifacts 
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: coverage/
+          retention-days: 14                 # Optional: Defaults to 90 days
+
+  frontend:
+    name: Frontend linting
+    runs-on: ubuntu-latest 
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  sonar-qube:
+    name: Sonar Qube 
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' # only run on PRs or direct push to main
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
