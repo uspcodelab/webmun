@@ -159,7 +159,7 @@ export default function BasicInfo() {
             <div className="flex flex-1 flex-col gap-4">
               <div className="grid gap-2 sm:col-span-2">
                 <Label htmlFor="mun-name">Nome da MUN</Label>
-                <Input id="mun-name" name="munName" placeholder="Ex.: WebMUN 2026" />
+                <Input id="mun-name" name="munName" placeholder="Ex.: XyzMUN 20XX" />
               </div>
 
               <div className="grid gap-2 sm:col-span-2">
