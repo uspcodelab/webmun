@@ -2,8 +2,8 @@
 
 import * as React from "react"
 
-import { ConferenceMenus } from "@/components/userDashboard/conference-menus"
-import { CommitteeMenus } from "@/components/userDashboard/committee-menus"
+import { ConferenceMenus } from "@/components/userDashboard/conference-menus-list"
+import { CommitteeMenus } from "@/components/userDashboard/committee-menus-list"
 import { NavUser } from "@/components/userDashboard/nav-user"
 import { MUNSwitcher } from "@/components/userDashboard/mun-switcher"
 import {

@@ -8,6 +8,7 @@ import UserDash from './pages/UserDashboard';
 import DashboardSection from './pages/DashboardSection';
 import CreateCommittee from './pages/CreateCommittee';
 import SessionPage from './pages/Session';
+import BasicInfo from './components/userDashboard/conferenceMenus/about/MUN-basic-info';
 
 
 
@@ -23,7 +24,7 @@ function App() {
 				<Route path="/login" element={<LoginPage />} />
 				<Route path="/dashboard" element={<UserDash />}>
 					<Route index element={<DashboardSection />} />
-					<Route path=":section" element={<DashboardSection />} />
+					<Route path="conference/about/basic-info" element={<BasicInfo />} />
 					<Route path=":section/:item" element={<DashboardSection />} />
 				</Route>
 				<Route path="/create-committee" element={<CreateCommittee />} />
