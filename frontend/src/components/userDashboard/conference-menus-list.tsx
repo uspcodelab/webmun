@@ -183,24 +183,14 @@ export function ConferenceMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/conference/participants/allocation"}
+                    isActive={pathname === "/dashboard/conference/participants/list-allocation"}
                   >
-                    <Link to="/dashboard/conference/participants/allocation">
-                      <span>Alocação</span>
+                    <Link to="/dashboard/conference/participants/list-allocation">
+                      <span>Listagem e Alocação</span>
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
 
-                <SidebarMenuSubItem >
-                  <SidebarMenuSubButton
-                    asChild
-                    isActive={pathname === "/dashboard/conference/participants/list"}
-                  >
-                    <Link to="/dashboard/conference/participants/list">
-                      <span>Listagem e Pesquisa</span>
-                    </Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
 
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
