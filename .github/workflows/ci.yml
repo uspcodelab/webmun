@@ -52,9 +52,9 @@ jobs:
       - name: install locked dependencies
         run: uv sync --locked
       - name: format code 
-        run: uv run ruff format --check .
+        run: uv run --active ruff format --check .
       - name: lint code 
-        run: uv run ruff check .
+        run: uv run --active ruff check .
       - name: run tests 
         run: uv run pytest --cov=app --cov-report=term-missing --cov-report=xml:../coverage/backend-coverage.xml
 
@@ -84,7 +84,6 @@ jobs:
 
   sonar-qube:
     name: Sonar Qube 
-    needs: [backend, frontend]
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' # only run on PRs or direct push to main (or manual dispatch)
     steps:
