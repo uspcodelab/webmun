@@ -3,17 +3,18 @@
 from datetime import datetime
 
 import pytest
+
 from app.session.engine import SessionEngine
-from app.session.enums import States
+from app.session.enums import (
+    SessionRole,
+    States,
+)
 from app.session.manager import ConnectionManager
 from app.session.models import (
     DelegationContext,
     RollCallContext,
     SessionActor,
     SessionLiveState,
-)
-from app.session.enums import (
-    SessionRole,
 )
 
 

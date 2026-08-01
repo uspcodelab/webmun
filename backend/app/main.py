@@ -3,15 +3,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.access.views import router as access_router
 from app.core.config import get_settings
 from app.core.database import create_db
-from app.access.views import router as access_router
 from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
 from app.session.views import router as session_router
 
 
-# Startup and shutdown logic for shared variables (db session, settings, connection manager, etc)
+# Startup and shutdown logic for shared variables, such as
+# (db session, settings, connection manager, etc)
 # You can view more of this on "FastAPI Lifespan"
 @asynccontextmanager
 async def lifespan(app: FastAPI):

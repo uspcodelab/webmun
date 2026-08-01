@@ -3,8 +3,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypeAlias
 
-import app.session.schemas as schemas
 import app.session.enums as enums
+import app.session.schemas as schemas
 
 from .enums import (
     ChairEvents,

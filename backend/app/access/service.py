@@ -2,7 +2,9 @@ from typing import Literal
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.access.models import CommitteeAssignment
+
 from .repository import get_committee_assignment, get_session_assignment
 
 

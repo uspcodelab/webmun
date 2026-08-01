@@ -1,14 +1,15 @@
+from typing import Annotated
+
 from fastapi import Depends, status
 from fastapi.exceptions import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from app.auth.service import (
     AuthUser,
     TokenExpiredError,
     TokenInvalidError,
     verify_jwt_token,
 )
-from typing import Annotated
-
 from app.core.config import Settings, get_settings
 
 bearer = HTTPBearer()
@@ -27,12 +28,14 @@ def get_current_user(
     except TokenExpiredError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="token_expired",  # TODO: map this out to an outer table, since both WS and HTTP uses this
+            # TODO: map this out to an outer table, since both WS and HTTP uses this
+            detail="token_expired",  
             headers={"WWW-Authenticate": "Bearer"},
         ) from e
     except TokenInvalidError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="token_invalid",  # TODO: map this out to an outer table, since both WS and HTTP uses this
+            # TODO: map this out to an outer table, since both WS and HTTP uses this
+            detail="token_invalid",  
             headers={"WWW-Authenticate": "Bearer"},
         ) from e

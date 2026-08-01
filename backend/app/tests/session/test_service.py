@@ -1,15 +1,15 @@
 # Test suite for service layer
 import json
+from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
 import pytest
 
 from app.access.models import CommitteeAssignment
 from app.session import enums
+from app.session.enums import SessionRole
 from app.session.manager import ConnectionManager
 from app.session.models import SessionActor, SessionLiveState
-from app.session.repository import get_session_info
-from app.session.enums import SessionRole
 from app.session.service import (
     ActorResolutionError,
     SessionFetchError,
@@ -17,7 +17,6 @@ from app.session.service import (
     handle_client_messages,
     prepare_session_connect,
 )
-from unittest.mock import AsyncMock, MagicMock
 
 
 @pytest.fixture

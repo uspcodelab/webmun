@@ -1,10 +1,10 @@
-from sqlalchemy.exc import SQLAlchemyError
-
-from app.access.models import CommitteeAssignment
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.access.models import CommitteeAssignment
 from app.session.models import DelegationContext, StoredSession
 
 
@@ -94,8 +94,8 @@ async def update_session_info(
                 "committee_session_id": session_info.id,
             },
         )
-    except SQLAlchemyError:
-        raise RepositoryError("Session update failed")
+    except SQLAlchemyError as exc:
+        raise RepositoryError("Session update failed") from exc
 
 
 async def bulk_insert_assignments(

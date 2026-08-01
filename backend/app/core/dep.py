@@ -1,7 +1,9 @@
-from fastapi.requests import HTTPConnection
-from app.session.manager import ConnectionManager
-from app.session.engine import SessionEngine
 import logging
+
+from fastapi.requests import HTTPConnection
+
+from app.session.engine import SessionEngine
+from app.session.manager import ConnectionManager
 
 
 def get_connection_manager(connection: HTTPConnection) -> ConnectionManager:
