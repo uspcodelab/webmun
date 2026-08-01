@@ -6,7 +6,7 @@ import ContactUs from './pages/Info Pages/Contact-us';
 import LoginPage from './pages/Login_page';
 import SignupPage from './pages/Signup';
 import UserDash from './pages/UserDashboard';
-import DashboardSection from './pages/DashboardSection';
+import DashHome from './components/userDashboard/dash-home.tsx';
 import CreateCommittee from './pages/CreateCommittee';
 import SessionPage from './pages/Session';
 import BasicInfo from './components/userDashboard/conferenceMenus/about/MUN-basic-info';
@@ -25,9 +25,8 @@ function App() {
 				<Route path="/login" element={<LoginPage />} />
 				<Route path="/signup" element={<SignupPage />} />
 				<Route path="/dashboard" element={<UserDash />}>
-					<Route index element={<DashboardSection />} />
+					<Route index element={<DashHome />} />
 					<Route path="conference/about/basic-info" element={<BasicInfo />} />
-					<Route path=":section/:item" element={<DashboardSection />} />
 				</Route>
 				<Route path="/create-committee" element={<CreateCommittee />} />
 				<Route path="/committees/:committeeId/session" element={<SessionPage />} />
