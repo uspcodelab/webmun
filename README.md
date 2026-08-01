@@ -1,3 +1,5 @@
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=uspcodelab_webmun&metric=coverage)](https://sonarcloud.io/summary/new_code?id=uspcodelab_webmun)
+
 # WebMUN
 
 USPCodeLab project for managing and hosting real time Model United Nations 

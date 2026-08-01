@@ -35,3 +35,5 @@ __pycache__
 .mypy_cache
 .pytest_cache
 .ruff_cache
+.coverage
+coverage.xml
