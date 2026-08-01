@@ -91,8 +91,8 @@ export function ConferenceMenus() {
         </Collapsible>
 
         <SidebarMenuItem >
-          <SidebarMenuButton asChild isActive={pathname === "/dashboard/conference-overview"}>
-            <Link to="/dashboard/conference-overview">
+          <SidebarMenuButton asChild isActive={pathname === "/dashboard/committees"}>
+            <Link to="/dashboard/committees">
               <Gavel />
               <span>Comites</span>
             </Link>

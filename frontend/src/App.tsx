@@ -12,6 +12,7 @@ import SessionPage from './pages/Session';
 import BasicInfo from './components/userDashboard/conferenceMenus/about/MUN-basic-info';
 import ParticipantListAllocation from './components/userDashboard/conferenceMenus/participants/list-allocation';
 import TeamAllocate from './components/userDashboard/conferenceMenus/team/team-alocate';
+import CommitteeManagement from './components/userDashboard/conferenceMenus/committee-managemant';
 
 
 
@@ -28,6 +29,7 @@ function App() {
 				<Route path="/signup" element={<SignupPage />} />
 				<Route path="/dashboard" element={<UserDash />}>
 					<Route index element={<DashHome />} />
+					<Route path="committees" element={<CommitteeManagement />} />
 					<Route path="conference/about/basic-info" element={<BasicInfo />} />
 					<Route path="conference/team/teams-management" element={<TeamAllocate />} />
 					<Route path="conference/participants/list-allocation" element={<ParticipantListAllocation />} />
