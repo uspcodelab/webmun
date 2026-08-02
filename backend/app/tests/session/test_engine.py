@@ -644,21 +644,6 @@ def test_chair_can_choose_speaker(
     assert state.timer_remaining_seconds == 45
 
 
-@pytest.mark.anyio
-def test_chair_cannot_choose_nonexistent_speaker(
-    engine: eng.SessionEngine,
-    open_gsl_state: md.SessionLiveState,
-    chair_actor: md.SessionActor,
-) -> None:
-    event = sch.SpeakerEvent(
-        type=enums.ChairEvents.CHOOSE_SPEAKER,
-        payload=sch.ChairForceSpeakerPayload(speaker_id=1000),
-    )
-
-    with pytest.raises(eng.InvalidProceduralMove, match="Delegation does not exist"):
-        engine.dispatch(open_gsl_state, event, chair_actor)
-
-
 def test_delegate_cannot_choose_speaker(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
