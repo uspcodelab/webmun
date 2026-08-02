@@ -6,8 +6,6 @@ import { useCommitteeStore } from "@/store/useCommitteeStore"
 
 import  Agenda  from "./Agenda"
 
-const isChair = true // Replace with actual logic to determine if the user is the chair
-
 export default function TopBar() {
     const agendaTopics = useCommitteeStore((state) => state.agenda_topics)
     const activeTopicIndex = useCommitteeStore((state) => state.active_topic_index)

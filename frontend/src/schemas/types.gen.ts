@@ -422,24 +422,6 @@ export type DelegationContext = {
 };
 
 /**
- * DelegationSchema
- */
-export type DelegationSchema = {
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Seat
-     */
-    seat: string;
-    /**
-     * Code
-     */
-    code: string;
-};
-
-/**
  * DeleteAgendaItemEvent
  */
 export type DeleteAgendaItemEvent = {

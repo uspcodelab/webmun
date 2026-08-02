@@ -40,7 +40,7 @@ router = APIRouter()
 
 @router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
 async def dummy(
-    name: SessionEvent,
+    types: SessionEvent,
     schemas: SessionLiveState,
     enum1: DelegateEvents,
     enum2: ChairEvents,

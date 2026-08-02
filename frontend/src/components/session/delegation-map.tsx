@@ -54,7 +54,7 @@ export default function DelegationMap({
     )
 
     const rcregistry = useCommitteeStore((state) => state.roll_call.registry)
-    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
+    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
     const totalDelegations = useCommitteeStore((state) => Object.keys(state.delegations).length)
     const simpleMajority = Math.floor(presentDelegations / 2) + 1
     const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)

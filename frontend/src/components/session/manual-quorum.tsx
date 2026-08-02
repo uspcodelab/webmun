@@ -1,4 +1,4 @@
-import * as React from "react"
+import React from "react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -31,10 +31,6 @@ export default function ManualQuorum() {
     )
     const currentQuorum = useCommitteeStore((state) => state.roll_call.registry ?? {})
     const [tempQuorum, setTempQuorum] = React.useState<Record<number, RollCallChoice>>(() => structuredClone(currentQuorum))
-
-    React.useEffect(() => {
-        setTempQuorum(structuredClone(currentQuorum))
-    }, [currentQuorum])
 
     const setAllQuorum = (value: RollCallChoice) => {
         const nextQuorum = structuredClone(tempQuorum)

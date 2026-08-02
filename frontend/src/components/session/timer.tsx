@@ -24,27 +24,35 @@ export default function Timer() {
     const timerExpiration = useCommitteeStore((state) => state.timer_expiration);
     const timerRemaining = useCommitteeStore((state) => state.timer_remaining_seconds);
 
-    const [remainingSeconds,setRemainingSeconds] = useState(0);
+const [Seconds, setRemainingSeconds] = useState(0);
 
-    useEffect(() => {
-        if (!timerIsRunning) {
-            setRemainingSeconds(timerRemaining ?? 0)
-            return
-        }
+  useEffect(() => {
+    if (!timerIsRunning) {
+      return;
+    }
 
-        const updateRemainingSeconds = () => {
-            const finishtime = new Date(timerExpiration ?? "").getTime()
-            const now = new Date().getTime()
-            setRemainingSeconds(Math.max(0, Math.floor((finishtime - now) / 1000)))
-        }
+    const updateRemainingSeconds = () => {
+      const expiration = new Date(timerExpiration ?? "").getTime();
 
-        updateRemainingSeconds()
-        const interval = setInterval(updateRemainingSeconds, 1000)
+      setRemainingSeconds(
+        Number.isNaN(expiration)
+          ? 0
+          : Math.max(0, Math.floor((expiration - Date.now()) / 1_000)),
+      );
+    };
 
-        return () => {
-            clearInterval(interval)
-        }
-    }, [timerExpiration, timerIsRunning, timerRemaining])
+    const frame = window.requestAnimationFrame(updateRemainingSeconds);
+    const interval = window.setInterval(updateRemainingSeconds, 1_000);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearInterval(interval);
+    };
+  }, [timerExpiration, timerIsRunning]);
+
+  const remainingSeconds = timerIsRunning
+    ? Seconds
+    : (timerRemaining ?? 0);
 
     return (<div className="flex h-full max-h-full items-center gap-2 rounded-md border-2 p-2">
         <div className="flex flex-col">
@@ -63,7 +71,7 @@ export default function Timer() {
             
             {isChair && (
                 <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon-lg" aria-label={timerIsRunning ? "Pause timer" : "Start timer"} onClick={() => sendMessage({type: ChairEvents.TOGGLE_TIMER_EVENT, payload: {}} as ToggleTimerEvent)}>
+                <Button variant="outline" size="icon-lg" aria-label={timerIsRunning ? "Pause timer" : "Start timer"} onClick={() => {sendMessage({type: ChairEvents.TOGGLE_TIMER_EVENT, payload: {}} as ToggleTimerEvent);}}>
                 {timerIsRunning ? <Pause /> : <Play />}
                 </Button>
                 <Button onClick={() => sendMessage({type: ChairEvents.INCREASE_TIMER_EVENT, payload: { seconds: 5 }} as IncreaseTimerEvent)}><Plus />5s</Button>

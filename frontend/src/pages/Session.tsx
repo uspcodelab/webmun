@@ -4,13 +4,13 @@ import { useAuth } from '@/context/AuthContext';
 import { UpdateStore, useCommitteeStore } from '../store/useCommitteeStore.ts'
 import MotionsList from "@/components/session/motions-list"
 import SpeakerList from "@/components/session/speaker-list"
-import ModeratedDebate from "@/components/session/moderated-debate"
-import UnmoderatedDebate from "@/components/session/unmoderated-debate"
+//import ModeratedDebate from "@/components/session/moderated-debate"
+//import UnmoderatedDebate from "@/components/session/unmoderated-debate"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 import VotingPopup from '@/components/session/voting-popup.tsx';
-import { DebateTypes, type BodyDummyCommitteesDummyGet as Types} from '@/schemas/types.gen';
+import {type BodyDummyCommitteesDummyGet as Types} from '@/schemas/types.gen';
 
 let socket : WebSocket | null = null;
 
@@ -33,8 +33,6 @@ export function sendMessage(data: Types["types"]) {
 export default function SessionPage() {
 
     const { loading, token } = useAuth()
-
-    const debateType = useCommitteeStore((state) => state.debate?.debate_type)
 
     const motions = [
         {
