@@ -26,7 +26,7 @@ import { useCommitteeStore } from "@/store/useCommitteeStore"
 
 export default function TestButton() {
   const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
-  const delegations = useCommitteeStore((state) => state.delegations.length ?? 0)
+  const delegations = useCommitteeStore((state) => Object.keys(state.delegations).length)
   const currentState = useCommitteeStore((state) => state.current_state)
 
   return (

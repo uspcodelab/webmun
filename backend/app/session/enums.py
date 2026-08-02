@@ -1,8 +1,8 @@
-from enum import Enum
+from enum import StrEnum
 
 
 # --- States ---
-class States(str, Enum):
+class States(StrEnum):
     # Normal flow of states
     SETUP = "Setup Room"
 
@@ -24,7 +24,7 @@ class States(str, Enum):
 
 
 # --- Events ---
-class DelegateEvents(str, Enum):
+class DelegateEvents(StrEnum):
     SUBMIT_MOTION = "SubmitMotionEvent"
     SUBMIT_QUESTION = "SubmitQuestionEvent"
     JOIN_QUEUE = "JoinQueueEvent"
@@ -35,7 +35,7 @@ class DelegateEvents(str, Enum):
     ANSWER_ROLLCALL = "AnswerRollCallEvent"
 
 
-class ChairEvents(str, Enum):
+class ChairEvents(StrEnum):
     OPEN_SESSION = "OpenSessionEvent"
     TOGGLE_TIMER = "ToggleTimerEvent"
     INCREASE_TIMER = "IncreaseTimerEvent"
@@ -61,13 +61,13 @@ class ChairEvents(str, Enum):
 
 
 # --- Additional Info ---
-class DebateTypes(str, Enum):
+class DebateTypes(StrEnum):
     SPEAKERS_LIST = "Speakers List"
     MODERATED_DEBATE = "Moderated Debate"  # During this type, the queue to speak should not be automatic
     UNMODERATED_DEBATE = "Unmoderated Debate"
 
 
-class Motions(str, Enum):
+class Motions(StrEnum):
     CHANGE_DEBATE_TYPE = "Mudar Tipo de Debate"
     POSTPONE_SESSION = "Adiaamento de Sessão"
     REOPEN_SESSION = "Reabrir Sessão"
@@ -85,13 +85,19 @@ class Motions(str, Enum):
     CUSTOM_MOTION = ""  # not implemented
 
 
-class Questions(str, Enum):
+class Questions(StrEnum):
     ORDER = "Order"
     QUESTION = "Question"
     PERSONAL_PRIVILEGE = "Personal Privilege"
 
 
-class RollCallChoice(str, Enum):
+class RollCallChoice(StrEnum):
     PRESENT = "Present"
     PRESENT_AND_VOTING = "Present and Voting"
     ABSENT = "Absent"
+
+
+class SessionRole(StrEnum):
+    CHAIR = "CHAIR"
+    DELEGATE = "DELEGATE"
+    # further roles are put here

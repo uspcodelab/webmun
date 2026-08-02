@@ -644,6 +644,21 @@ def test_chair_can_choose_speaker(
     assert state.timer_remaining_seconds == 45
 
 
+@pytest.mark.anyio
+def test_chair_cannot_choose_nonexistent_speaker(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    chair_actor: md.SessionActor,
+) -> None:
+    event = sch.SpeakerEvent(
+        type=enums.ChairEvents.CHOOSE_SPEAKER,
+        payload=sch.ChairForceSpeakerPayload(speaker_id=1000),
+    )
+
+    with pytest.raises(eng.InvalidProceduralMove, match="Delegation does not exist"):
+        engine.dispatch(open_gsl_state, event, chair_actor)
+
+
 def test_delegate_cannot_choose_speaker(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
@@ -667,6 +682,24 @@ def test_chair_can_mark_roll_call(
     assert state.roll_call.registry == {1: enums.RollCallChoice.PRESENT_AND_VOTING}
 
 
+@pytest.mark.anyio
+def test_chair_cannot_mark_roll_call_nonexistent_delegations(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    chair_actor: md.SessionActor,
+) -> None:
+    session_state.current_state = enums.States.ROLL_CALL
+    event = sch.MarkRollCallEvent(
+        type=enums.ChairEvents.MARK_ROLLCALL,
+        payload=sch.MarkRollCallPayload(
+            delegation_id=99, choice=enums.RollCallChoice.PRESENT_AND_VOTING
+        ),
+    )
+
+    with pytest.raises(eng.InvalidProceduralMove):
+        engine.dispatch(session_state, event, chair_actor)
+
+
 def test_chair_can_mark_roll_call_bulk(
     engine: eng.SessionEngine,
     session_state: md.SessionLiveState,
@@ -681,6 +714,28 @@ def test_chair_can_mark_roll_call_bulk(
         1: enums.RollCallChoice.PRESENT,
         2: enums.RollCallChoice.ABSENT,
     }
+
+
+@pytest.mark.anyio
+def test_chair_cannot_mark_roll_call_bulk_nonexistent_delegations(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    chair_actor: md.SessionActor,
+) -> None:
+    session_state.current_state = enums.States.ROLL_CALL
+
+    roll_calls_dict = {
+        1: enums.RollCallChoice.PRESENT,
+        1000: enums.RollCallChoice.PRESENT_AND_VOTING,
+    }
+
+    event = sch.MarkRollCallBulkEvent(
+        type=enums.ChairEvents.MARK_ROLLCALL_BULK,
+        payload=sch.MarkRollCallBulkPayload(Rollcalls=roll_calls_dict),
+    )
+
+    with pytest.raises(eng.InvalidProceduralMove):
+        engine.dispatch(session_state, event, chair_actor)
 
 
 # @pytest.mark.xfail(
@@ -698,7 +753,6 @@ def test_chair_insert_queue_uses_delegation_id(
     assert state.gsl_queue == [0]
 
 
-@pytest.mark.xfail(strict=True, reason="OpenSessionEvent handler is not implemented.")
 def test_chair_open_session_starts_roll_call(
     engine: eng.SessionEngine,
     session_state: md.SessionLiveState,

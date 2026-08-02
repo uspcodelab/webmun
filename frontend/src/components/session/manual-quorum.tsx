@@ -25,8 +25,8 @@ import { type MarkRollCallBulkEvent, ChairEvents, RollCallChoice } from "@/schem
 
 
 export default function ManualQuorum() {
-    const delegations = useCommitteeStore((state) => state.delegations ?? [])
-    const sortedDelegations = [...delegations].sort((a, b) =>
+    const delegationsById = useCommitteeStore((state) => state.delegations)
+    const sortedDelegations = Object.values(delegationsById).sort((a, b) =>
         a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
     )
     const currentQuorum = useCommitteeStore((state) => state.roll_call.registry ?? {})
