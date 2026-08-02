@@ -85,6 +85,12 @@ class RollCallContext(BaseModel):
     current_delegation: int | None = None  # perhaps not needed
 
 
+class AgendaItem(BaseModel):
+    index: str
+    topic: str
+    already_discussed: bool
+
+
 # Represents the session live state
 class SessionLiveState(BaseModel):
     session_id: int
@@ -124,8 +130,8 @@ class SessionLiveState(BaseModel):
     submitted_questions: list[QuestionContext] = []
 
     # Agenda
-    agenda_topics: list[tuple[str, bool]] = []
-    active_topic_index: int | None = None
+    agenda_topics: dict[str, AgendaItem] = {}
+    active_topic_index: str | None = None
 
     # Voting context
     voting: VotingContext | None = None

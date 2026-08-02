@@ -5,7 +5,7 @@ MKDOCS ?= mkdocs
 dev:
 		echo "Starting dev environment"
 		supabase start || npx supabase start 
-		docker compose up --build 
+		docker compose up --watch
 
 stop:
 		echo "Stopping dev environment"

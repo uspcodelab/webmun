@@ -16,7 +16,7 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { CircleFlag } from 'react-circle-flags'
 import { sendMessage } from "@/pages/Session"
-import { type ChairInsertQueueEvent, type MarkRollCallEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
+import { type ChairInsertQueueEvent, type MarkRollCallEvent, type SpeakerEvent , ChairEvents, RollCallChoice } from "@/schemas/types.gen"
 import {
     Tooltip,
     TooltipContent,
@@ -53,12 +53,19 @@ export default function DelegationMap({
         ])
     )
 
-    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
+    const rcregistry = useCommitteeStore((state) => state.roll_call.registry)
+    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
     const totalDelegations = useCommitteeStore((state) => Object.keys(state.delegations).length)
     const simpleMajority = Math.floor(presentDelegations / 2) + 1
     const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)
     const currentState = useCommitteeStore((state) => state.current_state)
 
+    const ringColors : Record<string, string> = {
+        "None" : "ring-sky-300/30",
+        "Absent" : "ring-red-500/50",
+        "Present" : "ring-yellow-500/50",
+        "Present and Voting" : "ring-lime-600/50"
+    }
 
     return (
         <div className="relative h-full w-full overflow-hidden">
@@ -111,6 +118,9 @@ export default function DelegationMap({
                                 const seat = `${circleIndex + 1}-${seatIndex + 1}`
                                 const delegation = delegationsBySeat.get(seat)
 
+                                const presence = rcregistry && delegation ? rcregistry[delegation.id] : "None"
+                                const ringcolor = ringColors[presence?? "None"]
+
                                 if (!delegation) {
                                     return <div key={`empty-seat-${seat}`} />
                                 }
@@ -131,7 +141,7 @@ export default function DelegationMap({
                                                         <Button
                                                             type="button"
                                                             variant="outline"
-                                                            className="h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ring-sky-300/30 ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
+                                                            className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
                                                         >
                                                             <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
                                                                 <CircleFlag
@@ -153,7 +163,7 @@ export default function DelegationMap({
                                                     <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.INSERT_QUEUE_EVENT, payload: { target: delegation.id } } as ChairInsertQueueEvent)}>
                                                         Colocar na Lista de Discursos
                                                     </ContextMenuItem>
-                                                    <ContextMenuItem>
+                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: { speaker_id: delegation.id } } as SpeakerEvent)}>
                                                         Dar a palavra
                                                     </ContextMenuItem>
                                                 </ContextMenuGroup>

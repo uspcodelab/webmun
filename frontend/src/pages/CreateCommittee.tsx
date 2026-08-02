@@ -1,4 +1,3 @@
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
 export default function SessionPage() {
@@ -41,7 +40,7 @@ export default function SessionPage() {
                         body: JSON.stringify(payload),
                         headers: { "Content-Type": "application/json" },
                     })
-                    .then((response) => window.location.href = "/committees/0/session")
+                    .then(() => window.location.href = "/committees/0/session")
                 }
 
                 }

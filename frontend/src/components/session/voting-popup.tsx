@@ -18,7 +18,7 @@ import { useState } from "react"
 
 type VoteType = "rollCall1" | "rollCall2" | "procedural" | "informal"
 
-let voteType: VoteType = "procedural"
+const voteType: VoteType = "procedural"
 const voteTitle = "Batata no Coffee Breaks"
 const canAbstain = false
 
