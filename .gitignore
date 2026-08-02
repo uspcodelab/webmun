@@ -26,6 +26,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.venv-docs/
+site/
 
 # backend files 
 .venv
@@ -35,3 +37,5 @@ __pycache__
 .mypy_cache
 .pytest_cache
 .ruff_cache
+.coverage
+coverage.xml

@@ -16,7 +16,7 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { CircleFlag } from 'react-circle-flags'
 import { sendMessage } from "@/pages/Session"
-import { type ChairInsertQueueEvent, type MarkRollCallEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
+import { type ChairInsertQueueEvent, type MarkRollCallEvent, type SpeakerEvent , ChairEvents, RollCallChoice } from "@/schemas/types.gen"
 import {
     Tooltip,
     TooltipContent,
@@ -45,16 +45,27 @@ export default function DelegationMap({
         return Math.max(1, buttonsPerSemicircle)
     }
 
-    const delegations = useCommitteeStore((state) => state.delegations)
-    delegations.sort((a, b) => a.seat > b.seat ? 1 : -1)
-    let delegationIndex = -1
+    const delegationsById = useCommitteeStore((state) => state.delegations)
+    const delegationsBySeat = new Map(
+        Object.values(delegationsById).map((delegation) => [
+            delegation.seat,
+            delegation,
+        ])
+    )
 
-    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([_, choice]) => choice !== RollCallChoice.ABSENT).length)
-    const totalDelegations = useCommitteeStore((state) => state.delegations.length ?? 0)
+    const rcregistry = useCommitteeStore((state) => state.roll_call.registry)
+    const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
+    const totalDelegations = useCommitteeStore((state) => Object.keys(state.delegations).length)
     const simpleMajority = Math.floor(presentDelegations / 2) + 1
     const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)
     const currentState = useCommitteeStore((state) => state.current_state)
 
+    const ringColors : Record<string, string> = {
+        "None" : "ring-sky-300/30",
+        "Absent" : "ring-red-500/50",
+        "Present" : "ring-yellow-500/50",
+        "Present and Voting" : "ring-lime-600/50"
+    }
 
     return (
         <div className="relative h-full w-full overflow-hidden">
@@ -104,11 +115,14 @@ export default function DelegationMap({
                                 const angleRad = (angleDeg * Math.PI) / 180
                                 const x = centerX + (radius * Math.cos(angleRad)) / 6
                                 const y = centerY + (radius * Math.sin(angleRad)) / 3.14
-                                const currentDelegationIndex = delegationIndex + 1
-                                delegationIndex = currentDelegationIndex
+                                const seat = `${circleIndex + 1}-${seatIndex + 1}`
+                                const delegation = delegationsBySeat.get(seat)
 
-                                if (`${circleIndex + 1}-${seatIndex + 1}` != delegations[currentDelegationIndex]?.seat) {
-                                    return (<div></div>)
+                                const presence = rcregistry && delegation ? rcregistry[delegation.id] : "None"
+                                const ringcolor = ringColors[presence?? "None"]
+
+                                if (!delegation) {
+                                    return <div key={`empty-seat-${seat}`} />
                                 }
                                 return (
                                     <div
@@ -127,11 +141,11 @@ export default function DelegationMap({
                                                         <Button
                                                             type="button"
                                                             variant="outline"
-                                                            className="h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ring-sky-300/30 ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]"
+                                                            className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
                                                         >
                                                             <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
                                                                 <CircleFlag
-                                                                    countryCode={delegations[delegationIndex]?.code}
+                                                                    countryCode={delegation.code}
                                                                     className="scale-110 object-contain"
                                                                 />
                                                             </span>
@@ -140,16 +154,16 @@ export default function DelegationMap({
                                                 </TooltipTrigger>
                                                 {/* TODO: Replace by country full name */}
                                                 <TooltipContent>
-                                                    <p>{delegations[delegationIndex]?.name || "Vazio"}</p>
+                                                    <p>{delegation.name}</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                             <ContextMenuContent className="w-60">
                                                 <ContextMenuGroup>
                                                     <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
-                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.INSERT_QUEUE_EVENT, payload: { target: delegations[currentDelegationIndex]?.id } } as ChairInsertQueueEvent)}>
+                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.INSERT_QUEUE_EVENT, payload: { target: delegation.id } } as ChairInsertQueueEvent)}>
                                                         Colocar na Lista de Discursos
                                                     </ContextMenuItem>
-                                                    <ContextMenuItem>
+                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: { speaker_id: delegation.id } } as SpeakerEvent)}>
                                                         Dar a palavra
                                                     </ContextMenuItem>
                                                 </ContextMenuGroup>
@@ -159,13 +173,13 @@ export default function DelegationMap({
                                                     <ContextMenuSub>
                                                         <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
                                                         <ContextMenuSubContent>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.PRESENT_AND_VOTING } } as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT_AND_VOTING } } as MarkRollCallEvent)}>
                                                                 Presente Votante
                                                             </ContextMenuItem>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.PRESENT } } as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT } } as MarkRollCallEvent)}>
                                                                 Presente
                                                             </ContextMenuItem>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegations[currentDelegationIndex].id, choice: RollCallChoice.ABSENT } } as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.ABSENT } } as MarkRollCallEvent)}>
                                                                 Ausente
                                                             </ContextMenuItem>
                                                         </ContextMenuSubContent>
@@ -186,7 +200,7 @@ export default function DelegationMap({
                                         </ContextMenu>
 
                                         <span className="text-[10px] font-medium leading-none text-neutral-600">
-                                            {delegations[delegationIndex]?.name || "Vazio"}
+                                            {delegation.name}
                                         </span>
 
                                     </div>

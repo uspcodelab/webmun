@@ -1,15 +1,16 @@
 import { useEffect, useState} from 'react';
-import { useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { UpdateStore, useCommitteeStore } from '../store/useCommitteeStore.ts'
 import MotionsList from "@/components/session/motions-list"
 import SpeakerList from "@/components/session/speaker-list"
-import ModeratedDebate from "@/components/session/moderated-debate"
-import UnmoderatedDebate from "@/components/session/unmoderated-debate"
+//import ModeratedDebate from "@/components/session/moderated-debate"
+//import UnmoderatedDebate from "@/components/session/unmoderated-debate"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 import VotingPopup from '@/components/session/voting-popup.tsx';
-import { DebateTypes } from '@/schemas/types.gen';
+import {type BodyDummyCommitteesDummyGet as Types} from '@/schemas/types.gen';
 
 let socket : WebSocket | null = null;
 
@@ -17,7 +18,7 @@ let socket : WebSocket | null = null;
 Use this function to send events to the backend, 
 any data with one of the Event types in schemas/types.gen.ts should work
 */
-export function sendMessage(data: any) {
+export function sendMessage(data: Types["types"]) {
     if (socket && socket.readyState === WebSocket.OPEN) 
     {
         socket.send(JSON.stringify(data));
@@ -31,7 +32,7 @@ export function sendMessage(data: any) {
 
 export default function SessionPage() {
 
-    const debateType = useCommitteeStore((state) => state.debate?.debate_type)
+    const { loading, token } = useAuth()
 
     const motions = [
         {
@@ -61,7 +62,8 @@ export default function SessionPage() {
     ]
 
     // id that matches the name given in the Route path, at App.tsx 
-    const { committeeId } = useParams<{ committeeId: string }>();
+    const { sessionId } = useParams<{ sessionId: string }>();
+    const parsedSessionId = Number(sessionId);
     //const {start_time} = useCommitteeStore();
     const all = useCommitteeStore();
 
@@ -69,24 +71,39 @@ export default function SessionPage() {
     //const [, setUptime] = useState(0);
 
     useEffect(() => {
-        // Initialize WebSocket
-        socket = new WebSocket(`ws://localhost:8000/committees/ws/0?role=CHAIR&display_name=Chair`);
+        if (!token || !Number.isInteger(parsedSessionId) || parsedSessionId < 1) {
+            return;
+        }
 
-        socket.onopen = () => 
-            {
-                setStatus("Connected");
-            }
+        const ws = new WebSocket(
+            `${import.meta.env.VITE_WS_URL}/ws/${parsedSessionId}`,
+        );
+		socket = ws;
 
-        socket.onmessage = (event) => {
+        ws.onopen = () => {
+            ws?.send(JSON.stringify({ access_token: token }));
+            setStatus("Connected");
+        }
+
+        ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            console.log(data);
             UpdateStore(data);
-            console.log(all);
         };
 
-        socket.onclose = () => setStatus("Disconnected");
+        ws.onclose = () => setStatus("Disconnected");
 
-        return () => socket?.close(); // Cleanup on unmount
-    }, [committeeId]);
+        return () => {
+			ws.close();
+			if (socket === ws) socket = null;
+		}
+    }, [parsedSessionId, token]);
+
+    if (loading) return <p>Loading session…</p>;
+    if (!token) return <Navigate to="/login" replace />;
+    if (!Number.isInteger(parsedSessionId) || parsedSessionId < 1) {
+        return <p>Invalid session ID.</p>;
+    }
 
     // Useeffect for local uptime timer 
     /*useEffect(() => {
@@ -123,9 +140,11 @@ export default function SessionPage() {
                     />
                 </div>
                 <div className="flex h-full w-[25%] shrink-0 flex-col bg-white">
-                    {debateType === DebateTypes.UNMODERATED_DEBATE && <UnmoderatedDebate />}
-                    {debateType === DebateTypes.MODERATED_DEBATE && <ModeratedDebate />}
-                    {debateType === DebateTypes.SPEAKERS_LIST && <SpeakerList />}
+                    {//{debateType === DebateTypes.UNMODERATED_DEBATE && <UnmoderatedDebate />}
+                    //{debateType === DebateTypes.MODERATED_DEBATE && <ModeratedDebate />}
+                    //{debateType === DebateTypes.SPEAKERS_LIST && <SpeakerList />}
+                    }
+                    <SpeakerList />
                     <MotionsList motions={motions} />
                 </div>
             </div>

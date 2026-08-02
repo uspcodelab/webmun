@@ -3,6 +3,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypeAlias
 
+import app.session.enums as enums
 import app.session.schemas as schemas
 
 from .enums import (
@@ -15,6 +16,7 @@ from .enums import (
     States,
 )
 from .models import (
+    AgendaItem,
     DebateContext,
     DelegationContext,
     MotionContext,
@@ -22,7 +24,6 @@ from .models import (
     RollCallContext,
     SessionActor,
     SessionLiveState,
-    SessionRole,
     VotingContext,
 )
 
@@ -134,9 +135,6 @@ MOTIONS_ALLOWED: dict[States, set[Motions]] = {
     },
 }
 
-# we also need related events or automatic/internal cron job in order to change, for example, caucus to GSL
-# TODO: change is_chair boolean flag from handlers to something like a Role class, with "DELEGATE", "OBSERVER", "ADMIN" and "CHAIR" types
-
 
 # Validations and helpers
 def generate_next_motion_id(state: SessionLiveState) -> int:
@@ -211,14 +209,14 @@ def reset_timer(state: SessionLiveState, seconds: int = 0) -> None:
 
 def require_delegate(actor: SessionActor) -> DelegationContext:
     # helper that returns the delegation context (old Delegation model) while validating
-    if actor.role != SessionRole.DELEGATE or actor.delegation is None:
+    if actor.role != enums.SessionRole.DELEGATE or actor.delegation is None:
         raise InvalidProceduralMove("Delegate role required")
     return actor.delegation
 
 
 def require_chair(actor: SessionActor) -> None:
     """Returns"""
-    if actor.role != SessionRole.CHAIR:
+    if actor.role != enums.SessionRole.CHAIR:
         raise InvalidProceduralMove("Chair role required")
 
 
@@ -250,9 +248,7 @@ def handle_submit_motion(
         id=generate_next_motion_id(state),
         priority=get_motion_priority(payload.type),
         type=payload.type,
-        delegate_id=actor.delegation.id
-        if actor.delegation is not None
-        else -1,  # fallback to chair being the one who sent it?
+        delegate_id=actor.delegation.id if actor.delegation is not None else None,
         total_duration_minutes=payload.total_duration_minutes,
         per_speaker_seconds=payload.per_speaker_seconds,
         target_topic=payload.target_topic,
@@ -353,14 +349,16 @@ def handle_answer_roll_call(
 
 
 # Chair events
-def handle_open_session(state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor) -> SessionLiveState:
-    
+def handle_open_session(
+    state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor
+) -> SessionLiveState:
+
     require_chair(actor)
-    if (state.current_state != States.SETUP):
+    if state.current_state != States.SETUP:
         raise InvalidProceduralMove("Session can only be opened from setup")
 
     state.current_state = States.ROLL_CALL
-    state.roll_call = RollCallContext(registry={}, current_delegation=0)
+    state.roll_call = RollCallContext(registry={}, current_delegation=None)
     state.voting_choice = {}
     state.gsl_queue = []
     state.current_speaker = None
@@ -371,23 +369,29 @@ def handle_open_session(state: SessionLiveState, event: schemas.OpenSessionEvent
 
     return state
 
-def handle_close_session(state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor) -> SessionLiveState:
-   
+
+def handle_close_session(
+    state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor
+) -> SessionLiveState:
+
     require_chair(actor)
-   
-    if (state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED)): # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
+
+    if (
+        state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED)
+    ):  # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
         raise InvalidProceduralMove("Session can only be opened from setup")
 
     state.current_state = States.FINISHED
     state.current_speaker = None
-    state.gsl_queue = [] # I'm supposing this queue has the first element popped when someone speaks, so it should be empty when session is closed. In case this list is to be kept, we can remove this line. 
+    state.gsl_queue = []  # I'm supposing this queue has the first element popped when someone speaks, so it should be empty when session is closed. In case this list is to be kept, we can remove this line.
     state.can_set_motion = False
-    state.debate = None # Same as queue
+    state.debate = None  # Same as queue
     state.timer_is_running = False
     state.timer_expiration = None
     state.timer_remaining_seconds = 0
 
     return state
+
 
 # TODO: create helpers for timers -> stop_timer, set_timer, pause_timer, etc
 def handle_toggle_timer(
@@ -652,6 +656,42 @@ def handle_set_agenda(
 ) -> SessionLiveState: ...
 
 
+def handle_mark_agenda_item(
+    state: SessionLiveState, event: schemas.MarkAgendaItemEvent, actor: SessionActor
+) -> SessionLiveState:
+    if event.payload.discussed is not None:
+        state.agenda_topics[
+            event.payload.index
+        ].already_discussed = event.payload.discussed
+    if event.payload.indiscussion is not None:
+        if event.payload.indiscussion:
+            state.active_topic_index = event.payload.index
+        else:
+            state.active_topic_index = None
+    return state
+
+
+def handle_set_agenda_item(
+    state: SessionLiveState, event: schemas.SetAgendaItemEvent, actor: SessionActor
+) -> SessionLiveState:
+    item = AgendaItem(
+        index=event.payload.index, topic=event.payload.topic, already_discussed=False
+    )
+    state.agenda_topics[event.payload.index] = item
+    return state
+
+
+def handle_delete_agenda_item(
+    state: SessionLiveState, event: schemas.DeleteAgendaItemEvent, actor: SessionActor
+) -> SessionLiveState:
+
+    state.agenda_topics.pop(event.payload.index)
+
+    if state.active_topic_index == event.payload.index:
+        state.active_topic_index = None
+    return state
+
+
 def handle_manual_phase_set(
     state: SessionLiveState, event: schemas.SetPhaseEvent, actor: SessionActor
 ) -> SessionLiveState: ...
@@ -663,8 +703,14 @@ def handle_choose_speaker(
     require_chair(actor)
 
     seconds = event.payload.seconds or get_default_speaker_seconds(state)
-    # TODO: enable passing onto next speaker if needed on GSL phase
-    state.current_speaker = event.payload.speaker_id
+    if (
+        event.payload.speaker_id is None
+        and state.current_state in (States.OPEN_GSL, States.CLOSED_GSL)
+        and state.gsl_queue
+    ):
+        state.current_speaker = state.gsl_queue.pop(0)
+    else:
+        state.current_speaker = event.payload.speaker_id
 
     state.timer_is_running = False
     state.timer_expiration = None  # will be calculated when timer is toggled
@@ -680,6 +726,9 @@ def handle_mark_roll_call(
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
 
+    if event.payload.delegation_id not in state.delegations:
+        raise InvalidProceduralMove("Delegation does not exist")
+
     state.roll_call.registry[event.payload.delegation_id] = event.payload.choice
 
     return state
@@ -692,6 +741,10 @@ def handle_mark_roll_call_bulk(
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
 
+    for delegation_id in event.payload.Rollcalls.keys():
+        if delegation_id not in state.delegations:
+            raise InvalidProceduralMove("One delegation does not exist")
+
     state.roll_call.registry.update(event.payload.Rollcalls)
 
     return state
@@ -703,19 +756,19 @@ def handle_close_roll_call(
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot close roll call right now")
-    
-    # mark all delegations as absent in the first case. This will enable us to use 
+
+    # mark all delegations as absent in the first case. This will enable us to use
     # RollCallContext to tally votes
-    for delegation in state.delegations:
-        state.roll_call.registry.setdefault(delegation.id, RollCallChoice.ABSENT)
+    for delegation_id in state.delegations:
+        state.roll_call.registry.setdefault(delegation_id, RollCallChoice.ABSENT)
 
     # may also empty roll call if needed, to avoid loading stale values
     state.current_state = States.OPEN_GSL
     state.voting_choice = {
-        delegation: RollCallChoice.PRESENT_AND_VOTING
+        delegation_id: RollCallChoice.PRESENT_AND_VOTING
         if choice == RollCallChoice.PRESENT_AND_VOTING
         else RollCallChoice.PRESENT
-        for delegation, choice in state.roll_call.registry.items()
+        for delegation_id, choice in state.roll_call.registry.items()
         if choice in {RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING}
     }
     return state
@@ -726,7 +779,9 @@ def handle_insert_queue(
 ) -> SessionLiveState:
     require_chair(actor)
     del_id: int = event.payload.target
-    delegate = state.delegations[del_id]
+    delegate = state.delegations.get(del_id)
+    if delegate is None:
+        raise InvalidProceduralMove("Delegate not found")
     state.gsl_queue.append(delegate.id)
     return state
 
@@ -754,6 +809,9 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.CLOSE_PROCEDURAL_VOTING: handle_close_procedural_voting,
     ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
     ChairEvents.SET_AGENDA: handle_set_agenda,
+    ChairEvents.SET_AGENDA_ITEM: handle_set_agenda_item,
+    ChairEvents.MARK_AGENDA_ITEM: handle_mark_agenda_item,
+    ChairEvents.DELETE_AGENDA_ITEM: handle_delete_agenda_item,
     ChairEvents.MANUAL_PHASE_SET: handle_manual_phase_set,
     ChairEvents.CLOSE_SESSION: handle_close_session,
     ChairEvents.CHOOSE_SPEAKER: handle_choose_speaker,

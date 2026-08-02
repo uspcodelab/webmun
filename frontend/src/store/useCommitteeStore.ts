@@ -5,7 +5,7 @@ export const useCommitteeStore = create<SessionLiveState>(() =>({
 	session_id: -1,
 	start_time: "",
 
-	delegations: [],
+	delegations: {},
 
 	current_state: undefined,
 
@@ -24,7 +24,7 @@ export const useCommitteeStore = create<SessionLiveState>(() =>({
     submitted_motions: [],
     submitted_questions: [],
 
-	agenda_topics: [],
+	agenda_topics: {},
 	active_topic_index: null,
 	voting: null,
 	voting_choice: null,

@@ -1,7 +1,7 @@
 # This file defines internal models not used as schemas for the application
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
+from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel
@@ -9,6 +9,18 @@ from pydantic import BaseModel
 import app.session.enums as enums
 
 
+@dataclass(frozen=True)
+class StoredSession:
+    id: int
+    committee_id: int
+    name: str | None
+    status: str
+    started_at: datetime
+    ended_at: datetime
+    state_snapshot: dict | None
+
+
+# TODO: separate this into a DelegationContext with a name/user_id or profile and SeatContext for a map
 class DelegationContext(BaseModel):
     id: int
     name: str
@@ -16,14 +28,8 @@ class DelegationContext(BaseModel):
     code: str
 
 
-class SessionRole(str, Enum):
-    CHAIR = "CHAIR"
-    DELEGATE = "DELEGATE"
-    # further roles are put here
-
-
 class SessionActor(BaseModel):
-    role: SessionRole
+    role: enums.SessionRole
     display_name: str = "Placeholder"
     delegation: DelegationContext | None = None
 
@@ -79,13 +85,19 @@ class RollCallContext(BaseModel):
     current_delegation: int | None = None  # perhaps not needed
 
 
+class AgendaItem(BaseModel):
+    index: str
+    topic: str
+    already_discussed: bool
+
+
 # Represents the session live state
 class SessionLiveState(BaseModel):
     session_id: int
     start_time: datetime
 
-    # temporary list of delegations in this committee
-    delegations: list[DelegationContext]
+    # list of present representations (rep_id)
+    delegations: dict[int, DelegationContext]
 
     # General state for FSM engine
     current_state: enums.States = enums.States.SETUP
@@ -118,8 +130,8 @@ class SessionLiveState(BaseModel):
     submitted_questions: list[QuestionContext] = []
 
     # Agenda
-    agenda_topics: list[tuple[str, bool]] = []
-    active_topic_index: int | None = None
+    agenda_topics: dict[str, AgendaItem] = {}
+    active_topic_index: str | None = None
 
     # Voting context
     voting: VotingContext | None = None

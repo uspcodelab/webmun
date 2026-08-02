@@ -15,6 +15,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { sendMessage } from "@/pages/Session"
+import { type SpeakerEvent, ChairEvents } from "@/schemas/types.gen"
 
 const isChair = true // Replace with actual logic to determine if the user is the chair
 const isAlredyInQueue = true // Replace with actual logic to determine if the user is already in the queue
@@ -23,7 +25,12 @@ const isAlredyInQueue = true // Replace with actual logic to determine if the us
 export default function SpeakerList() {
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
-    const waitingCount = gslQueue.length
+    const delegationsById = useCommitteeStore((state) => state.delegations)
+    const queuedDelegations = gslQueue.flatMap((delegationId) => {
+        const delegation = delegationsById[String(delegationId)]
+        return delegation ? [delegation] : []
+    })
+    const waitingCount = queuedDelegations.length
 
 
     return (
@@ -33,8 +40,8 @@ export default function SpeakerList() {
                 <Badge className="ml-auto bg-tertiary-200 text-secondary">{String(waitingCount).padStart(2, "0")} em espera</Badge>
             </div>
             <ScrollArea className="mr-4 mb-2 ml-4 mt-0 min-h-0 flex-1 rounded-md border ">
-                {gslQueue.map((delegate, index) => {
-                    const isSpeaking = !!currentSpeaker && currentSpeaker.id === delegate.id
+                {queuedDelegations.map((delegate, index) => {
+                    const isSpeaking = currentSpeaker === delegate.id
                     const position = index + 1
 
                     return (
@@ -57,7 +64,7 @@ export default function SpeakerList() {
                                     </ItemTitle>
                                 </ItemContent>
                             </Item>
-                            {index < gslQueue.length - 1 && (
+                            {index < queuedDelegations.length - 1 && (
                                 <Separator className="mx-4" />
                             )}
                         </div>
@@ -81,6 +88,7 @@ export default function SpeakerList() {
                                 variant="outline"
                                 className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
                                 disabled={waitingCount === 0}
+                                onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: {} } as SpeakerEvent)}
                             >
                                 <span className="md:hidden">Proximo</span>
                                 <span className="hidden md:inline">Proximo Orador</span>

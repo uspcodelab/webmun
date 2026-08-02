@@ -7,17 +7,11 @@ import app.session.enums as enums
 # --- General Schemas ---
 
 
-# should be used to create list of delegations.
-class DelegationSchema(BaseModel):
-    name: str
-    seat: str  # TODO: check if its better to use an int here on the frontend
-    code: str  # TODO: check if this is needed
-
-
 class SessionCreationSchema(BaseModel):
-    session_id: int
+    """Schema to create a session. Follows a DB schema + extra configs format"""
+
+    committee_id: int
     name: str | None = None
-    delegations: list[DelegationSchema]  # useful for now
 
 
 # --- Delegate Payloads ---
@@ -140,6 +134,21 @@ class ChairInsertQueuePayload(BaseModel):
     target: int  # Delegate Id
 
 
+class SetAgendaItemPayload(BaseModel):
+    index: str
+    topic: str
+
+
+class MarkAgendaItemPayload(BaseModel):
+    index: str  # Agenda Item Id
+    indiscussion: bool | None = None
+    discussed: bool | None = None
+
+
+class DeleteAgendaItemPayload(BaseModel):
+    index: str  # Agenda Item Id
+
+
 # These two normally don't need to have an id
 class ChairCloseInformalVotingPayload(BaseModel):
     voting_id: int | None = None
@@ -233,6 +242,21 @@ class ChairInsertQueueEvent(BaseModel):
     payload: ChairInsertQueuePayload
 
 
+class MarkAgendaItemEvent(BaseModel):
+    type: Literal[enums.ChairEvents.MARK_AGENDA_ITEM]
+    payload: MarkAgendaItemPayload
+
+
+class SetAgendaItemEvent(BaseModel):
+    type: Literal[enums.ChairEvents.SET_AGENDA_ITEM]
+    payload: SetAgendaItemPayload
+
+
+class DeleteAgendaItemEvent(BaseModel):
+    type: Literal[enums.ChairEvents.DELETE_AGENDA_ITEM]
+    payload: DeleteAgendaItemPayload
+
+
 # --- Discriminated Union ---
 SessionEvent = Annotated[
     SubmitMotionEvent
@@ -252,6 +276,9 @@ SessionEvent = Annotated[
     | ResolveMotionEvent
     | SpeakerEvent
     | SetAgendaEvent
+    | SetAgendaItemEvent
+    | MarkAgendaItemEvent
+    | DeleteAgendaItemEvent
     | SetPhaseEvent
     | MarkRollCallEvent
     | CloseRollCallEvent

@@ -47,7 +47,3 @@ uv run pytest
 
 We deeply recommend contributers to first lint and test their code before sending the commit. This way we make our codebase better. 
 
-# AI usage 
-
-AI usage is welcome here (although not too great if you want to really practice). Be careful to not commit any AI slop. 
-Remember: you are responsible for what you commit, so be careful to at least understand what it being done.
