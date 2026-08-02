@@ -78,6 +78,9 @@ export default function Navbar() {
                                     <ListItem title="Licença de uso e termos de serviço">
                                         Conheça os termos de uso do WebMun e nossa política de privacidade.
                                     </ListItem>
+                                    <ListItem title="Contate-nos" to="/contact-us">
+                                        Tem dúvidas ou sugestões? Entre em contato conosco!
+                                    </ListItem>
                                 </ul>
                             </NavigationMenuContent>
                         </NavigationMenuItem>
@@ -85,7 +88,7 @@ export default function Navbar() {
                             <NavigationMenuTrigger>Sobre</NavigationMenuTrigger>
                             <NavigationMenuContent>
                                 <ul className="grid w-100 gap-2 md:w-125 md:grid-cols-2 lg:w-150">
-                                    <ListItem title="Quem somos?">
+                                    <ListItem title="Quem somos?" to="/our-team">
                                         Conheça a equipe por trás do WebMun!
                                     </ListItem>
                                     <ListItem title="Open Source">
@@ -105,12 +108,14 @@ export default function Navbar() {
             </div>
 
             <div className="flex items-center gap-2 flex-none">
-                <Button variant="outline" onClick={() => (window.location.href = "/create-committee")}>
-                    TEST CREATE COMMITTEE
+                <Button asChild variant="outline" >
+                    <Link to="/create-committee">TEST CREATE COMMITTEE</Link>
                 </Button>
-                <Button>Criar Conta</Button>
-                <Button variant="outline" onClick={() => (window.location.href = "/login")}>
-                    Login
+                <Button asChild>
+                    <Link to="/signup">Criar Conta</Link>
+                </Button>
+                <Button asChild variant="outline" >
+                    <Link to="/login">Login</Link>
                 </Button>
             </div>
         </nav>
