@@ -29,8 +29,8 @@ export function ConferenceMenus() {
       <SidebarMenu>
 
         <SidebarMenuItem >
-          <SidebarMenuButton asChild isActive={pathname === "/dashboard/conference-overview"}>
-            <Link to="/dashboard/conference-overview">
+          <SidebarMenuButton asChild isActive={pathname === "/dashboard/conference/overview"}>
+            <Link to="/dashboard/conference/overview">
               <LayoutDashboard />
               <span>Visao Geral</span>
             </Link>
@@ -91,8 +91,8 @@ export function ConferenceMenus() {
         </Collapsible>
 
         <SidebarMenuItem >
-          <SidebarMenuButton asChild isActive={pathname === "/dashboard/committees"}>
-            <Link to="/dashboard/committees">
+          <SidebarMenuButton asChild isActive={pathname === "/dashboard/conference/committees"}>
+            <Link to="/dashboard/conference/committees">
               <Gavel />
               <span>Comites</span>
             </Link>
@@ -118,10 +118,10 @@ export function ConferenceMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/conference/team/teams-management"}
+                    isActive={pathname === "/dashboard/conference/team/manage-perms-roles"}
                   >
-                    <Link to="/dashboard/conference/team/teams-management">
-                      <span>Equipes e Permissões</span>
+                    <Link to="/dashboard/conference/team/manage-perms-roles">
+                      <span>Papeis e Permissões</span>
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
@@ -195,9 +195,9 @@ export function ConferenceMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/conference/participants/list"}
+                    isActive={pathname === "/dashboard/conference/participants/presence-certificates"}
                   >
-                    <Link to="/dashboard/conference/participants/list">
+                    <Link to="/dashboard/conference/participants/presence-certificates">
                       <span>Presenca e certificados</span>
                     </Link>
                   </SidebarMenuSubButton>

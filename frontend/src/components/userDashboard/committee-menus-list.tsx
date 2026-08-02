@@ -46,9 +46,9 @@ export function CommitteeMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/conference/about/basic-info"}
+                    isActive={pathname === "/dashboard/committees/info"}
                   >
-                    <Link to="/dashboard/conference/about/basic-info">
+                    <Link to="/dashboard/committees/info">
                       <span>Informacoes</span>
                     </Link>
                   </SidebarMenuSubButton>
@@ -57,9 +57,9 @@ export function CommitteeMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/conference/about/schedule"}
+                    isActive={pathname === "/dashboard/committees/sessions"}
                   >
-                    <Link to="/dashboard/conference/about/schedule">
+                    <Link to="/dashboard/committees/sessions">
                       <span>Sessao</span>
                     </Link>
                   </SidebarMenuSubButton>
@@ -68,9 +68,9 @@ export function CommitteeMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/conference/about/docs"}
+                    isActive={pathname === "/dashboard/committees/docs"}
                   >
-                    <Link to="/dashboard/conference/about/docs">
+                    <Link to="/dashboard/committees/docs">
                       <span>Docs</span>
                     </Link>
                   </SidebarMenuSubButton>

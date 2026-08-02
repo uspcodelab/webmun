@@ -150,17 +150,6 @@ export default function CommitteeManagement() {
     [committees, editingCommitteeId]
   )
 
-  const updateCommittee = React.useCallback(
-    (id: string, field: keyof Omit<Committee, "id">, value: string) => {
-      setCommittees((currentCommittees) =>
-        currentCommittees.map((committee) =>
-          committee.id === id ? { ...committee, [field]: value } : committee
-        )
-      )
-    },
-    []
-  )
-
   React.useEffect(() => {
     if (!editingCommittee) {
       setDraftCommittee(null)
