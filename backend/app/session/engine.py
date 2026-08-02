@@ -16,6 +16,7 @@ from .enums import (
     States,
 )
 from .models import (
+    AgendaItem,
     DebateContext,
     DelegationContext,
     MotionContext,
@@ -24,7 +25,6 @@ from .models import (
     SessionActor,
     SessionLiveState,
     VotingContext,
-    AgendaItem,
 )
 
 
@@ -659,11 +659,11 @@ def handle_set_agenda(
 def handle_mark_agenda_item(
     state: SessionLiveState, event: schemas.MarkAgendaItemEvent, actor: SessionActor
 ) -> SessionLiveState:
-    if event.payload.discussed != None:
+    if event.payload.discussed is not None:
         state.agenda_topics[
             event.payload.index
         ].already_discussed = event.payload.discussed
-    if event.payload.indiscussion != None:
+    if event.payload.indiscussion is not None:
         if event.payload.indiscussion:
             state.active_topic_index = event.payload.index
         else:
@@ -704,7 +704,7 @@ def handle_choose_speaker(
 
     seconds = event.payload.seconds or get_default_speaker_seconds(state)
     if (
-        event.payload.speaker_id == None
+        event.payload.speaker_id is None
         and state.current_state in (States.OPEN_GSL, States.CLOSED_GSL)
         and state.gsl_queue
     ):
