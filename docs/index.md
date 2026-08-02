@@ -48,8 +48,10 @@ server.
 - Backend
   - [Database](backend/database.md)
   - [Authentication and authorization](backend/authentication-and-authorization.md)
+  - [HTTP API: current state and target contract](backend/http-api.md)
   - [Testing](backend/testing.md)
 - Frontend
   - [State management](frontend/state-management.md)
   - [Authentication](frontend/authentication.md)
+  - [Consuming the application API](frontend/api-client.md)
 - [Testing overview](testing/overview.md)
