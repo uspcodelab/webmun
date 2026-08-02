@@ -61,10 +61,10 @@ class VotingContext(BaseModel):
     motion_in_vote: MotionContext | None = None
     title: str | None = None
     return_state: enums.States
-    voting_registry: dict[int, Literal["FAVOUR", "AGAINST", "ABSTAIN"]] = {}
+    voting_registry: dict[int, enums.VotingChoice] = {}
 
     # additional fields
-    majority: Literal["SIMPLE", "QUALIFIED", "ABSOLUTE"]
+    majority: enums.MajorityTypes
     veto_power: bool
 
 

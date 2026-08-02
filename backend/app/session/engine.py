@@ -451,7 +451,7 @@ def handle_open_informal_voting(
         )
 
     state.voting = VotingContext(
-        target_type="INFORMAL",
+        target_type=enums.VotingType.INFORMAL,
         title=event.payload.title,
         return_state=state.current_state,
         voting_registry={},
@@ -476,7 +476,7 @@ def handle_close_informal_voting(
 
     if (
         state.current_state != States.VOTING_EXECUTION
-        or state.voting.target_type != "INFORMAL"
+        or state.voting.target_type != enums.VotingType.INFORMAL
     ):
         raise InvalidProceduralMove("Can't close voting")
 
@@ -500,7 +500,7 @@ def handle_close_procedural_voting(
 
     if (
         state.current_state != States.VOTING_EXECUTION
-        or state.voting.target_type != "PROCEDURAL"
+        or state.voting.target_type != enums.VotingType.PROCEDURAL
     ):
         raise InvalidProceduralMove("Can't close voting")
 
@@ -634,13 +634,13 @@ def handle_resolve_motion(
     if motion is None:
         raise InvalidProceduralMove("Motion not found")
 
-    if payload.action == "ACCEPT":
+    if payload.action:
         state.voting = VotingContext(
-            target_type="PROCEDURAL",
+            target_type=enums.VotingType.PROCEDURAL,
             motion_in_vote=motion,
             return_state=state.current_state,
             voting_registry={},
-            majority="QUALIFIED",  # TODO: change depending on type of motion
+            majority=enums.MajorityTypes.QUALIFIED,  # TODO: change depending on type of motion
             veto_power=True,
         )
 

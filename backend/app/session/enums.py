@@ -96,8 +96,22 @@ class RollCallChoice(StrEnum):
     PRESENT_AND_VOTING = "Present and Voting"
     ABSENT = "Absent"
 
+class MajorityTypes(StrEnum):
+    SIMPLE = "Maioria Simples"
+    QUALIFIED = "Maioria Qualificada"
+    ABSOLUTE = "Consenso"
 
 class SessionRole(StrEnum):
     CHAIR = "CHAIR"
     DELEGATE = "DELEGATE"
     # further roles are put here
+
+class VotingChoice(StrEnum):
+    FAVOUR = "Favour"
+    AGAINST = "Against"
+    ABSTAIN = "Abstain"
+
+class VotingType(StrEnum):
+    INFORMAL = "Informal"
+    PROCEDURAL = "Procedural"
+    SUBSTANTIVE = "Substantive"
