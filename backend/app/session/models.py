@@ -84,10 +84,12 @@ class RollCallContext(BaseModel):
     registry: dict[int, enums.RollCallChoice] = {}  # Delegation Id as key
     current_delegation: int | None = None  # perhaps not needed
 
+
 class AgendaItem(BaseModel):
     index: str
     topic: str
     already_discussed: bool
+
 
 # Represents the session live state
 class SessionLiveState(BaseModel):

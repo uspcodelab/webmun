@@ -24,7 +24,7 @@ from .models import (
     SessionActor,
     SessionLiveState,
     VotingContext,
-    AgendaItem
+    AgendaItem,
 )
 
 
@@ -375,8 +375,10 @@ def handle_close_session(
 ) -> SessionLiveState:
 
     require_chair(actor)
-   
-    if state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED): # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
+
+    if (
+        state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED)
+    ):  # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
         raise InvalidProceduralMove("Session can only be opened from setup")
 
     state.current_state = States.FINISHED
@@ -654,31 +656,41 @@ def handle_set_agenda(
 ) -> SessionLiveState: ...
 
 
-def handle_mark_agenda_item(state: SessionLiveState, event: schemas.MarkAgendaItemEvent, actor: SessionActor
-) -> SessionLiveState: 
-    if event.payload.discussed != None : 
-        state.agenda_topics[event.payload.index].already_discussed = event.payload.discussed   
-    if event.payload.indiscussion != None :
-        if event.payload.indiscussion: state.active_topic_index = event.payload.index
-        else: state.active_topic_index = None
+def handle_mark_agenda_item(
+    state: SessionLiveState, event: schemas.MarkAgendaItemEvent, actor: SessionActor
+) -> SessionLiveState:
+    if event.payload.discussed != None:
+        state.agenda_topics[
+            event.payload.index
+        ].already_discussed = event.payload.discussed
+    if event.payload.indiscussion != None:
+        if event.payload.indiscussion:
+            state.active_topic_index = event.payload.index
+        else:
+            state.active_topic_index = None
     return state
 
-def handle_set_agenda_item(state: SessionLiveState, event: schemas.SetAgendaItemEvent, actor: SessionActor
+
+def handle_set_agenda_item(
+    state: SessionLiveState, event: schemas.SetAgendaItemEvent, actor: SessionActor
 ) -> SessionLiveState:
-    item = AgendaItem(index=event.payload.index,
-                      topic=event.payload.topic,
-                      already_discussed=False)
+    item = AgendaItem(
+        index=event.payload.index, topic=event.payload.topic, already_discussed=False
+    )
     state.agenda_topics[event.payload.index] = item
     return state
-    
 
-def handle_delete_agenda_item(state: SessionLiveState, event: schemas.DeleteAgendaItemEvent, actor: SessionActor
+
+def handle_delete_agenda_item(
+    state: SessionLiveState, event: schemas.DeleteAgendaItemEvent, actor: SessionActor
 ) -> SessionLiveState:
 
     state.agenda_topics.pop(event.payload.index)
 
-    if(state.active_topic_index == event.payload.index): state.active_topic_index = None
+    if state.active_topic_index == event.payload.index:
+        state.active_topic_index = None
     return state
+
 
 def handle_manual_phase_set(
     state: SessionLiveState, event: schemas.SetPhaseEvent, actor: SessionActor
@@ -691,9 +703,13 @@ def handle_choose_speaker(
     require_chair(actor)
 
     seconds = event.payload.seconds or get_default_speaker_seconds(state)
-    if event.payload.speaker_id == None and state.current_state in (States.OPEN_GSL, States.CLOSED_GSL) and state.gsl_queue:
+    if (
+        event.payload.speaker_id == None
+        and state.current_state in (States.OPEN_GSL, States.CLOSED_GSL)
+        and state.gsl_queue
+    ):
         state.current_speaker = state.gsl_queue.pop(0)
-    else: 
+    else:
         state.current_speaker = event.payload.speaker_id
 
     state.timer_is_running = False
@@ -768,6 +784,7 @@ def handle_insert_queue(
         raise InvalidProceduralMove("Delegate not found")
     state.gsl_queue.append(delegate.id)
     return state
+
 
 # Signature for events/handlers, uses legacy(ish) 3.11 TypeAlias
 EventHandler: TypeAlias = Callable[
