@@ -320,6 +320,7 @@ export default function CommitteeManagement() {
     []
   )
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- React Compiler is not enabled; TanStack Table's mutable table API is intentional.
   const table = useReactTable({
     data: committees,
     columns,

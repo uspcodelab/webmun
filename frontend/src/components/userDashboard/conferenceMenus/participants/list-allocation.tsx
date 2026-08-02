@@ -231,6 +231,7 @@ export default function ParticipantListAllocation() {
 		[updateParticipant]
 	)
 
+	// eslint-disable-next-line react-hooks/incompatible-library -- React Compiler is not enabled; TanStack Table's mutable table API is intentional.
 	const table = useReactTable({
 		data: participants,
 		columns,

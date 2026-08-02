@@ -90,10 +90,6 @@ function ColorPickerField({
 }) {
   const [draftColor, setDraftColor] = React.useState(color)
 
-  React.useEffect(() => {
-    setDraftColor(color)
-  }, [color])
-
   return (
     <div className="grid gap-2 sm:col-span-2">
       <Label>{label}</Label>

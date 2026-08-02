@@ -7,12 +7,10 @@ import Home from './pages/Home';
 import Pricing from './pages/Info Pages/Pricing';
 import OurTeam from './pages/Info Pages/OurTeam';
 import ContactUs from './pages/Info Pages/Contact-us';
-import LoginPage from './pages/Login_page';
 import SignupPage from './pages/Signup';
 import UserDash from './pages/UserDashboard';
 import DashHome from './components/userDashboard/dash-home.tsx';
 import CreateCommittee from './pages/CreateCommittee';
-import SessionPage from './pages/Session';
 import BasicInfo from './components/userDashboard/conferenceMenus/about/conference-basic-info.tsx';
 
 
