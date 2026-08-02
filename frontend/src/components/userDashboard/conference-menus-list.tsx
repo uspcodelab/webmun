@@ -121,7 +121,7 @@ export function ConferenceMenus() {
                     isActive={pathname === "/dashboard/conference/team/teams-management"}
                   >
                     <Link to="/dashboard/conference/team/teams-management">
-                      <span>Configurar Equipes e Permissões</span>
+                      <span>Equipes e Permissões</span>
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
@@ -132,7 +132,7 @@ export function ConferenceMenus() {
                     isActive={pathname === "/dashboard/conference/team/onboarding"}
                   >
                     <Link to="/dashboard/conference/team/onboarding">
-                      <span>Adicionar e Alocaçar membros</span>
+                      <span>Adicionar e Alocar</span>
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
