@@ -54,7 +54,8 @@ Authenticated HTTP requests use that token as a Bearer token, while the
 session WebSocket sends it after connecting. Route guards improve navigation, but the backend is still responsible for authorization.
 
 For a fuller guide on these conventions, see
-[Frontend development](frontend-development.md).
+[Frontend state management](frontend/state-management.md) and
+[Frontend authentication](frontend/authentication.md).
 
 ## The backend
 
@@ -134,6 +135,7 @@ When in doubt, follow the direction of dependencies: views call services, and se
 
 - [Getting started](getting-started.md) explains how to run the application
   locally.
-- [Authentication](authentication.md) will cover the frontend Supabase Auth
-  flow and backend identity checks.
-- [Real-time sessions](realtime-sessions.md) will describe session events, payloads, and state snapshots in detail.
+- [Authentication and authorization](backend/authentication-and-authorization.md)
+  covers Supabase Auth and backend identity checks.
+- [MUN committee flow and technical approach](realtime/mun-flow.md) maps the
+  committee procedure to the state machine, events, and snapshots.

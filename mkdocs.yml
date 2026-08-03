@@ -17,5 +17,6 @@ nav:
   - Architecture: architecture.md
   - Real-time:
       - Overview: realtime/overview.md
+      - MUN committee flow: realtime/mun-flow.md
       - Events and payloads: realtime/events-and-payloads.md
       - Session state: realtime/session-state.md
