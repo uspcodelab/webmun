@@ -29,6 +29,10 @@ services:
       watch:
         - action: restart
           path: ./backend/app/session/schemas.py
+        - action: restart
+          path: ./backend/app/session/models.py
+        - action: restart
+          path: ./backend/app/session/enums.py
 
   backend:
     build:
@@ -50,12 +54,6 @@ services:
       retries: 3
       start_period: 50s
       start_interval: 1s
-    develop:
-      watch:
-        - action: restart
-          path: ./backend/app/session/schemas.py
-        - action: restart
-          path: ./backend/app/session/models.py
 
 volumes:
   packages:
