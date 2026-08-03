@@ -834,7 +834,7 @@ export type SessionRepresentation = {
 /**
  * SessionRoles
  */
-export const SessionRoles = { CHAIR: 'chair', DELEGATION: 'delegation' } as const;
+export const SessionRoles = { CHAIR: 'chair', DELEGATE: 'delegate' } as const;
 
 /**
  * SessionRoles

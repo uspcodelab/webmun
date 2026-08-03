@@ -2,4 +2,4 @@ from enum import StrEnum
 
 class SessionRoles(StrEnum):
     CHAIR = "chair"
-    DELEGATION = "delegation"
+    DELEGATION = "delegate"
