@@ -57,7 +57,7 @@ class QuestionContext(BaseModel):
 
 
 class VotingContext(BaseModel):
-    target_type: Literal["PROCEDURAL", "SUBSTANTIVE", "INFORMAL"]
+    target_type: enums.VotingType
     motion_in_vote: MotionContext | None = None
     title: str | None = None
     return_state: enums.States

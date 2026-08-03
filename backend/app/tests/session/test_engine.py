@@ -119,7 +119,7 @@ def open_informal_voting_event() -> sch.OpenInformalVotingEvent:
 def close_informal_voting_event() -> sch.CloseInformalVotingEvent:
     return sch.CloseInformalVotingEvent(
         type=enums.ChairEvents.CLOSE_INFORMAL_VOTING,
-        payload=sch.ChairCloseInformalVotingPayload(),
+        payload=sch.EmptyPayload(),
     )
 
 
