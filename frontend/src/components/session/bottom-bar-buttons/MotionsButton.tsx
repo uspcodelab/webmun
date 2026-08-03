@@ -40,8 +40,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { States } from "@/schemas/types.gen"
-
-const isChair = true // Replace with actual logic to determine if the user is the chair
+import { useSession } from "@/context/SessionContext"
+import { SessionRoles } from "@/schemas/types.gen"
 
 const motions = [
   "Moção para Adiamento de Sessão",
@@ -89,6 +89,10 @@ function QuestionsMotionsList(type: MotionKind) {
 }
 
 export default function TestButton() {
+
+  const {role} = useSession()
+  const isChair = role===SessionRoles.CHAIR
+
   const currentState = useCommitteeStore((state) => state.current_state)
   const [motionKind, setMotionKind] = useState<MotionKind>("moção")
   const [selectedMotion, setSelectedMotion] = useState("")

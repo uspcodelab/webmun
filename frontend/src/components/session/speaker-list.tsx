@@ -15,14 +15,18 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { sendMessage } from "@/pages/Session"
+import { sendMessage } from "@/context/SessionContext"
 import { type SpeakerEvent, ChairEvents } from "@/schemas/types.gen"
+import { useSession } from "@/context/SessionContext"
+import { SessionRoles } from "@/schemas/types.gen"
 
-const isChair = true // Replace with actual logic to determine if the user is the chair
 const isAlredyInQueue = true // Replace with actual logic to determine if the user is already in the queue
 //TODO determine if queue is open, if not obscure the button and show a message that the queue is closed
 
 export default function SpeakerList() {
+
+    const {role} = useSession()
+    const isChair = role===SessionRoles.CHAIR
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
     const delegationsById = useCommitteeStore((state) => state.delegations)

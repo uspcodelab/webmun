@@ -8,16 +8,18 @@ from app.auth.service import AuthUser
 from app.core.database import get_db_session
 
 from .service import AccessDenied, resolve_session_assignment
+from .schemas import SessionRepresentation
 
 router = APIRouter()
 
 
-@router.get("/sessions/{session_id}/me")
+
+@router.get("/sessions/{session_id}/me", response_model=SessionRepresentation)
 async def get_my_session_access(
     session_id: int,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-):
+)->SessionRepresentation:
     """Return the authenticated user's actor context for a session."""
     try:
         assignment = await resolve_session_assignment(
@@ -32,4 +34,4 @@ async def get_my_session_access(
     return {
         "role": assignment.role,
         "representation_id": assignment.representation_id,
-    }
+    } 

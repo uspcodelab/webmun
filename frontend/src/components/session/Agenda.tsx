@@ -1,6 +1,6 @@
-import { sendMessage } from "@/pages/Session"
+import { sendMessage, useSession } from "@/context/SessionContext"
 import type {SetAgendaItemEvent, MarkAgendaItemEvent, DeleteAgendaItemEvent} from "@/schemas/types.gen"
-import {ChairEvents } from "@/schemas/types.gen"
+import {ChairEvents, SessionRoles } from "@/schemas/types.gen"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -31,8 +31,8 @@ import { useRef } from "react"
 
 export default function Agenda() {
 
-    const isChair = true // Replace with actual logic to determine if the user is the chair
-
+    const {role} = useSession()
+    const isChair = role===SessionRoles.CHAIR
     const agendaTopics = useCommitteeStore((state) => state.agenda_topics)
 
     const numinput = useRef<HTMLInputElement>(null)

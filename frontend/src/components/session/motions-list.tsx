@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/item"
 import { Badge } from "@/components/ui/badge"
 import Flags from "@/components/ui/flags"
+import { useSession } from "@/context/SessionContext"
+import { SessionRoles } from "@/schemas/types.gen"
 
 export type Motion = {
     id: string
@@ -26,9 +28,11 @@ type MotionsListProps = {
     motions: Motion[]
 }
 
-const isChair = true// Replace with actual logic to determine if the user is the chair
 
 export default function MotionsList({ motions }: MotionsListProps) {
+    const {role} = useSession()
+    const isChair = role===SessionRoles.CHAIR
+
     const toMinutes = (time: string): number => {
         const [hours, minutes] = time.split(":").map(Number)
         if (Number.isNaN(hours) || Number.isNaN(minutes)) {

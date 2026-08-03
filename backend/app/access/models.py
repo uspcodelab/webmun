@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
-
+from . import enums
 
 @dataclass(frozen=True)
 class CommitteeAssignment:
@@ -9,5 +9,5 @@ class CommitteeAssignment:
 
     user_id: UUID
     committee_id: int  # TODO: remove this to map out to committees/conferences
-    role: Literal["chair", "delegate"]
+    role: enums.SessionRoles
     representation_id: int | None

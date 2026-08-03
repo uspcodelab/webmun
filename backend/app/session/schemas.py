@@ -35,16 +35,7 @@ class DelegateQuestionPayload(BaseModel):
 
 
 class DelegateVotingPayload(BaseModel):
-    # other types of voting must be put in here
-    type: Literal[
-        "FORMAL",
-        "INFORMAL",
-    ]  # perhaps not needed
-    motion_id: int | None = (
-        None  # perhaps not needed, unless we pass the voting context to UI to validate?
-    )
-    title: str | None = None  # perhaps not needed
-    vote: Literal["FAVOUR", "AGAINST", "ABSTAIN"]
+    vote: enums.VotingChoice
 
 
 # TODO: should be better implemented
@@ -108,13 +99,13 @@ class ChairToggleTimerPayload(BaseModel):
 class ChairOpenInformalVotingPayload(BaseModel):
     # For informal Votings
     title: str | None = None
-    majority: Literal["SIMPLE", "QUALIFIED", "ABSOLUTE"]
+    majority: enums.MajorityTypes
     veto_power: bool
 
 
 class ChairResolveMotionPayload(BaseModel):
     motion_id: int  # or motion_id if possible
-    action: Literal["ACCEPT", "DENY"]
+    action: bool
 
 
 class ChairForceSpeakerPayload(BaseModel):
@@ -148,10 +139,10 @@ class MarkAgendaItemPayload(BaseModel):
 class DeleteAgendaItemPayload(BaseModel):
     index: str  # Agenda Item Id
 
-
+#Removed: Unnecessary
 # These two normally don't need to have an id
-class ChairCloseInformalVotingPayload(BaseModel):
-    voting_id: int | None = None
+# class ChairCloseInformalVotingPayload(BaseModel):
+#   voting_id: int | None = None
 
 
 class EmptyPayload(BaseModel): ...
@@ -214,7 +205,7 @@ class SetPhaseEvent(BaseModel):
 
 class CloseInformalVotingEvent(BaseModel):
     type: Literal[enums.ChairEvents.CLOSE_INFORMAL_VOTING]
-    payload: ChairCloseInformalVotingPayload
+    payload: EmptyPayload
 
 
 class CloseProceduralVotingEvent(BaseModel):
