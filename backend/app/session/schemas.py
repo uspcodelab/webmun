@@ -128,11 +128,6 @@ class MarkAgendaItemPayload(BaseModel):
 class DeleteAgendaItemPayload(BaseModel):
     index: str  # Agenda Item Id
 
-#Removed: Unnecessary
-# These two normally don't need to have an id
-# class ChairCloseInformalVotingPayload(BaseModel):
-#   voting_id: int | None = None
-
 
 class EmptyPayload(BaseModel): ...
 

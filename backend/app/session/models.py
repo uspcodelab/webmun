@@ -2,7 +2,6 @@
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel
 
