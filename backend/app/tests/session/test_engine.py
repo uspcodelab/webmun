@@ -637,6 +637,19 @@ def test_delegate_cannot_close_procedural_vote(
             delegate_actor,
         )
 
+@pytest.mark.xfail
+def test_tally_votes_correctly_marks_success_simple(
+
+) -> None:
+    assert True == False
+
+
+@pytest.mark.xfail
+def test_tally_votes_correctly_marks_fail_majority(
+
+) -> None:
+    assert True == False
+
 
 def test_chair_can_choose_speaker(
     engine: eng.SessionEngine,

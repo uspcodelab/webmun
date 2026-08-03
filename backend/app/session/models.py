@@ -139,3 +139,7 @@ class SessionLiveState(BaseModel):
     voting_choice: dict[int, enums.RollCallChoice] | None = None  # DelegationId as key
 
     roll_call: RollCallContext  # Not None, even if registry is empty
+
+    # Additional config
+    has_veto_power: bool = False 
+    
