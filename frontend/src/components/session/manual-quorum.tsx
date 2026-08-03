@@ -12,7 +12,7 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { sendMessage } from "@/pages/Session"
+import { sendMessage } from "@/context/SessionContext"
 import {
     Item,
     ItemContent,

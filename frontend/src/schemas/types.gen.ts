@@ -66,16 +66,6 @@ export type CastVoteEvent = {
 };
 
 /**
- * ChairCloseInformalVotingPayload
- */
-export type ChairCloseInformalVotingPayload = {
-    /**
-     * Voting Id
-     */
-    voting_id?: number | null;
-};
-
-/**
  * ChairEvents
  */
 export const ChairEvents = {
@@ -157,10 +147,7 @@ export type ChairOpenInformalVotingPayload = {
      * Title
      */
     title?: string | null;
-    /**
-     * Majority
-     */
-    majority: 'SIMPLE' | 'QUALIFIED' | 'ABSOLUTE';
+    majority: MajorityTypes;
     /**
      * Veto Power
      */
@@ -178,7 +165,7 @@ export type ChairResolveMotionPayload = {
     /**
      * Action
      */
-    action: 'ACCEPT' | 'DENY';
+    action: boolean;
 };
 
 /**
@@ -237,7 +224,7 @@ export type CloseInformalVotingEvent = {
      * Type
      */
     type: 'CloseInformalVotingEvent';
-    payload: ChairCloseInformalVotingPayload;
+    payload: EmptyPayload;
 };
 
 /**
@@ -381,22 +368,7 @@ export type DelegateQuestionPayload = {
  * DelegateVotingPayload
  */
 export type DelegateVotingPayload = {
-    /**
-     * Type
-     */
-    type: 'FORMAL' | 'INFORMAL';
-    /**
-     * Motion Id
-     */
-    motion_id?: number | null;
-    /**
-     * Title
-     */
-    title?: string | null;
-    /**
-     * Vote
-     */
-    vote: 'FAVOUR' | 'AGAINST' | 'ABSTAIN';
+    vote: VotingChoice;
 };
 
 /**
@@ -501,6 +473,20 @@ export type LeaveQueueEvent = {
         [key: string]: unknown;
     };
 };
+
+/**
+ * MajorityTypes
+ */
+export const MajorityTypes = {
+    MAIORIA_SIMPLES: 'Maioria Simples',
+    MAIORIA_QUALIFICADA: 'Maioria Qualificada',
+    CONSENSO: 'Consenso'
+} as const;
+
+/**
+ * MajorityTypes
+ */
+export type MajorityTypes = typeof MajorityTypes[keyof typeof MajorityTypes];
 
 /**
  * MarkAgendaItemEvent
@@ -835,6 +821,27 @@ export type SessionLiveState = {
 };
 
 /**
+ * SessionRepresentation
+ */
+export type SessionRepresentation = {
+    role: SessionRoles;
+    /**
+     * Representation Id
+     */
+    representation_id: number | null;
+};
+
+/**
+ * SessionRoles
+ */
+export const SessionRoles = { CHAIR: 'chair', DELEGATION: 'delegation' } as const;
+
+/**
+ * SessionRoles
+ */
+export type SessionRoles = typeof SessionRoles[keyof typeof SessionRoles];
+
+/**
  * SetAgendaEvent
  */
 export type SetAgendaEvent = {
@@ -977,13 +984,24 @@ export type ValidationError = {
 };
 
 /**
+ * VotingChoice
+ */
+export const VotingChoice = {
+    FAVOUR: 'Favour',
+    AGAINST: 'Against',
+    ABSTAIN: 'Abstain'
+} as const;
+
+/**
+ * VotingChoice
+ */
+export type VotingChoice = typeof VotingChoice[keyof typeof VotingChoice];
+
+/**
  * VotingContext
  */
 export type VotingContext = {
-    /**
-     * Target Type
-     */
-    target_type: 'PROCEDURAL' | 'SUBSTANTIVE' | 'INFORMAL';
+    target_type: VotingType;
     motion_in_vote?: MotionContext | null;
     /**
      * Title
@@ -994,17 +1012,28 @@ export type VotingContext = {
      * Voting Registry
      */
     voting_registry?: {
-        [key: string]: 'FAVOUR' | 'AGAINST' | 'ABSTAIN';
+        [key: string]: VotingChoice;
     };
-    /**
-     * Majority
-     */
-    majority: 'SIMPLE' | 'QUALIFIED' | 'ABSOLUTE';
+    majority: MajorityTypes;
     /**
      * Veto Power
      */
     veto_power: boolean;
 };
+
+/**
+ * VotingType
+ */
+export const VotingType = {
+    INFORMAL: 'Informal',
+    PROCEDURAL: 'Procedural',
+    SUBSTANTIVE: 'Substantive'
+} as const;
+
+/**
+ * VotingType
+ */
+export type VotingType = typeof VotingType[keyof typeof VotingType];
 
 export type DummyCommitteesDummyGetData = {
     body: BodyDummyCommitteesDummyGet;
@@ -1121,5 +1150,7 @@ export type GetMySessionAccessAccessSessionsSessionIdMeGetResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: SessionRepresentation;
 };
+
+export type GetMySessionAccessAccessSessionsSessionIdMeGetResponse = GetMySessionAccessAccessSessionsSessionIdMeGetResponses[keyof GetMySessionAccessAccessSessionsSessionIdMeGetResponses];

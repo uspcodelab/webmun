@@ -14,11 +14,15 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useSession } from "@/context/SessionContext"
+import { SessionRoles } from "@/schemas/types.gen"
 
-const isChair = true // Replace with actual logic to determine if the user is the chair
 //TODO determine if queue is open, if not obscure the button and show a message that the queue is closed
 
 export default function ModeratedDebate() {
+
+    const {role} = useSession()
+    const isChair = role===SessionRoles.CHAIR
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
     const delegationsById = useCommitteeStore((state) => state.delegations)

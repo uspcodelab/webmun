@@ -1,4 +1,4 @@
-import { sendMessage } from "@/pages/Session"
+import { sendMessage } from "@/context/SessionContext"
 import type {SetAgendaItemEvent, MarkAgendaItemEvent, DeleteAgendaItemEvent} from "@/schemas/types.gen"
 import {ChairEvents } from "@/schemas/types.gen"
 import { Button } from "@/components/ui/button"

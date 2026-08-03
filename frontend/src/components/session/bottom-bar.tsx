@@ -6,12 +6,14 @@ import SessionButton from "./bottom-bar-buttons/SessionButton"
 import ExitButton from "./bottom-bar-buttons/ExitButton"
 import BRBButton from "./bottom-bar-buttons/BRB"
 import IncidentHelp from "./bottom-bar-buttons/IncidentHelp"
-
-const isChair = true // Replace with actual logic to determine if the user is the chair
+import { useSession } from "@/context/SessionContext"
+import { SessionRoles } from "@/schemas/types.gen"
 
 
 export default function BottomBar() {
     
+    const {role} = useSession()
+    const isChair = role===SessionRoles.CHAIR
 
     return (
         <>

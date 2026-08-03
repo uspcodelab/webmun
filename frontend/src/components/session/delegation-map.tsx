@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/context-menu"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { CircleFlag } from 'react-circle-flags'
-import { sendMessage } from "@/pages/Session"
+import { sendMessage } from "@/context/SessionContext"
 import { type ChairInsertQueueEvent, type MarkRollCallEvent, type SpeakerEvent , ChairEvents, RollCallChoice } from "@/schemas/types.gen"
 import {
     Tooltip,

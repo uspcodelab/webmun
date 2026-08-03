@@ -3,14 +3,16 @@ import { Separator } from "@/components/ui/separator"
 import { Flag, Pause, Plus, Play } from "lucide-react"
 import Flags from "@/components/ui/flags"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
-import { sendMessage } from "@/pages/Session"
+import { sendMessage } from "@/context/SessionContext"
 import { type IncreaseTimerEvent, type ToggleTimerEvent, ChairEvents } from "@/schemas/types.gen"
 import { useEffect, useState } from "react"
-
-const isChair = true // Replace with actual logic to determine if the user is the chair
+import { useSession } from "@/context/SessionContext"
+import { SessionRoles } from "@/schemas/types.gen"
 
 export default function Timer() {
 
+    const {role} = useSession()
+    const isChair = role===SessionRoles.CHAIR
     const delegations = useCommitteeStore((state) => state.delegations);
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker);
     const speaker = currentSpeaker !== null && currentSpeaker !== undefined ? delegations[currentSpeaker] : {

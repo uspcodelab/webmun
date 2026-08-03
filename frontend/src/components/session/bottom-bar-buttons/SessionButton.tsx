@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select"
 import ManualQuorum from "@/components/session/manual-quorum"
 import { RollCallChoice, ChairEvents, States, type CloseRollCallEvent, type CloseSessionEvent, type OpenSessionEvent } from "@/schemas/types.gen"
-import { sendMessage } from "@/pages/Session"
+import { sendMessage } from "@/context/SessionContext"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 
 
