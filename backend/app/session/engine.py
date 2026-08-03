@@ -39,7 +39,6 @@ This will document the flow of states the debates will have. As well as document
 Creating a committee should assign a chair as it's admin. Only Secretariats can create a session for a committee
 
 OPEN_SESSION / SETUP: setup state. Websockets are already made, thus possible events are 
-- ChooseDelegation: made from Delegates from a list of possible ones (so a list of possible delegations should be present either in server/frontend)
 - EditSetup: chair edits setup such as:
     - extends session: (extends an already made session, or unpause session?)
     - speaking_time
@@ -48,7 +47,6 @@ OPEN_SESSION / SETUP: setup state. Websockets are already made, thus possible ev
     - topics
     - may be skipped during initial testings
 
-ChooseDelegation should not be possible anymore (at least not for now)
 
 ROLL_CALL: roll call/ quorum count state. Possible events are:
     - SetVotingChoiceEvent: by Delegate 
@@ -325,12 +323,6 @@ def handle_cast_vote(
     voting_context.voting_registry[delegate.id] = event.payload.vote
 
     return state
-
-
-# TODO: remove this
-def handle_choose_delegation(
-    state: SessionLiveState, event: schemas.ChooseDelegateEvent, actor: SessionActor
-) -> SessionLiveState: ...
 
 
 def handle_answer_roll_call(

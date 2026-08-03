@@ -30,7 +30,6 @@ class DelegateEvents(StrEnum):
     JOIN_QUEUE = "JoinQueueEvent"
     LEAVE_QUEUE = "LeaveQueueEvent"
     CAST_VOTE = "CastVoteEvent"
-    CHOOSE_DELEGATION = "ChooseDelegateEvent"
     YIELD_SPEAKING = "YieldEvent"
     ANSWER_ROLLCALL = "AnswerRollCallEvent"
 

@@ -38,11 +38,6 @@ class DelegateVotingPayload(BaseModel):
     vote: enums.VotingChoice
 
 
-# TODO: should be better implemented
-class ChooseDelegatePayload(BaseModel):
-    choice: str
-
-
 # TODO: have a separate AbsentMyselfEvent for this thing here
 class AnswerRollCallPayload(BaseModel):
     choice: Literal[
@@ -64,12 +59,6 @@ class SubmitQuestionEvent(BaseModel):
 class CastVoteEvent(BaseModel):
     type: Literal[enums.DelegateEvents.CAST_VOTE]
     payload: DelegateVotingPayload
-
-
-# TODO: should be better implemented
-class ChooseDelegateEvent(BaseModel):
-    type: Literal[enums.DelegateEvents.CHOOSE_DELEGATION]
-    payload: ChooseDelegatePayload
 
 
 class JoinQueueEvent(BaseModel):
@@ -253,7 +242,6 @@ SessionEvent = Annotated[
     SubmitMotionEvent
     | SubmitQuestionEvent
     | CastVoteEvent
-    | ChooseDelegateEvent
     | AnswerRollCallEvent
     | JoinQueueEvent
     | LeaveQueueEvent
