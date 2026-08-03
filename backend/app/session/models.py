@@ -7,6 +7,8 @@ from pydantic import BaseModel
 
 import app.session.enums as enums
 
+from uuid import UUID
+
 
 @dataclass(frozen=True)
 class StoredSession:
@@ -28,6 +30,7 @@ class DelegationContext(BaseModel):
 
 
 class SessionActor(BaseModel):
+    user_id: UUID
     role: enums.SessionRole
     display_name: str = "Placeholder"
     delegation: DelegationContext | None = None

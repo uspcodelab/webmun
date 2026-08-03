@@ -5,6 +5,7 @@
 import logging
 from dataclasses import replace
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,6 +42,7 @@ class SessionUpdateError(Exception):
 
 
 def build_actor(
+    user_id: UUID,
     manager: ConnectionManager,
     session_id: int,
     role: enums.SessionRole,
@@ -49,6 +51,7 @@ def build_actor(
 
     if role == enums.SessionRole.CHAIR:
         return SessionActor(
+            user_id=user_id,
             role=enums.SessionRole.CHAIR,
             display_name="Chair",
         )
@@ -65,6 +68,7 @@ def build_actor(
             raise ActorResolutionError("delegation not found")
 
         return SessionActor(
+            user_id=user_id,
             role=enums.SessionRole.DELEGATE,
             delegation=DelegationContext(
                 id=delegation.id,
@@ -189,6 +193,7 @@ async def prepare_session_connect(
         manager.active_connections.setdefault(committee_session_id, {})
 
     actor = build_actor(
+        user_id=assignment.user_id,
         manager=manager,
         session_id=committee_session_id,
         role=enums.SessionRole(assignment.role.upper()),
