@@ -33,55 +33,6 @@ class InvalidProceduralMove(Exception):
     pass
 
 
-"""
-This will document the flow of states the debates will have. As well as document an initial engine 
-
-Creating a committee should assign a chair as it's admin. Only Secretariats can create a session for a committee
-
-OPEN_SESSION / SETUP: setup state. Websockets are already made, thus possible events are 
-- EditSetup: chair edits setup such as:
-    - extends session: (extends an already made session, or unpause session?)
-    - speaking_time
-    - can_set_motions (during specific debates)
-    - default_state (either GSL or Moderated, should be put later)
-    - topics
-    - may be skipped during initial testings
-
-
-ROLL_CALL: roll call/ quorum count state. Possible events are:
-    - SetVotingChoiceEvent: by Delegate 
-    - QuestionEvent
-    - Any Chair Event: since most are disruptive
-
-To user, INITIAL_DEBATE and OPEN_GSL should look mostly the same
-INITIAL_DEBATE: after roll call, if no agenda is set and/or no speaking time for GSL is set, go to this state. It's an initial speakers list. Possible events are: 
-    - Motions: subset - (POSTPONE, END, QUORUM, SETSPEAKINGTIME) 
-    - Special action: "Propose Topics"
-    - QuestionEvent
-    - Any Chair Event
-    - CastInformalVoteEvent 
-Queue should not be open to speak. Delegates may only speak in motions
-
-OPEN_GSL: default state in general. Queue is open and all motions can be made. The topic is defaulted to the first one in the order of agenda_topics and index_topic.
-    - In particular, YieldEvent must be enabled and configured.
-
-Specific Debates: (Moderated, Unmoderated, Tour) Queue not enabled. Each delegation should raise their placard and popups a "selection" on map
-    - Motions may only be put if set_motions is enabled.
-    - In particular, Unmoderated should not have a queue/motions enabled at all, but this may be implemented later 
-
-VOTING_EXECUTION: Voting on a procedural motion.
-
-CLOSED_GSL: after a successfull 'Close Speakers List'. Queue is disabled.
-
-VOTING_PREPARATION: ambiguous state after an "close debate" has either entered as a motion, or "move into voting procedures". Perhaps doesnt need to be added?
-
-VOTING_PROCEDURES: special case of voting on resolutions, etc. Substantive votes.
-
-FINISHED: when topics get empty automatically, or chair decides to close session. may be reverted.
-
-This will give some insight into what should or should not be possible during each event
-"""
-
 # Dispatch tables: alternative to if else chains
 MOTIONS_ALLOWED: dict[States, set[Motions]] = {
     States.INITIAL_DEBATE: {
@@ -176,10 +127,39 @@ def validate_question_payload(
 def tally_votes(voting: VotingContext) -> bool: ...
 
 
-def get_motion_priority(motion: Motions) -> int: ...
+def get_motion_priority(motion: Motions) -> int | None:
+    """Given a motion, return it's priority.
+    Some motions are tied. Ex: Change Debate and Tour de Table"""
+    priority_map = {
+        Motions.POSTPONE_SESSION: 1,
+        Motions.REOPEN_SESSION: 2,
+        Motions.CHANGE_DEBATE_TYPE: 3,
+        Motions.TOUR_DE_TABLE: 3,
+        Motions.END_DEBATE: 4,
+        Motions.VOTE_AMENDMENT: 4,
+        Motions.CLOSE_SPEAKERS_LIST: 5,
+        Motions.REOPEN_SPEAKERS_LIST: 5,
+        Motions.SPLIT_PROPOSAL: 6,
+        Motions.INTRODUCE_RESOLUTION_PROPOSAL: 7,
+        Motions.INTRODUCE_AMENDMENT_PROPOSAL: 8,
+        Motions.VOTE_BY_ROLL_CALL: 9,
+        Motions.QUORUM: 10,
+        Motions.CHANGE_TOPIC: 11,
+        Motions.CUSTOM_MOTION: 12,
+    }
+
+    return priority_map.get(motion)
 
 
-def get_question_priority(question: Questions) -> int: ...
+def get_question_priority(question: Questions) -> int | None:
+    """Given a question, return it's priority"""
+    priority_map = {
+        Questions.PERSONAL_PRIVILEGE: 1,
+        Questions.ORDER: 2,
+        Questions.QUESTION: 3,
+    }
+
+    return priority_map.get(question)
 
 
 def get_default_speaker_seconds(state: SessionLiveState) -> int | None:
@@ -788,7 +768,6 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     DelegateEvents.JOIN_QUEUE: handle_join_queue,
     DelegateEvents.LEAVE_QUEUE: handle_leave_queue,
     DelegateEvents.CAST_VOTE: handle_cast_vote,
-    DelegateEvents.CHOOSE_DELEGATION: handle_choose_delegation,
     DelegateEvents.ANSWER_ROLLCALL: handle_answer_roll_call,
     ChairEvents.OPEN_SESSION: handle_open_session,
     ChairEvents.INCREASE_TIMER: handle_increase_timer,
