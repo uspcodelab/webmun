@@ -1,11 +1,11 @@
 # where engine lives
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from math import ceil
 from typing import Any, TypeAlias
 
 import app.session.enums as enums
 import app.session.schemas as schemas
-from math import ceil
 
 from .enums import (
     ChairEvents,
@@ -122,8 +122,7 @@ def validate_motion_payload(
 
 def validate_question_payload(
     payload: schemas.DelegateQuestionPayload, state: SessionLiveState
-) -> None:
-    ...
+) -> None: ...
 
 
 def count_present_delegations(state: SessionLiveState) -> int:
@@ -133,31 +132,42 @@ def count_present_delegations(state: SessionLiveState) -> int:
     if state.voting_choice is None:
         return 0
 
-    return len([True for _, vote in state.voting_choice.items() 
-        if vote == enums.RollCallChoice.PRESENT 
-        or vote == enums.RollCallChoice.PRESENT_AND_VOTING])
+    return len(
+        [
+            True
+            for _, vote in state.voting_choice.items()
+            if vote == enums.RollCallChoice.PRESENT
+            or vote == enums.RollCallChoice.PRESENT_AND_VOTING
+        ]
+    )
 
 
 def tally_votes(voting: VotingContext, total_presents: int) -> bool:
-    qualified_motions =(
-        Motions.POSTPONE_SESSION, Motions.CHANGE_DEBATE_TYPE, 
-        Motions.TOUR_DE_TABLE, Motions.CLOSE_SPEAKERS_LIST, 
-        Motions.SPLIT_PROPOSAL
+    qualified_motions = (
+        Motions.POSTPONE_SESSION,
+        Motions.CHANGE_DEBATE_TYPE,
+        Motions.TOUR_DE_TABLE,
+        Motions.CLOSE_SPEAKERS_LIST,
+        Motions.SPLIT_PROPOSAL,
     )
     """Helper for computing votes. 
     Unless motion is explicitly requiring qualified majority,
     will use simple majority (also counts for informal votes)"""
- 
+
     simple = ceil(total_presents / 2)
     qualified = ceil(0.66 * total_presents)
-    in_favor_count = len([True 
-        for _, vote in voting.voting_registry.items() 
-        if vote == enums.VotingChoice.FAVOUR])
+    in_favor_count = len(
+        [
+            True
+            for _, vote in voting.voting_registry.items()
+            if vote == enums.VotingChoice.FAVOUR
+        ]
+    )
     motion = voting.motion_in_vote
-    
+
     if motion is None:
         return in_favor_count >= simple
-    
+
     # Use qualified majority for "important" motions
     if motion.type in qualified_motions and in_favor_count >= qualified:
         return True
@@ -172,7 +182,6 @@ def get_motion_priority(motion: Motions) -> int | None:
     Some motions are tied. Ex: Change Debate and Tour de Table"""
     priority_map = {
         Motions.POSTPONE_SESSION: 1,
-    
         Motions.REOPEN_SESSION: 2,
         Motions.CHANGE_DEBATE_TYPE: 3,
         Motions.TOUR_DE_TABLE: 3,

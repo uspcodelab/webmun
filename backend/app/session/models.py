@@ -141,5 +141,4 @@ class SessionLiveState(BaseModel):
     roll_call: RollCallContext  # Not None, even if registry is empty
 
     # Additional config
-    has_veto_power: bool = False 
-    
+    has_veto_power: bool = False
