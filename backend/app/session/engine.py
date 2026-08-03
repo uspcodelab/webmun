@@ -71,9 +71,6 @@ Specific Debates: (Moderated, Unmoderated, Tour) Queue not enabled. Each delegat
     - Motions may only be put if set_motions is enabled.
     - In particular, Unmoderated should not have a queue/motions enabled at all, but this may be implemented later 
 
-BETWEEN_DEBATES: After each speak (From moderated or GSL), this temporary state (for up to 15 seconds) is enabled so chair can ask for new motions and check submitted ones. It should go into OPEN_GSL or MODERATED_CAUCUS, depending on which state is there
--> may not be needed if Chair controls the timer
-
 VOTING_EXECUTION: Voting on a procedural motion.
 
 CLOSED_GSL: after a successfull 'Close Speakers List'. Queue is disabled.

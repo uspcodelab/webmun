@@ -1,28 +1,46 @@
-
-
 import { Link } from "react-router-dom"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 
 const footerLinkGroups = [
     {
         title: "Sobre Nós",
-        items: ["Equipe", "Nossa História", "Imprensa"],
+        items: [
+            { label: "Equipe", to: "/our-team" },
+            { label: "Nossa História", to: "/our-team" },
+            { label: "Imprensa", to: "/contact-us" },
+        ],
     },
     {
         title: "O Produto",
-        items: ["Documentação", "Preços", "Changelog", "Repositório GitHub"],
+        items: [
+            { label: "Documentação", to: "/dashboard" },
+            { label: "Preços", to: "/pricing" },
+            { label: "Changelog", to: "/dashboard" },
+            { label: "Repositório GitHub", href: "https://github.com" },
+        ],
     },
     {
         title: "Contato",
-        items: ["Duvidas", "Suporte", "Seja nosso parceiro"],
+        items: [
+            { label: "Duvidas", to: "/contact-us" },
+            { label: "Suporte", to: "/contact-us" },
+            { label: "Seja nosso parceiro", to: "/contact-us" },
+        ],
     },
     {
         title: "Redes Sociais",
-        items: ["Instagram", "Twitter", "LinkedIn", "TikTok", "YouTube"],
+        items: [
+            { label: "Instagram", href: "https://instagram.com" },
+            { label: "Twitter", href: "https://x.com" },
+            { label: "LinkedIn", href: "https://linkedin.com" },
+            { label: "TikTok", href: "https://tiktok.com" },
+            { label: "YouTube", href: "https://youtube.com" },
+        ],
     },
 ]
 
-const placeholderLinkClassName = "cursor-pointer transition hover:underline"
+const LinkClassName = "cursor-pointer transition hover:underline"
 
 
 export default function Footer() {
@@ -38,14 +56,18 @@ export default function Footer() {
                         <h3 className="mb-2 text-lg font-semibold">{group.title}</h3>
                         <ul>
                             {group.items.map((item) => (
-                                <li key={item}>
-                                    <Link
-                                        to="/"
-                                        onClick={(event) => event.preventDefault()}
-                                        className={placeholderLinkClassName}
-                                    >
-                                        {item}
-                                    </Link>
+                                <li key={item.label} className="mb-1">
+                                    <Button asChild variant="ghost" className="h-auto justify-start p-0 text-left font-normal text-white hover:bg-transparent hover:text-white/80">
+                                        {item.href ? (
+                                            <a href={item.href} target="_blank" rel="noreferrer" className={LinkClassName}>
+                                                {item.label}
+                                            </a>
+                                        ) : (
+                                            <Link to={item.to ?? "/"} className={LinkClassName}>
+                                                {item.label}
+                                            </Link>
+                                        )}
+                                    </Button>
                                 </li>
                             ))}
                         </ul>
@@ -55,9 +77,21 @@ export default function Footer() {
             <Separator className="my-4" />
             <div className="flex items-center justify-center gap-2">
                 <ul className="flex flex-row flex-wrap items-center justify-center gap-4 text-center">
-                    <li><Link to="/" onClick={(event) => event.preventDefault()} className={placeholderLinkClassName}>Política de Privacidade</Link></li>
-                    <li><Link to="/" onClick={(event) => event.preventDefault()} className={placeholderLinkClassName}>Termos de Serviço</Link></li>
-                    <li><Link to="/" onClick={(event) => event.preventDefault()} className={placeholderLinkClassName}>Cookies</Link></li>
+                    <li>
+                        <Button asChild variant="ghost" className="h-auto p-0 text-white hover:bg-transparent hover:text-white/80">
+                            <Link to="/contact-us" className={LinkClassName}>Política de Privacidade</Link>
+                        </Button>
+                    </li>
+                    <li>
+                        <Button asChild variant="ghost" className="h-auto p-0 text-white hover:bg-transparent hover:text-white/80">
+                            <Link to="/contact-us" className={LinkClassName}>Termos de Serviço</Link>
+                        </Button>
+                    </li>
+                    <li>
+                        <Button asChild variant="ghost" className="h-auto p-0 text-white hover:bg-transparent hover:text-white/80">
+                            <Link to="/contact-us" className={LinkClassName}>Cookies</Link>
+                        </Button>
+                    </li>
                 </ul>
             </div>
             <Separator className="my-4" />

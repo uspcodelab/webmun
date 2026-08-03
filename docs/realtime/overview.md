@@ -1,7 +1,8 @@
 # Real-time sessions
 
-Active committee sessions use a WebSocket at `/ws/{session_id}`. The server is
-authoritative: clients request actions and render the state it sends back.
+Active committee sessions use a WebSocket at `/committees/ws/{session_id}`.
+The server is authoritative: clients request actions and render the state it
+sends back.
 
 ## Connection and message flow
 
