@@ -153,6 +153,8 @@ def tally_votes(voting: VotingContext, total_presents: int) -> bool:
     """Helper for computing votes. 
     Unless motion is explicitly requiring qualified majority,
     will use simple majority (also counts for informal votes)"""
+    if total_presents == 0:
+        return False
 
     simple = ceil(total_presents / 2)
     qualified = ceil(0.66 * total_presents)
@@ -528,7 +530,8 @@ def handle_close_procedural_voting(
     if motion is None:
         raise InvalidProceduralMove("Can't close voting if motion is None")
 
-    passed = tally_votes(state.voting, count_present_delegations(state))
+    present = count_present_delegations(state)
+    passed = tally_votes(state.voting, present)
 
     # TODO: pass everything here into a helper "apply_passed_motion" and "apply_change_debate"
     if passed:

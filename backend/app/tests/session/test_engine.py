@@ -591,9 +591,18 @@ def test_chair_can_close_passed_procedural_vote(
     procedural_voting_state: md.SessionLiveState,
     close_procedural_voting_event: sch.CloseProceduralVotingEvent,
     chair_actor: md.SessionActor,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(eng, "tally_votes", lambda voting: True)
+    procedural_voting_state.voting_choice = {
+        0: enums.RollCallChoice.PRESENT,
+        1: enums.RollCallChoice.PRESENT,
+        2: enums.RollCallChoice.PRESENT,
+    }
+    assert procedural_voting_state.voting is not None
+    procedural_voting_state.voting.voting_registry = {
+        0: enums.VotingChoice.FAVOUR,
+        1: enums.VotingChoice.FAVOUR,
+        2: enums.VotingChoice.AGAINST,
+    }
 
     state = engine.dispatch(
         procedural_voting_state,
@@ -610,9 +619,18 @@ def test_chair_can_close_failed_procedural_vote(
     procedural_voting_state: md.SessionLiveState,
     close_procedural_voting_event: sch.CloseProceduralVotingEvent,
     chair_actor: md.SessionActor,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(eng, "tally_votes", lambda voting: False)
+    procedural_voting_state.voting_choice = {
+        0: enums.RollCallChoice.PRESENT,
+        1: enums.RollCallChoice.PRESENT,
+        2: enums.RollCallChoice.PRESENT,
+    }
+    assert procedural_voting_state.voting is not None
+    procedural_voting_state.voting.voting_registry = {
+        0: enums.VotingChoice.FAVOUR,
+        1: enums.VotingChoice.AGAINST,
+        2: enums.VotingChoice.AGAINST,
+    }
 
     state = engine.dispatch(
         procedural_voting_state,
