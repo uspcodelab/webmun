@@ -38,11 +38,6 @@ class DelegateVotingPayload(BaseModel):
     vote: enums.VotingChoice
 
 
-# TODO: should be better implemented
-class ChooseDelegatePayload(BaseModel):
-    choice: str
-
-
 # TODO: have a separate AbsentMyselfEvent for this thing here
 class AnswerRollCallPayload(BaseModel):
     choice: Literal[
@@ -64,12 +59,6 @@ class SubmitQuestionEvent(BaseModel):
 class CastVoteEvent(BaseModel):
     type: Literal[enums.DelegateEvents.CAST_VOTE]
     payload: DelegateVotingPayload
-
-
-# TODO: should be better implemented
-class ChooseDelegateEvent(BaseModel):
-    type: Literal[enums.DelegateEvents.CHOOSE_DELEGATION]
-    payload: ChooseDelegatePayload
 
 
 class JoinQueueEvent(BaseModel):
@@ -138,11 +127,6 @@ class MarkAgendaItemPayload(BaseModel):
 
 class DeleteAgendaItemPayload(BaseModel):
     index: str  # Agenda Item Id
-
-#Removed: Unnecessary
-# These two normally don't need to have an id
-# class ChairCloseInformalVotingPayload(BaseModel):
-#   voting_id: int | None = None
 
 
 class EmptyPayload(BaseModel): ...
@@ -253,7 +237,6 @@ SessionEvent = Annotated[
     SubmitMotionEvent
     | SubmitQuestionEvent
     | CastVoteEvent
-    | ChooseDelegateEvent
     | AnswerRollCallEvent
     | JoinQueueEvent
     | LeaveQueueEvent

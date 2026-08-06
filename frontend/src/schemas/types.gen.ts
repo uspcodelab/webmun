@@ -50,7 +50,7 @@ export type BodyDummyCommitteesDummyGet = {
     /**
      * Types
      */
-    types: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | ChooseDelegateEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetAgendaItemEvent | MarkAgendaItemEvent | DeleteAgendaItemEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent | MarkRollCallBulkEvent;
+    types: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetAgendaItemEvent | MarkAgendaItemEvent | DeleteAgendaItemEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent | MarkRollCallBulkEvent;
     schemas: SessionLiveState;
 };
 
@@ -196,27 +196,6 @@ export type ChairToggleTimerPayload = {
 };
 
 /**
- * ChooseDelegateEvent
- */
-export type ChooseDelegateEvent = {
-    /**
-     * Type
-     */
-    type: 'ChooseDelegateEvent';
-    payload: ChooseDelegatePayload;
-};
-
-/**
- * ChooseDelegatePayload
- */
-export type ChooseDelegatePayload = {
-    /**
-     * Choice
-     */
-    choice: string;
-};
-
-/**
  * CloseInformalVotingEvent
  */
 export type CloseInformalVotingEvent = {
@@ -311,7 +290,6 @@ export const DelegateEvents = {
     JOIN_QUEUE_EVENT: 'JoinQueueEvent',
     LEAVE_QUEUE_EVENT: 'LeaveQueueEvent',
     CAST_VOTE_EVENT: 'CastVoteEvent',
-    CHOOSE_DELEGATE_EVENT: 'ChooseDelegateEvent',
     YIELD_EVENT: 'YieldEvent',
     ANSWER_ROLL_CALL_EVENT: 'AnswerRollCallEvent'
 } as const;
@@ -818,6 +796,10 @@ export type SessionLiveState = {
         [key: string]: RollCallChoice;
     } | null;
     roll_call: RollCallContext;
+    /**
+     * Has Veto Power
+     */
+    has_veto_power?: boolean;
 };
 
 /**

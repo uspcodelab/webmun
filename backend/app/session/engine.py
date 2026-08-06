@@ -1,6 +1,7 @@
 # where engine lives
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from math import ceil
 from typing import Any, TypeAlias
 
 import app.session.enums as enums
@@ -32,57 +33,6 @@ from .models import (
 class InvalidProceduralMove(Exception):
     pass
 
-
-"""
-This will document the flow of states the debates will have. As well as document an initial engine 
-
-Creating a committee should assign a chair as it's admin. Only Secretariats can create a session for a committee
-
-OPEN_SESSION / SETUP: setup state. Websockets are already made, thus possible events are 
-- ChooseDelegation: made from Delegates from a list of possible ones (so a list of possible delegations should be present either in server/frontend)
-- EditSetup: chair edits setup such as:
-    - extends session: (extends an already made session, or unpause session?)
-    - speaking_time
-    - can_set_motions (during specific debates)
-    - default_state (either GSL or Moderated, should be put later)
-    - topics
-    - may be skipped during initial testings
-
-ChooseDelegation should not be possible anymore (at least not for now)
-
-ROLL_CALL: roll call/ quorum count state. Possible events are:
-    - SetVotingChoiceEvent: by Delegate 
-    - QuestionEvent
-    - Any Chair Event: since most are disruptive
-
-To user, INITIAL_DEBATE and OPEN_GSL should look mostly the same
-INITIAL_DEBATE: after roll call, if no agenda is set and/or no speaking time for GSL is set, go to this state. It's an initial speakers list. Possible events are: 
-    - Motions: subset - (POSTPONE, END, QUORUM, SETSPEAKINGTIME) 
-    - Special action: "Propose Topics"
-    - QuestionEvent
-    - Any Chair Event
-    - CastInformalVoteEvent 
-Queue should not be open to speak. Delegates may only speak in motions
-
-OPEN_GSL: default state in general. Queue is open and all motions can be made. The topic is defaulted to the first one in the order of agenda_topics and index_topic.
-    - In particular, YieldEvent must be enabled and configured.
-
-Specific Debates: (Moderated, Unmoderated, Tour) Queue not enabled. Each delegation should raise their placard and popups a "selection" on map
-    - Motions may only be put if set_motions is enabled.
-    - In particular, Unmoderated should not have a queue/motions enabled at all, but this may be implemented later 
-
-VOTING_EXECUTION: Voting on a procedural motion.
-
-CLOSED_GSL: after a successfull 'Close Speakers List'. Queue is disabled.
-
-VOTING_PREPARATION: ambiguous state after an "close debate" has either entered as a motion, or "move into voting procedures". Perhaps doesnt need to be added?
-
-VOTING_PROCEDURES: special case of voting on resolutions, etc. Substantive votes.
-
-FINISHED: when topics get empty automatically, or chair decides to close session. may be reverted.
-
-This will give some insight into what should or should not be possible during each event
-"""
 
 # Dispatch tables: alternative to if else chains
 MOTIONS_ALLOWED: dict[States, set[Motions]] = {
@@ -175,13 +125,96 @@ def validate_question_payload(
 ) -> None: ...
 
 
-def tally_votes(voting: VotingContext) -> bool: ...
+def count_present_delegations(state: SessionLiveState) -> int:
+    """Count total present delegations.
+    A delegation is considered present (even if AFK)
+    if it's Roll Call Choice is Present / Present and Voting"""
+    if state.voting_choice is None:
+        return 0
+
+    return len(
+        [
+            True
+            for _, vote in state.voting_choice.items()
+            if vote == enums.RollCallChoice.PRESENT
+            or vote == enums.RollCallChoice.PRESENT_AND_VOTING
+        ]
+    )
 
 
-def get_motion_priority(motion: Motions) -> int: ...
+def tally_votes(voting: VotingContext, total_presents: int) -> bool:
+    qualified_motions = (
+        Motions.POSTPONE_SESSION,
+        Motions.CHANGE_DEBATE_TYPE,
+        Motions.TOUR_DE_TABLE,
+        Motions.CLOSE_SPEAKERS_LIST,
+        Motions.SPLIT_PROPOSAL,
+    )
+    """Helper for computing votes. 
+    Unless motion is explicitly requiring qualified majority,
+    will use simple majority (also counts for informal votes)"""
+    if total_presents == 0:
+        return False
+
+    simple = ceil(total_presents / 2)
+    qualified = ceil(0.66 * total_presents)
+    in_favor_count = len(
+        [
+            True
+            for _, vote in voting.voting_registry.items()
+            if vote == enums.VotingChoice.FAVOUR
+        ]
+    )
+    motion = voting.motion_in_vote
+
+    if motion is None:
+        return in_favor_count >= simple
+
+    # Use qualified majority for "important" motions
+    if (
+        motion.type in qualified_motions
+        and in_favor_count >= qualified
+        or motion.type not in qualified_motions
+        and in_favor_count >= simple
+    ):
+        return True
+
+    return False
 
 
-def get_question_priority(question: Questions) -> int: ...
+def get_motion_priority(motion: Motions) -> int | None:
+    """Given a motion, return it's priority.
+    Some motions are tied. Ex: Change Debate and Tour de Table"""
+    priority_map = {
+        Motions.POSTPONE_SESSION: 1,
+        Motions.REOPEN_SESSION: 2,
+        Motions.CHANGE_DEBATE_TYPE: 3,
+        Motions.TOUR_DE_TABLE: 3,
+        Motions.END_DEBATE: 4,
+        Motions.VOTE_AMENDMENT: 4,
+        Motions.CLOSE_SPEAKERS_LIST: 5,
+        Motions.REOPEN_SPEAKERS_LIST: 5,
+        Motions.SPLIT_PROPOSAL: 6,
+        Motions.INTRODUCE_RESOLUTION_PROPOSAL: 7,
+        Motions.INTRODUCE_AMENDMENT_PROPOSAL: 8,
+        Motions.VOTE_BY_ROLL_CALL: 9,
+        Motions.QUORUM: 10,
+        Motions.CHANGE_TOPIC: 11,
+        Motions.CUSTOM_MOTION: 12,
+    }
+
+    return priority_map.get(motion)
+
+
+def get_question_priority(question: Questions) -> int | None:
+    """Given a question, return it's priority"""
+    priority_map = {
+        Questions.PERSONAL_PRIVILEGE: 1,
+        Questions.ORDER: 2,
+        Questions.QUESTION: 3,
+    }
+
+    return priority_map.get(question)
 
 
 def get_default_speaker_seconds(state: SessionLiveState) -> int | None:
@@ -327,12 +360,6 @@ def handle_cast_vote(
     return state
 
 
-# TODO: remove this
-def handle_choose_delegation(
-    state: SessionLiveState, event: schemas.ChooseDelegateEvent, actor: SessionActor
-) -> SessionLiveState: ...
-
-
 def handle_answer_roll_call(
     state: SessionLiveState, event: schemas.AnswerRollCallEvent, actor: SessionActor
 ) -> SessionLiveState:
@@ -452,8 +479,6 @@ def handle_open_informal_voting(
         title=event.payload.title,
         return_state=state.current_state,
         voting_registry={},
-        majority=event.payload.majority,
-        veto_power=event.payload.veto_power,
     )
 
     state.current_state = States.VOTING_EXECUTION
@@ -506,7 +531,8 @@ def handle_close_procedural_voting(
     if motion is None:
         raise InvalidProceduralMove("Can't close voting if motion is None")
 
-    passed = tally_votes(state.voting)
+    present = count_present_delegations(state)
+    passed = tally_votes(state.voting, present)
 
     # TODO: pass everything here into a helper "apply_passed_motion" and "apply_change_debate"
     if passed:
@@ -637,8 +663,6 @@ def handle_resolve_motion(
             motion_in_vote=motion,
             return_state=state.current_state,
             voting_registry={},
-            majority=enums.MajorityTypes.QUALIFIED,  # TODO: change depending on type of motion
-            veto_power=True,
         )
 
         state.current_state = States.VOTING_EXECUTION
@@ -796,7 +820,6 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     DelegateEvents.JOIN_QUEUE: handle_join_queue,
     DelegateEvents.LEAVE_QUEUE: handle_leave_queue,
     DelegateEvents.CAST_VOTE: handle_cast_vote,
-    DelegateEvents.CHOOSE_DELEGATION: handle_choose_delegation,
     DelegateEvents.ANSWER_ROLLCALL: handle_answer_roll_call,
     ChairEvents.OPEN_SESSION: handle_open_session,
     ChairEvents.INCREASE_TIMER: handle_increase_timer,

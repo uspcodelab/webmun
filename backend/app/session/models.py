@@ -2,7 +2,7 @@
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -29,6 +29,7 @@ class DelegationContext(BaseModel):
 
 
 class SessionActor(BaseModel):
+    user_id: UUID
     role: enums.SessionRole
     display_name: str = "Placeholder"
     delegation: DelegationContext | None = None
@@ -62,10 +63,6 @@ class VotingContext(BaseModel):
     title: str | None = None
     return_state: enums.States
     voting_registry: dict[int, enums.VotingChoice] = {}
-
-    # additional fields
-    majority: enums.MajorityTypes
-    veto_power: bool
 
 
 class DebateContext(BaseModel):
@@ -140,3 +137,6 @@ class SessionLiveState(BaseModel):
     voting_choice: dict[int, enums.RollCallChoice] | None = None  # DelegationId as key
 
     roll_call: RollCallContext  # Not None, even if registry is empty
+
+    # Additional config
+    has_veto_power: bool = False

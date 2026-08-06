@@ -1,5 +1,7 @@
 from pydantic import BaseModel
+
 from . import enums
+
 
 class SessionRepresentation(BaseModel):
     role: enums.SessionRoles

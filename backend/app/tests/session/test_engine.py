@@ -16,11 +16,9 @@ def open_gsl_state(session_state: md.SessionLiveState) -> md.SessionLiveState:
 def voting_state(session_state: md.SessionLiveState) -> md.SessionLiveState:
     session_state.current_state = enums.States.VOTING_EXECUTION
     session_state.voting = md.VotingContext(
-        target_type="INFORMAL",
+        target_type=enums.VotingType.INFORMAL,
         return_state=enums.States.OPEN_GSL,
         voting_registry={},
-        majority="SIMPLE",
-        veto_power=False,
     )
     return session_state
 
@@ -67,7 +65,7 @@ def leave_queue_event() -> sch.LeaveQueueEvent:
 def cast_vote_event() -> sch.CastVoteEvent:
     return sch.CastVoteEvent(
         type=enums.DelegateEvents.CAST_VOTE,
-        payload=sch.DelegateVotingPayload(type="FORMAL", vote="FAVOUR"),
+        payload=sch.DelegateVotingPayload(vote=enums.VotingChoice.FAVOUR),
     )
 
 
@@ -109,7 +107,7 @@ def open_informal_voting_event() -> sch.OpenInformalVotingEvent:
         type=enums.ChairEvents.OPEN_INFORMAL_VOTING,
         payload=sch.ChairOpenInformalVotingPayload(
             title="Straw poll",
-            majority="SIMPLE",
+            majority=enums.MajorityTypes.SIMPLE,
             veto_power=False,
         ),
     )
@@ -144,18 +142,26 @@ def close_speakers_list_motion(
 
 
 @pytest.fixture
+def reopen_speakers_list_motion(delegate_actor: md.SessionActor) -> md.MotionContext:
+    return md.MotionContext(
+        id=1,
+        priority=1,
+        type=enums.Motions.REOPEN_SPEAKERS_LIST,
+        delegate_id=delegate_actor.delegation.id,  # type: ignore[union-attr]
+    )
+
+
+@pytest.fixture
 def procedural_voting_state(
     open_gsl_state: md.SessionLiveState,
     close_speakers_list_motion: md.MotionContext,
 ) -> md.SessionLiveState:
     open_gsl_state.current_state = enums.States.VOTING_EXECUTION
     open_gsl_state.voting = md.VotingContext(
-        target_type="PROCEDURAL",
+        target_type=enums.VotingType.PROCEDURAL,
         motion_in_vote=close_speakers_list_motion,
         return_state=enums.States.OPEN_GSL,
         voting_registry={},
-        majority="SIMPLE",
-        veto_power=False,
     )
     return open_gsl_state
 
@@ -164,7 +170,7 @@ def procedural_voting_state(
 def resolve_motion_event() -> sch.ResolveMotionEvent:
     return sch.ResolveMotionEvent(
         type=enums.ChairEvents.RESOLVE_MOTION,
-        payload=sch.ChairResolveMotionPayload(motion_id=1, action="ACCEPT"),
+        payload=sch.ChairResolveMotionPayload(motion_id=1, action=True),
     )
 
 
@@ -232,7 +238,16 @@ def manual_phase_set_event() -> sch.SetPhaseEvent:
     )
 
 
-@pytest.mark.xfail(strict=True, reason="get_motion_priority is not implemented.")
+def test_get_motion_priority() -> None:
+    motion = enums.Motions.END_DEBATE
+    assert eng.get_motion_priority(motion) == 4
+
+
+def test_get_question_priority() -> None:
+    question = enums.Questions.QUESTION
+    assert eng.get_question_priority(question) == 3
+
+
 def test_delegate_can_submit_motion_in_open_gsl(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
@@ -244,7 +259,7 @@ def test_delegate_can_submit_motion_in_open_gsl(
     assert len(state.submitted_motions) == 1
     assert state.submitted_motions[0].id == 1
     assert state.submitted_motions[0].type == enums.Motions.CHANGE_DEBATE_TYPE
-    assert state.submitted_motions[0].delegate_id == 1
+    assert state.submitted_motions[0].delegate_id == delegate_actor.delegation.id  # type: ignore[union-attr]
 
 
 def test_delegate_cannot_submit_motion_outside_allowed_phase(
@@ -271,7 +286,6 @@ def test_chair_cannot_submit_delegate_motion(
         engine.dispatch(open_gsl_state, submit_debate_motion_event, chair_actor)
 
 
-@pytest.mark.xfail(strict=True, reason="get_question_priority is not implemented.")
 def test_delegate_can_submit_question(
     engine: eng.SessionEngine,
     session_state: md.SessionLiveState,
@@ -283,7 +297,7 @@ def test_delegate_can_submit_question(
     assert len(state.submitted_questions) == 1
     assert state.submitted_questions[0].id == 1
     assert state.submitted_questions[0].type == enums.Questions.PERSONAL_PRIVILEGE
-    assert state.submitted_questions[0].delegate_id == 1
+    assert state.submitted_questions[0].delegate_id == delegate_actor.delegation.id  # type: ignore[union-attr]
 
 
 def test_delegate_can_join_queue(
@@ -361,7 +375,7 @@ def test_delegate_can_cast_vote(
     state = engine.dispatch(voting_state, cast_vote_event, delegate_actor)
 
     assert state.voting is not None
-    assert state.voting.voting_registry == {0: "FAVOUR"}
+    assert state.voting.voting_registry == {0: enums.VotingChoice.FAVOUR}
 
 
 def test_delegate_cannot_cast_vote_twice(
@@ -491,7 +505,7 @@ def test_chair_can_open_informal_voting(
 
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None
-    assert state.voting.target_type == "INFORMAL"
+    assert state.voting.target_type == enums.VotingType.INFORMAL
     assert state.voting.title == "Straw poll"
     assert state.voting.return_state == enums.States.OPEN_GSL
 
@@ -541,7 +555,7 @@ def test_chair_can_resolve_motion_into_procedural_voting(
 
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None
-    assert state.voting.target_type == "PROCEDURAL"
+    assert state.voting.target_type == enums.VotingType.PROCEDURAL
     assert state.voting.motion_in_vote == close_speakers_list_motion
     assert state.submitted_motions == []
 
@@ -555,7 +569,7 @@ def test_chair_can_deny_motion_without_opening_vote(
     open_gsl_state.submitted_motions.append(close_speakers_list_motion)
     event = sch.ResolveMotionEvent(
         type=enums.ChairEvents.RESOLVE_MOTION,
-        payload=sch.ChairResolveMotionPayload(motion_id=1, action="DENY"),
+        payload=sch.ChairResolveMotionPayload(motion_id=1, action=False),
     )
 
     state = engine.dispatch(open_gsl_state, event, chair_actor)
@@ -583,9 +597,18 @@ def test_chair_can_close_passed_procedural_vote(
     procedural_voting_state: md.SessionLiveState,
     close_procedural_voting_event: sch.CloseProceduralVotingEvent,
     chair_actor: md.SessionActor,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(eng, "tally_votes", lambda voting: True)
+    procedural_voting_state.voting_choice = {
+        0: enums.RollCallChoice.PRESENT,
+        1: enums.RollCallChoice.PRESENT,
+        2: enums.RollCallChoice.PRESENT,
+    }
+    assert procedural_voting_state.voting is not None
+    procedural_voting_state.voting.voting_registry = {
+        0: enums.VotingChoice.FAVOUR,
+        1: enums.VotingChoice.FAVOUR,
+        2: enums.VotingChoice.AGAINST,
+    }
 
     state = engine.dispatch(
         procedural_voting_state,
@@ -602,9 +625,18 @@ def test_chair_can_close_failed_procedural_vote(
     procedural_voting_state: md.SessionLiveState,
     close_procedural_voting_event: sch.CloseProceduralVotingEvent,
     chair_actor: md.SessionActor,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(eng, "tally_votes", lambda voting: False)
+    procedural_voting_state.voting_choice = {
+        0: enums.RollCallChoice.PRESENT,
+        1: enums.RollCallChoice.PRESENT,
+        2: enums.RollCallChoice.PRESENT,
+    }
+    assert procedural_voting_state.voting is not None
+    procedural_voting_state.voting.voting_registry = {
+        0: enums.VotingChoice.FAVOUR,
+        1: enums.VotingChoice.AGAINST,
+        2: enums.VotingChoice.AGAINST,
+    }
 
     state = engine.dispatch(
         procedural_voting_state,
@@ -628,6 +660,45 @@ def test_delegate_cannot_close_procedural_vote(
             close_procedural_voting_event,
             delegate_actor,
         )
+
+
+def test_tally_votes_correctly_marks_success_simple(
+    reopen_speakers_list_motion: md.MotionContext,
+) -> None:
+    voting_context = md.VotingContext(
+        target_type=enums.VotingType.INFORMAL,
+        return_state=enums.States.OPEN_GSL,
+        motion_in_vote=reopen_speakers_list_motion,
+        voting_registry={
+            0: enums.VotingChoice.FAVOUR,
+            1: enums.VotingChoice.FAVOUR,
+            2: enums.VotingChoice.FAVOUR,
+            3: enums.VotingChoice.AGAINST,
+            4: enums.VotingChoice.AGAINST,
+        },
+    )
+
+    res = eng.tally_votes(voting_context, 5)
+    assert res
+
+
+def test_tally_votes_correctly_marks_fail_majority(
+    close_speakers_list_motion: md.MotionContext,
+) -> None:
+    voting_context = md.VotingContext(
+        target_type=enums.VotingType.INFORMAL,
+        return_state=enums.States.OPEN_GSL,
+        motion_in_vote=close_speakers_list_motion,
+        voting_registry={
+            0: enums.VotingChoice.FAVOUR,
+            1: enums.VotingChoice.FAVOUR,
+            2: enums.VotingChoice.FAVOUR,
+            3: enums.VotingChoice.AGAINST,
+            4: enums.VotingChoice.AGAINST,
+        },
+    )
+    res = eng.tally_votes(voting_context, 5)
+    assert not res
 
 
 def test_chair_can_choose_speaker(
@@ -723,10 +794,6 @@ def test_chair_cannot_mark_roll_call_bulk_nonexistent_delegations(
         engine.dispatch(session_state, event, chair_actor)
 
 
-# @pytest.mark.xfail(
-#    strict=True,
-#    reason="handle_insert_queue currently treats delegation id as list index.",
-# )
 def test_chair_insert_queue_uses_delegation_id(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,

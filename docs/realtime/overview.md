@@ -40,6 +40,9 @@ own role or identity as authority.
 
 ## Where to look next
 
+- [MUN committee flow and technical approach](mun-flow.md) maps a typical
+  committee procedure to the current state machine and records its implemented
+  boundaries.
 - [Events and payloads](events-and-payloads.md) is the searchable event
   reference for frontend and backend development.
 - [Session state](session-state.md) describes the snapshot returned by the

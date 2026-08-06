@@ -1,0 +1,202 @@
+# MUN committee flow and technical approach
+
+This page describes the top-level flow of a typical Model United Nations
+(MUN) committee and how WebMUN represents it. It is a product and engineering
+guide: conference rules of procedure vary, so the chair remains responsible
+for applying the committee's adopted rules.
+
+The backend is the source of truth. A user interface may guide a delegate or
+chair toward actions that make sense in the displayed phase, but only the
+backend can accept an action and move the committee forward.
+
+## Committee flow at a glance
+
+```text
+Setup Room
+   |
+   | chair opens the session
+   v
+Roll Call
+   |
+   | chair closes roll call and establishes attendance/voting eligibility
+   v
+Open GSL <-------------------------------+
+   |                                     |
+   | delegates join the speakers list    | informal vote closes
+   | chair selects speakers              |
+   |                                     |
+   +-- procedural motion --> Voting Execution
+   |                            |          |
+   |                            | passed   | denied
+   |                            v          |
+   |                   Open/Closed GSL,    |
+   |                   caucus, roll call,  |
+   |                   or voting procedures|
+   |                                       |
+   +-- chair opens informal vote ----------+
+   |
+   +-- accepted debate-type motion --> Moderated/Unmoderated Caucus
+                                          |
+                                          | next implemented transition
+                                          v
+                                      procedural motion / chair action
+
+Open or Closed GSL -- accepted end-debate motion --> Voting Procedures
+                                                        |
+                                                        | substantive-resolution flow
+                                                        | is not implemented yet
+                                                        v
+                                                     Finished
+```
+
+`Finished` can also be reached when the chair closes the session from an
+allowed phase. The diagram is deliberately a workflow view, not a complete
+transition table: an informal vote can be opened by the chair from any phase
+other than `Voting Execution`, and returns to the phase from which it opened.
+
+## Typical procedure, mapped to WebMUN
+
+### 1. Prepare the session
+
+Before formal business, durable conference data identifies the committee,
+participants, and chair assignments. Starting a live session creates a
+`SessionLiveState` in `Setup Room`. This live state contains the delegations,
+agenda context, timer, queues, roll call, motions, and voting information used
+while the committee is active.
+
+The chair sends `OpenSessionEvent` to move the session to `Roll Call`.
+
+### 2. Take roll call and establish quorum
+
+During `Roll Call`, the chair can mark a representation as `Present`,
+`Present and Voting`, or `Absent`. A delegate may report their own presence
+with `AnswerRollCallEvent`; the chair remains able to correct the record.
+
+When the chair sends `CloseRollCallEvent`, any unrecorded representation is
+marked absent. WebMUN then derives `voting_choice` from the recorded present
+representations and moves to `Open GSL`. The identity used here and throughout
+the flow is `representation_id`, never a client-asserted country or delegate
+identity.
+
+### 3. Conduct general debate
+
+`Open GSL` is the normal working phase. Delegates may join or leave the
+General Speakers List (GSL); the chair can insert a representation or select
+the next speaker. Speaker selection sets the timer; timer controls are chair
+actions. Delegates can submit motions and questions for chair consideration.
+
+The chair may accept or deny a submitted motion. Accepting it opens a
+procedural vote in `Voting Execution`; denying it removes it without changing
+the phase. A failed procedural vote returns to the earlier phase.
+
+An accepted motion can currently produce these transitions:
+
+- change debate type to a moderated or unmoderated caucus;
+- close or reopen the GSL;
+- reopen roll call to check quorum; or
+- end debate and enter `Voting Procedures`.
+
+Some defined motion types are not yet given a concrete effect by the engine.
+They must not be presented as a completed procedure until their transition and
+data model are implemented.
+
+### 4. Run caucuses
+
+A moderated caucus has an overall debate duration and an individual speaking
+time. A chair chooses speakers; the GSL queue is not used for the automatic
+order. An unmoderated caucus has an overall duration but no individual speaker
+timer.
+
+The current engine does not automatically advance when a caucus duration
+expires. Returning to the prior phase and the intended handling of a tour de
+table need explicit implementation. Until then, a chair uses only supported
+events and the server validates every request against the current phase.
+
+### 5. Vote
+
+WebMUN currently supports two distinct voting mechanisms:
+
+- **Procedural voting:** accepting a submitted motion creates a vote. Closing
+  it tallies the vote and applies the supported motion transition, or restores
+  the previous phase.
+- **Informal voting:** the chair may open a named, non-procedural vote. It
+  uses `Voting Execution` temporarily and returns to its origin phase when
+  closed; it does not itself apply a procedural transition.
+
+`Voting Procedures` is the intended destination after an accepted
+end-debate motion. Substantive voting on resolutions, amendments, and related
+final outcomes is not implemented yet. This is a known boundary, rather than
+a promise that the state name alone provides a complete resolution workflow.
+
+### 6. Close the session
+
+The chair can send `CloseSessionEvent` from the phases accepted by the engine,
+which clears active debate and timer state and moves the session to `Finished`.
+
+## Technical approach
+
+### One authoritative state machine
+
+`SessionLiveState` is the active committee state machine. A transition reads
+the current state, verifies the actor and payload, and updates this state. This
+makes a single server—not several browser tabs—the authority for speaker
+order, attendance, votes, and phase transitions.
+
+The state includes both the phase and the context required to continue it:
+
+- `delegations`, keyed by `representation_id`;
+- roll-call and voting eligibility;
+- GSL, current speaker, and timer;
+- caucus/debate context;
+- submitted motions and questions; and
+- the current voting context and the phase to return to.
+
+### Commands in, snapshots out
+
+Clients connect to the session WebSocket, authenticate with a Supabase JWT,
+and receive a complete initial snapshot. They send an event envelope such as
+`{ "type": "JoinQueueEvent", "payload": {} }`. The WebSocket handler builds a
+server-side actor from the JWT and committee assignment, dispatches the event
+to the session engine, then broadcasts the next complete snapshot.
+
+```text
+authenticated client request
+  -> WebSocket handler builds SessionActor
+  -> engine validates role, representation IDs, and current phase
+  -> in-memory SessionLiveState changes
+  -> updated snapshot is broadcast to all connected clients
+```
+
+The frontend replaces its shared session state with each received snapshot. It
+does not optimistically edit the shared state, because another accepted event
+may have changed the phase or queue first. This is also why a UI permission
+check is a convenience only; authorization is enforced by the backend.
+
+### Persistence boundary today
+
+Activating a session stores its initial snapshot in PostgreSQL, and a missing
+in-memory room can be reconstructed from that stored snapshot. The current
+per-event handler updates `ConnectionManager.room_states` and broadcasts it,
+but does **not** persist the changed snapshot after every accepted event.
+Consequently, a process restart can recover the last stored snapshot rather
+than the latest live action. Persisting accepted state atomically before (or
+with) broadcast is required before durable live-session recovery can be
+claimed.
+
+### Extending the flow safely
+
+When adding a new committee rule, define its phase preconditions, actor role,
+required `representation_id` references, state transition, and recovery or
+persistence impact before adding a UI control. Add the event schema and engine
+handler together, then document the flow change here and in the event
+reference. Because live snapshots are persisted, changes to
+`SessionLiveState` need a compatibility or migration path. Event persistence
+should be part of that design, rather than being left to the frontend.
+
+## Related references
+
+- [Real-time overview](overview.md) explains the WebSocket protocol.
+- [Events and payloads](events-and-payloads.md) is the event-level reference.
+- [Session state](session-state.md) lists the snapshot fields.
+- [Architecture](../architecture.md) explains the frontend, backend, and
+  persistence boundaries.

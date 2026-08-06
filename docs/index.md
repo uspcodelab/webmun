@@ -15,11 +15,6 @@ Our stack is currently composed of:
 - (Planned) Redis for in-memory kv store
 - (Planned) Terraform for infra setup and management
 
-## What's next?
-
-Use the following items to guide yourself through these docs.
-
-TODO
 # WebMUN developer documentation
 
 WebMUN is a real-time web application for running Model United Nations
@@ -43,6 +38,7 @@ server.
 - [Architecture](architecture.md)
 - Real-time sessions
   - [Overview](realtime/overview.md)
+  - [MUN committee flow and technical approach](realtime/mun-flow.md)
   - [Events and payloads](realtime/events-and-payloads.md)
   - [Session state](realtime/session-state.md)
 - Backend

@@ -1,6 +1,7 @@
 # Environment configuration file for testing
 
 from datetime import datetime
+from uuid import UUID
 
 import pytest
 
@@ -44,12 +45,20 @@ def session_state(delegation_dict, roll_call):
 
 @pytest.fixture
 def chair_actor():
-    return SessionActor(role=SessionRole.CHAIR, display_name="Chair")
+    return SessionActor(
+        user_id=UUID("11111111-1111-1111-1111-111111111111"),
+        role=SessionRole.CHAIR,
+        display_name="Chair",
+    )
 
 
 @pytest.fixture
 def delegate_actor(delegation_dict):
-    return SessionActor(role=SessionRole.DELEGATE, delegation=delegation_dict.get(0))
+    return SessionActor(
+        user_id=UUID("22222222-2222-2222-2222-222222222222"),
+        role=SessionRole.DELEGATE,
+        delegation=delegation_dict.get(0),
+    )
 
 
 @pytest.fixture
