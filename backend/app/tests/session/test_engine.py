@@ -658,12 +658,12 @@ def test_delegate_cannot_close_procedural_vote(
 
 @pytest.mark.xfail
 def test_tally_votes_correctly_marks_success_simple() -> None:
-    assert True == False # noqa
+    assert True == False  # noqa
 
 
 @pytest.mark.xfail
 def test_tally_votes_correctly_marks_fail_majority() -> None:
-    assert True == False # noqa
+    assert True == False  # noqa
 
 
 def test_chair_can_choose_speaker(

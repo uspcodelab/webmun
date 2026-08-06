@@ -2,12 +2,11 @@
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
 from dataclasses import dataclass
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel
 
 import app.session.enums as enums
-
-from uuid import UUID
 
 
 @dataclass(frozen=True)

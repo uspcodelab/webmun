@@ -37,7 +37,7 @@ def test_can_build_actor(
     connection_manager.room_states[0] = session_state
 
     actor = build_actor(
-        user_id=UUID('11111111-1111-1111-1111-111111111111'),
+        user_id=UUID("11111111-1111-1111-1111-111111111111"),
         manager=connection_manager,
         session_id=0,
         role=SessionRole.DELEGATE,
@@ -57,7 +57,7 @@ def test_cannot_build_actor_with_nonexistent_state(
 ) -> None:
     with pytest.raises(ActorResolutionError, match="session not found"):
         build_actor(
-            user_id=UUID('11111111-1111-1111-1111-111111111111'),
+            user_id=UUID("11111111-1111-1111-1111-111111111111"),
             manager=connection_manager,
             session_id=0,
             role=SessionRole.DELEGATE,
@@ -72,7 +72,7 @@ def test_cannot_build_actor_with_no_delegation_id(
     with pytest.raises(ActorResolutionError, match="needs delegate id"):
         connection_manager.room_states[0] = session_state
         build_actor(
-            user_id=UUID('11111111-1111-1111-1111-111111111111'),
+            user_id=UUID("11111111-1111-1111-1111-111111111111"),
             manager=connection_manager,
             session_id=0,
             role=SessionRole.DELEGATE,
@@ -87,7 +87,7 @@ def test_cannot_build_actor_with_nonexistent_delegation(
         connection_manager.room_states[0] = session_state
 
         build_actor(
-            user_id=UUID('11111111-1111-1111-1111-111111111111'),
+            user_id=UUID("11111111-1111-1111-1111-111111111111"),
             manager=connection_manager,
             session_id=0,
             role=SessionRole.DELEGATE,
