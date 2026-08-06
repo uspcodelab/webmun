@@ -30,3 +30,6 @@ line-ending = "auto"
 
 [tool.coverage.run]
   omit = ["app/tests/*"]
+
+[tool.pytest]
+xfail_strict = true

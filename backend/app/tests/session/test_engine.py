@@ -19,8 +19,6 @@ def voting_state(session_state: md.SessionLiveState) -> md.SessionLiveState:
         target_type=enums.VotingType.INFORMAL,
         return_state=enums.States.OPEN_GSL,
         voting_registry={},
-        majority=enums.MajorityTypes.SIMPLE,
-        veto_power=False,
     )
     return session_state
 
@@ -144,6 +142,16 @@ def close_speakers_list_motion(
 
 
 @pytest.fixture
+def reopen_speakers_list_motion(delegate_actor: md.SessionActor) -> md.MotionContext:
+    return md.MotionContext(
+        id=1,
+        priority=1,
+        type=enums.Motions.REOPEN_SPEAKERS_LIST,
+        delegate_id=delegate_actor.delegation.id,  # type: ignore[union-attr]
+    )
+
+
+@pytest.fixture
 def procedural_voting_state(
     open_gsl_state: md.SessionLiveState,
     close_speakers_list_motion: md.MotionContext,
@@ -154,8 +162,6 @@ def procedural_voting_state(
         motion_in_vote=close_speakers_list_motion,
         return_state=enums.States.OPEN_GSL,
         voting_registry={},
-        majority=enums.MajorityTypes.SIMPLE,
-        veto_power=False,
     )
     return open_gsl_state
 
@@ -656,14 +662,43 @@ def test_delegate_cannot_close_procedural_vote(
         )
 
 
-@pytest.mark.xfail
-def test_tally_votes_correctly_marks_success_simple() -> None:
-    assert True == False  # noqa
+def test_tally_votes_correctly_marks_success_simple(
+    reopen_speakers_list_motion: md.MotionContext,
+) -> None:
+    voting_context = md.VotingContext(
+        target_type=enums.VotingType.INFORMAL,
+        return_state=enums.States.OPEN_GSL,
+        motion_in_vote=reopen_speakers_list_motion,
+        voting_registry={
+            0: enums.VotingChoice.FAVOUR,
+            1: enums.VotingChoice.FAVOUR,
+            2: enums.VotingChoice.FAVOUR,
+            3: enums.VotingChoice.AGAINST,
+            4: enums.VotingChoice.AGAINST,
+        },
+    )
+
+    res = eng.tally_votes(voting_context, 5)
+    assert res
 
 
-@pytest.mark.xfail
-def test_tally_votes_correctly_marks_fail_majority() -> None:
-    assert True == False  # noqa
+def test_tally_votes_correctly_marks_fail_majority(
+    close_speakers_list_motion: md.MotionContext,
+) -> None:
+    voting_context = md.VotingContext(
+        target_type=enums.VotingType.INFORMAL,
+        return_state=enums.States.OPEN_GSL,
+        motion_in_vote=close_speakers_list_motion,
+        voting_registry={
+            0: enums.VotingChoice.FAVOUR,
+            1: enums.VotingChoice.FAVOUR,
+            2: enums.VotingChoice.FAVOUR,
+            3: enums.VotingChoice.AGAINST,
+            4: enums.VotingChoice.AGAINST,
+        },
+    )
+    res = eng.tally_votes(voting_context, 5)
+    assert not res
 
 
 def test_chair_can_choose_speaker(
@@ -759,10 +794,6 @@ def test_chair_cannot_mark_roll_call_bulk_nonexistent_delegations(
         engine.dispatch(session_state, event, chair_actor)
 
 
-# @pytest.mark.xfail(
-#    strict=True,
-#    reason="handle_insert_queue currently treats delegation id as list index.",
-# )
 def test_chair_insert_queue_uses_delegation_id(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,

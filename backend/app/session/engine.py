@@ -171,9 +171,12 @@ def tally_votes(voting: VotingContext, total_presents: int) -> bool:
         return in_favor_count >= simple
 
     # Use qualified majority for "important" motions
-    if motion.type in qualified_motions and in_favor_count >= qualified:
-        return True
-    elif motion.type not in qualified_motions and in_favor_count >= simple:
+    if (
+        motion.type in qualified_motions
+        and in_favor_count >= qualified
+        or motion.type not in qualified_motions
+        and in_favor_count >= simple
+    ):
         return True
 
     return False
@@ -476,8 +479,6 @@ def handle_open_informal_voting(
         title=event.payload.title,
         return_state=state.current_state,
         voting_registry={},
-        majority=event.payload.majority,
-        veto_power=event.payload.veto_power,
     )
 
     state.current_state = States.VOTING_EXECUTION
@@ -662,8 +663,6 @@ def handle_resolve_motion(
             motion_in_vote=motion,
             return_state=state.current_state,
             voting_registry={},
-            majority=enums.MajorityTypes.QUALIFIED,  # TODO: change depending on type of motion
-            veto_power=True,
         )
 
         state.current_state = States.VOTING_EXECUTION

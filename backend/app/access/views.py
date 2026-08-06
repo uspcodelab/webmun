@@ -13,7 +13,7 @@ from .service import AccessDenied, resolve_session_assignment
 router = APIRouter()
 
 
-@router.get("/sessions/{session_id}/me", response_model=SessionRepresentation)
+@router.get("/sessions/{session_id}/me")
 async def get_my_session_access(
     session_id: int,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
@@ -30,7 +30,6 @@ async def get_my_session_access(
             detail=str(exc),
         ) from exc
 
-    return {
-        "role": assignment.role,
-        "representation_id": assignment.representation_id,
-    }
+    return SessionRepresentation(
+        role=assignment.role, representation_id=assignment.representation_id
+    )

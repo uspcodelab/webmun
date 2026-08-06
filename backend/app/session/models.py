@@ -64,10 +64,6 @@ class VotingContext(BaseModel):
     return_state: enums.States
     voting_registry: dict[int, enums.VotingChoice] = {}
 
-    # additional fields
-    majority: enums.MajorityTypes
-    veto_power: bool
-
 
 class DebateContext(BaseModel):
     debate_type: enums.DebateTypes
