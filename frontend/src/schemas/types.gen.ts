@@ -271,9 +271,9 @@ export type DebateContext = {
  * DebateTypes
  */
 export const DebateTypes = {
-    SPEAKERS_LIST: 'Speakers List',
-    MODERATED_DEBATE: 'Moderated Debate',
-    UNMODERATED_DEBATE: 'Unmoderated Debate'
+    LISTA_DE_DISCURSOS: 'Lista de Discursos',
+    DEBATE_MODERADO: 'Debate Moderado',
+    DEBATE_NÃO_MODERADO: 'Debate não Moderado'
 } as const;
 
 /**
@@ -304,10 +304,6 @@ export type DelegateEvents = typeof DelegateEvents[keyof typeof DelegateEvents];
  */
 export type DelegateMotionPayload = {
     type: Motions;
-    /**
-     * Delegate
-     */
-    delegate: number;
     debate_type?: DebateTypes | null;
     /**
      * Total Duration Minutes
@@ -332,10 +328,6 @@ export type DelegateMotionPayload = {
  */
 export type DelegateQuestionPayload = {
     type: Questions;
-    /**
-     * Delegate
-     */
-    delegate: number;
     /**
      * Details
      */
@@ -581,19 +573,19 @@ export type MotionContext = {
  */
 export const Motions = {
     MUDAR_TIPO_DE_DEBATE: 'Mudar Tipo de Debate',
-    ADIAAMENTO_DE_SESSÃO: 'Adiaamento de Sessão',
-    REABRIR_SESSÃO: 'Reabrir Sessão',
+    ADIAMENTO_DE_SESSÃO: 'Adiamento de Sessão',
+    REABERTURA_DE_SESSÃO: 'Reabertura de Sessão',
     TOUR_DE_TABLE: 'Tour de Table',
     ENCERRAMENTO_DE_DEBATE: 'Encerramento de Debate',
     VOTAÇÃO_DE_EMENDA: 'Votação de Emenda',
     VOTAÇÃO_POR_CHAMADA: 'Votação por Chamada',
     FECHAMENTO_DA_LISTA_DE_DISCURSOS: 'Fechamento da Lista de Discursos',
-    REABRIR_A_LISTA_DE_DISCURSOS: 'Reabrir a Lista de Discursos',
-    DIVISÃO_DE_PROPOSTA: 'Divisão de Proposta',
-    INTRODUÇÃO_DE_PROPOSTA_DE_RESOLUÇÃO: 'Introdução de Proposta de Resolução',
-    INTRODUÇÃO_DE_PROPOSTA_DE_EMENDA: 'Introdução de Proposta de Emenda',
+    REABERTURA_DE_LISTA_DE_DISCURSOS: 'Reabertura de Lista de Discursos',
+    DIVISÃO_DA_PROPOSTA: 'Divisão da Proposta',
+    INTRODUÇÃO_DA_PROPOSTA_DE_RESOLUÇÃO: 'Introdução da Proposta de Resolução',
+    INTRODUÇÃO_DA_PROPOSTA_DE_EMENDA: 'Introdução da Proposta de Emenda',
     MUDANÇA_DE_TÓPICO: 'Mudança de Tópico',
-    QUÓRUM: 'Quórum',
+    CONTAGEM_DE_QUÓRUM: 'Contagem de Quórum',
     '': ''
 } as const;
 
@@ -651,9 +643,9 @@ export type QuestionContext = {
  * Questions
  */
 export const Questions = {
-    ORDER: 'Order',
-    QUESTION: 'Question',
-    PERSONAL_PRIVILEGE: 'Personal Privilege'
+    ORDEM: 'Ordem',
+    QUESTÃO: 'Questão',
+    PRIVILÉGIO_PESSOAL: 'Privilégio Pessoal'
 } as const;
 
 /**
@@ -996,11 +988,6 @@ export type VotingContext = {
     voting_registry?: {
         [key: string]: VotingChoice;
     };
-    majority: MajorityTypes;
-    /**
-     * Veto Power
-     */
-    veto_power: boolean;
 };
 
 /**

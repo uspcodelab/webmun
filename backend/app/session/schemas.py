@@ -18,7 +18,6 @@ class SessionCreationSchema(BaseModel):
 # TODO: refactor this to only reflect the payload received by delegates, with MotionModel being a separated entity
 class DelegateMotionPayload(BaseModel):
     type: enums.Motions
-    delegate: int
     debate_type: enums.DebateTypes | None = None
 
     total_duration_minutes: int | None = None
@@ -30,7 +29,6 @@ class DelegateMotionPayload(BaseModel):
 
 class DelegateQuestionPayload(BaseModel):
     type: enums.Questions
-    delegate: int
     details: str | None = None
 
 
