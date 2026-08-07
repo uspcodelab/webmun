@@ -112,6 +112,9 @@ class VotingChoice(StrEnum):
     FAVOUR = "Favour"
     AGAINST = "Against"
     ABSTAIN = "Abstain"
+    YES_WITH_RIGHTS = "Yes With Rights"
+    NO_WITH_RIGHTS = "No With Rights"
+    PASS = "Pass"
 
 
 class VotingType(StrEnum):

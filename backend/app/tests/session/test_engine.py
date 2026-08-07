@@ -13,7 +13,7 @@ def open_gsl_state(session_state: md.SessionLiveState) -> md.SessionLiveState:
 
 
 @pytest.fixture
-def voting_state(session_state: md.SessionLiveState) -> md.SessionLiveState:
+def informal_voting_state(session_state: md.SessionLiveState) -> md.SessionLiveState:
     session_state.current_state = enums.States.VOTING_EXECUTION
     session_state.voting = md.VotingContext(
         target_type=enums.VotingType.INFORMAL,
@@ -368,11 +368,11 @@ def test_delegate_cannot_leave_queue_when_not_queued(
 
 def test_delegate_can_cast_vote(
     engine: eng.SessionEngine,
-    voting_state: md.SessionLiveState,
+    informal_voting_state: md.SessionLiveState,
     cast_vote_event: sch.CastVoteEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(voting_state, cast_vote_event, delegate_actor)
+    state = engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor)
 
     assert state.voting is not None
     assert state.voting.voting_registry == {0: enums.VotingChoice.FAVOUR}
@@ -380,14 +380,14 @@ def test_delegate_can_cast_vote(
 
 def test_delegate_cannot_cast_vote_twice(
     engine: eng.SessionEngine,
-    voting_state: md.SessionLiveState,
+    informal_voting_state: md.SessionLiveState,
     cast_vote_event: sch.CastVoteEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    engine.dispatch(voting_state, cast_vote_event, delegate_actor)
+    engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor)
 
     with pytest.raises(eng.InvalidProceduralMove, match="Already cast vote"):
-        engine.dispatch(voting_state, cast_vote_event, delegate_actor)
+        engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor)
 
 
 def test_delegate_cannot_cast_vote_without_voting_context(
@@ -522,11 +522,11 @@ def test_delegate_cannot_open_informal_voting(
 
 def test_chair_can_close_informal_voting(
     engine: eng.SessionEngine,
-    voting_state: md.SessionLiveState,
+    informal_voting_state: md.SessionLiveState,
     close_informal_voting_event: sch.CloseInformalVotingEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(voting_state, close_informal_voting_event, chair_actor)
+    state = engine.dispatch(informal_voting_state, close_informal_voting_event, chair_actor)
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.voting is None

@@ -59,19 +59,27 @@ class QuestionContext(BaseModel):
 
 class VotingContext(BaseModel):
     target_type: enums.VotingType
-    motion_in_vote: MotionContext | None = None
     title: str | None = None
     return_state: enums.States
     voting_registry: dict[int, enums.VotingChoice] = {}
+    majority: enums.MajorityTypes | None = None
+   
+    motion_in_vote: MotionContext | None = None
+    # resolution_in_vote: ResolutionContext
 
+    allow_veto_power: bool = False
+    
+    def is_choice_allowed(self, choice: enums.VotingChoice) -> bool:
+        if self.target_type == enums.VotingType.PROCEDURAL: 
+            return choice in (enums.VotingChoice.FAVOUR, enums.VotingChoice.AGAINST)
+         
+        return True
 
 class DebateContext(BaseModel):
     debate_type: enums.DebateTypes
     return_state: enums.States
-    total_duration_seconds: int | None = None  # TODO: check if this is needed
-    total_speeches: int | None = (
-        None  # Check if we use total duration or this for calculating overall time, it can also go overtime
-    )
+    total_duration_seconds: int | None = None # check if its needed
+    total_speeches: int | None = None
     per_speaker_seconds: int | None = None
     expires_at: datetime | None = None
     topic: str | None = None
