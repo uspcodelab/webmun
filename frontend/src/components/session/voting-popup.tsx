@@ -49,7 +49,7 @@ export default function VotingPopup() {
                     <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
                         {isRollCall1
                             ? "Primeira rodada: Sua delegação pode votar com ou sem direitos. Caso deseje pular, podera votar apos todos, porem sem a possibilidade de pedir direitos"
-                            : "Segunda rodada: apenas as delegações que pularam na primeira rodada podem votar, sem direitos."}
+                            : "Segunda rodada: apenas satisfies delegações que pularam na primeira rodada podem votar, sem direitos."}
                     </div>
                 )}
 
@@ -77,11 +77,11 @@ export default function VotingPopup() {
                 <DialogFooter className="flex gap-4 margin-auto">
                     <div className="flex w-full flex-row gap-2">
                         <Button onClick={
-                            () => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} as CastVoteEvent)}}
+                            () => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                              className="flex-1 bg-green-800 text-white hover:bg-green-700">A Favor</Button>
                         <Button
                             onClick={
-                            () => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} as CastVoteEvent)}}
+                            () => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                             disabled={isRollCall && !canAbstain}
                             className="flex-1 bg-gray-700 text-white hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -92,7 +92,7 @@ export default function VotingPopup() {
                                 Pular
                             </Button>
                         )}
-                        <Button onClick={() => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} as CastVoteEvent)}}
+                        <Button onClick={() => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                         className="flex-1 bg-red-800 text-white hover:bg-red-700">Contra</Button>
 
                     </div>

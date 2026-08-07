@@ -92,7 +92,7 @@ export default function SpeakerList() {
                                 variant="outline"
                                 className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
                                 disabled={waitingCount === 0}
-                                onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: {} } as SpeakerEvent)}
+                                onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: {} } satisfies SpeakerEvent)}
                             >
                                 <span className="md:hidden">Proximo</span>
                                 <span className="hidden md:inline">Proximo Orador</span>

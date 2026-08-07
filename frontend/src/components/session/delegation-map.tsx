@@ -160,10 +160,10 @@ export default function DelegationMap({
                                             <ContextMenuContent className="w-60">
                                                 <ContextMenuGroup>
                                                     <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
-                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.INSERT_QUEUE_EVENT, payload: { target: delegation.id } } as ChairInsertQueueEvent)}>
+                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.INSERT_QUEUE_EVENT, payload: { target: delegation.id } } satisfies ChairInsertQueueEvent)}>
                                                         Colocar na Lista de Discursos
                                                     </ContextMenuItem>
-                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: { speaker_id: delegation.id } } as SpeakerEvent)}>
+                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: { speaker_id: delegation.id } } satisfies SpeakerEvent)}>
                                                         Dar a palavra
                                                     </ContextMenuItem>
                                                 </ContextMenuGroup>
@@ -173,13 +173,13 @@ export default function DelegationMap({
                                                     <ContextMenuSub>
                                                         <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
                                                         <ContextMenuSubContent>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT_AND_VOTING } } as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT_AND_VOTING } } satisfies MarkRollCallEvent)}>
                                                                 Presente Votante
                                                             </ContextMenuItem>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT } } as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT } } satisfies MarkRollCallEvent)}>
                                                                 Presente
                                                             </ContextMenuItem>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.ABSENT } } as MarkRollCallEvent)}>
+                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.ABSENT } } satisfies MarkRollCallEvent)}>
                                                                 Ausente
                                                             </ContextMenuItem>
                                                         </ContextMenuSubContent>

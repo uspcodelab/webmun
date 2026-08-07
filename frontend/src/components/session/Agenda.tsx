@@ -84,7 +84,7 @@ export default function Agenda() {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button variant="outline" size="sm" onClick={() => sendMessage(
-                                                    {type:ChairEvents.MARK_AGENDA_ITEM_EVENT, payload:{index: index,indiscussion:true}} as MarkAgendaItemEvent
+                                                    {type:ChairEvents.MARK_AGENDA_ITEM_EVENT, payload:{index: index,indiscussion:true}} satisfies MarkAgendaItemEvent
                                                 )}>
                                                     <MessagesSquare className="h-4 w-4" />
                                                 </Button>
@@ -96,7 +96,7 @@ export default function Agenda() {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button variant="outline" size="sm" onClick={() => sendMessage(
-                                                    {type:ChairEvents.MARK_AGENDA_ITEM_EVENT, payload:{index:index,discussed:true}} as MarkAgendaItemEvent
+                                                    {type:ChairEvents.MARK_AGENDA_ITEM_EVENT, payload:{index:index,discussed:true}} satisfies MarkAgendaItemEvent
                                                 )}>
                                                     <CircleCheckBig className="h-4 w-4" />
                                                 </Button>
@@ -108,7 +108,7 @@ export default function Agenda() {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button variant="destructive" size="sm" onClick={() => sendMessage(
-                                                    {type:ChairEvents.DELETE_AGENDA_ITEM_EVENT, payload:{index: index}} as DeleteAgendaItemEvent
+                                                    {type:ChairEvents.DELETE_AGENDA_ITEM_EVENT, payload:{index: index}} satisfies DeleteAgendaItemEvent
                                                 )}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -145,7 +145,7 @@ export default function Agenda() {
                                 () => {
                                 if(numinput.current && topicinput.current) {
                                     sendMessage({type:ChairEvents.SET_AGENDA_ITEM_EVENT, 
-                                        payload:{index:numinput.current.value, topic: topicinput.current.value}} as SetAgendaItemEvent)
+                                        payload:{index:numinput.current.value, topic: topicinput.current.value}} satisfies SetAgendaItemEvent)
                                     numinput.current.value = ""
                                     topicinput.current.value = ""
                                 }

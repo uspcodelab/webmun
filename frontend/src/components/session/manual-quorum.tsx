@@ -95,7 +95,7 @@ export default function ManualQuorum() {
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button type="submit" className="bg-green-800 text-white hover:bg-green-700" onClick={() => {
-                                sendMessage({ type: ChairEvents.MARK_ROLL_CALL_BULK_EVENT, payload: { Rollcalls: tempQuorum } } as MarkRollCallBulkEvent)
+                                sendMessage({ type: ChairEvents.MARK_ROLL_CALL_BULK_EVENT, payload: { Rollcalls: tempQuorum } } satisfies MarkRollCallBulkEvent)
                             }}>
                                 Aceitar e Salvar Quorum
                             </Button>
