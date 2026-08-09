@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/field"
 import { useState } from "react"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
-import { sendMessage } from "@/context/SessionContext"
-import { DelegateEvents, VotingChoice, type CastVoteEvent } from "@/schemas/types.gen"
+import { sendMessage, useSession } from "@/context/SessionContext"
+import { DelegateEvents, SessionRoles, VotingChoice, type CastVoteEvent } from "@/schemas/types.gen"
 
 type VoteType = "rollCall1" | "rollCall2" | "procedural" | "informal"
 
@@ -27,6 +27,9 @@ const voteType : VoteType = "procedural"
 
 export default function VotingPopup() {
 
+    const {role, representation_id} = useSession()
+    const isChair = role == SessionRoles.CHAIR
+
     //TODO: Implement rollcall voting
     const isRollCall1 = voteType === "rollCall1"
     const isRollCall2 = voteType === "rollCall2"
@@ -35,11 +38,12 @@ export default function VotingPopup() {
     //TEMPORARY^^^^
 
     const voting = useCommitteeStore((state) => state.voting ?? null)
+    const voted = voting && representation_id ? representation_id in voting.voting_registry! : true
     const voteTitle = voting?.title
-    const [voted, setVoted] = useState(false)
+    const [clicked, setClicked] = useState(false)
 
     return (
-        <Dialog  open={voting !== null && !voted}>
+        <Dialog  open={!isChair && voting !== null && !clicked && !voted}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Votação</DialogTitle>
@@ -77,11 +81,11 @@ export default function VotingPopup() {
                 <DialogFooter className="flex gap-4 margin-auto">
                     <div className="flex w-full flex-row gap-2">
                         <Button onClick={
-                            () => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
+                            () => {setClicked(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                              className="flex-1 bg-green-800 text-white hover:bg-green-700">A Favor</Button>
                         <Button
                             onClick={
-                            () => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
+                            () => {setClicked(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                             disabled={isRollCall && !canAbstain}
                             className="flex-1 bg-gray-700 text-white hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -92,7 +96,7 @@ export default function VotingPopup() {
                                 Pular
                             </Button>
                         )}
-                        <Button onClick={() => {setVoted(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
+                        <Button onClick={() => {setClicked(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                         className="flex-1 bg-red-800 text-white hover:bg-red-700">Contra</Button>
 
                     </div>
