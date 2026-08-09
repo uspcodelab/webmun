@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/item"
 import { Badge } from "@/components/ui/badge"
 import Flags from "@/components/ui/flags"
-import { useSession } from "@/context/SessionContext"
-import { SessionRoles } from "@/schemas/types.gen"
+import { sendMessage,useSession } from "@/context/SessionContext"
+import { SessionRoles, ChairEvents, type ResolveMotionEvent} from "@/schemas/types.gen"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
+
 
 export default function MotionsList() {
     const {role} = useSession()
@@ -23,18 +24,10 @@ export default function MotionsList() {
     const motions = useCommitteeStore((state)=>state.submitted_motions)!
     const delegations = useCommitteeStore((state)=>state.delegations)
 
-    const toMinutes = (time: string): number => {
-        const [hours, minutes] = time.split(":").map(Number)
-        if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-            return Number.MAX_SAFE_INTEGER
-        }
-        return hours * 60 + minutes
-    }
-
     const sortedMotions = [...motions].sort((a, b) => {
-        return b.priority! - a.priority!
+        if(b.priority !== a.priority) return b.priority! - a.priority!
 
-        //return toMinutes(a.timestamp) - toMinutes(b.timestamp)
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
     })
     const queueCount = sortedMotions.length
 
@@ -48,7 +41,10 @@ export default function MotionsList() {
                 <Item size="sm" key={motion.id}>
                     <ItemMedia variant="icon" className="h-10 w-10 bg-neutral-200 rounded-full">
                         <div className="h-10 items-center justify-center flex">
-                            <h2 className="font-bold text-black text-xs">{"00:00"}</h2>
+                            <h2 className="font-bold text-black text-xs">{new Date(motion.timestamp).toLocaleTimeString('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit'
+})}</h2>
                         </div>
                     </ItemMedia>
                     <ItemContent>
@@ -61,8 +57,10 @@ export default function MotionsList() {
                     <ItemFooter className="flex-col items-stretch gap-2 pt-2">
                         {isChair && (
                             <div className="flex items-center gap-2">
-                                <Button size="sm" className="flex-1 bg-green-800 text-white hover:bg-green-700">Acatar</Button>
-                                <Button size="sm" className="flex-1 bg-red-800 text-white hover:bg-red-700">Rejeitar</Button>
+                                <Button size="sm" className="flex-1 bg-green-800 text-white hover:bg-green-700"
+                                onClick={()=>sendMessage({type:ChairEvents.RESOLVE_MOTION_EVENT, payload:{motion_id:motion.id!, action:true }} satisfies ResolveMotionEvent)}>Acatar</Button>
+                                <Button size="sm" className="flex-1 bg-red-800 text-white hover:bg-red-700"
+                                onClick={()=>sendMessage({type:ChairEvents.RESOLVE_MOTION_EVENT, payload:{motion_id:motion.id!, action:false }} satisfies ResolveMotionEvent)}>Rejeitar</Button>
                             </div>
                         )}
                         <Separator />

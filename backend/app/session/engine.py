@@ -278,6 +278,7 @@ def handle_submit_motion(
         id=generate_next_motion_id(state),
         priority=get_motion_priority(payload.type),
         type=payload.type,
+        timestamp=datetime.now(UTC),
         delegate_id=actor.delegation.id if actor.delegation is not None else None,
         total_duration_minutes=payload.total_duration_minutes,
         per_speaker_seconds=payload.per_speaker_seconds,

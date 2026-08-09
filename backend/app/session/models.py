@@ -40,6 +40,7 @@ class MotionContext(BaseModel):
     priority: int = 0
     type: enums.Motions
     delegate_id: int | None = None
+    timestamp: datetime
     debate_type: enums.DebateTypes | None = None
 
     total_duration_minutes: int | None = None

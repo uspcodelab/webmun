@@ -549,6 +549,10 @@ export type MotionContext = {
      * Delegate Id
      */
     delegate_id?: number | null;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
     debate_type?: DebateTypes | null;
     /**
      * Total Duration Minutes
