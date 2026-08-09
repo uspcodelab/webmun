@@ -501,6 +501,104 @@ def handle_close_informal_voting(
     return state
 
 
+def apply_passed_motion(state: SessionLiveState, motion: MotionContext) -> None:
+    """Apply a passed procedural motion to the live session state in place."""
+    next_state = state.current_state  # as fallback
+    state.current_speaker = None
+    state.timer_is_running = False
+    state.timer_expiration = None
+
+    # 1st block: change of debate motions
+    if motion.type == Motions.CHANGE_DEBATE_TYPE and motion.debate_type is not None:
+        state.caucus_list = []
+        state.current_speaker = None
+        duration_seconds = (
+            (motion.total_duration_minutes * 60)
+            if motion.total_duration_minutes is not None
+            else 600
+        )  # defaults to 10 minutes as fallback
+
+        match motion.debate_type:
+            case DebateTypes.MODERATED_DEBATE:
+                next_state = States.MODERATED_CAUCUS
+                state.debate = DebateContext(
+                    debate_type=DebateTypes.MODERATED_DEBATE,
+                    return_state=state.current_state,
+                    total_duration_seconds=duration_seconds,
+                    per_speaker_seconds=motion.per_speaker_seconds,
+                    expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
+                )
+                reset_timer(
+                    state,
+                    motion.per_speaker_seconds
+                    if motion.per_speaker_seconds is not None
+                    else 60,
+                )
+
+            case DebateTypes.UNMODERATED_DEBATE:
+                next_state = States.UNMODERATED_CAUCUS
+                state.debate = DebateContext(
+                    debate_type=DebateTypes.UNMODERATED_DEBATE,
+                    return_state=state.current_state,
+                    total_duration_seconds=duration_seconds,
+                    per_speaker_seconds=None,
+                    expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
+                )
+                reset_timer(state)  # should not display per_speaker timer
+
+            case DebateTypes.SPEAKERS_LIST:
+                next_state = States.OPEN_GSL
+                state.debate = None
+                reset_timer(state, state.gsl_default_time_seconds)
+
+            case _:
+                raise InvalidProceduralMove("Undefined debate type")
+
+    match motion.type:
+        case Motions.POSTPONE_SESSION:
+            # TODO: create a type of force_to_database function here? or query if it's a postpone session on service.py
+            pass
+        case Motions.REOPEN_SESSION:
+            # TODO: same as above
+            pass
+        case Motions.TOUR_DE_TABLE:
+            # note: seems like belongs to debate type
+            pass
+        case Motions.END_DEBATE:
+            # clean gsl list
+            state.gsl_queue = []
+            state.debate = None
+            reset_timer(state)
+            next_state = States.VOTING_PROCEDURES  # or VOTING_PREPARATION
+
+        case Motions.VOTE_AMENDMENT:
+            # note: seems more like an informal consultation
+            pass
+        case Motions.VOTE_BY_ROLL_CALL:
+            # will define the VotingContext for resolutions
+            pass
+        case Motions.CLOSE_SPEAKERS_LIST:
+            next_state = States.CLOSED_GSL
+
+        case Motions.REOPEN_SPEAKERS_LIST:
+            next_state = States.OPEN_GSL
+
+        case Motions.SPLIT_PROPOSAL:
+            # note: seems more like an informal consultation
+            pass
+        case Motions.CHANGE_TOPIC:
+            # note: seems more like an informal consultation
+            pass
+        case Motions.QUORUM:
+            state.roll_call = RollCallContext(registry={})
+            next_state = States.ROLL_CALL
+        case _:
+            raise InvalidProceduralMove("Undefined motion type")
+
+    # additional case: if we went from GSL to something, save gsl structures
+    state.current_state = next_state
+
+
 def handle_close_procedural_voting(
     state: SessionLiveState,
     event: schemas.CloseProceduralVotingEvent,
@@ -525,104 +623,8 @@ def handle_close_procedural_voting(
     present = count_present_delegations(state)
     passed = tally_votes(state.voting, present)
 
-    # TODO: pass everything here into a helper "apply_passed_motion" and "apply_change_debate"
     if passed:
-        next_state = state.current_state  # as fallback
-        state.current_speaker = None
-        state.timer_is_running = False
-        state.timer_expiration = None
-
-        # 1st block: change of debate motions
-        if motion.type == Motions.CHANGE_DEBATE_TYPE and motion.debate_type is not None:
-            state.caucus_list = []
-            state.current_speaker = None
-            duration_seconds = (
-                (motion.total_duration_minutes * 60)
-                if motion.total_duration_minutes is not None
-                else 600
-            )  # defaults to 10 minutes as fallback
-
-            match motion.debate_type:
-                case DebateTypes.MODERATED_DEBATE:
-                    next_state = States.MODERATED_CAUCUS
-                    state.debate = DebateContext(
-                        debate_type=DebateTypes.MODERATED_DEBATE,
-                        return_state=state.current_state,
-                        total_duration_seconds=duration_seconds,
-                        per_speaker_seconds=motion.per_speaker_seconds,
-                        expires_at=datetime.now(UTC)
-                        + timedelta(seconds=duration_seconds),
-                    )
-                    reset_timer(
-                        state,
-                        motion.per_speaker_seconds
-                        if motion.per_speaker_seconds is not None
-                        else 60,
-                    )
-
-                case DebateTypes.UNMODERATED_DEBATE:
-                    next_state = States.UNMODERATED_CAUCUS
-                    state.debate = DebateContext(
-                        debate_type=DebateTypes.UNMODERATED_DEBATE,
-                        return_state=state.current_state,
-                        total_duration_seconds=duration_seconds,
-                        per_speaker_seconds=None,
-                        expires_at=datetime.now(UTC)
-                        + timedelta(seconds=duration_seconds),
-                    )
-                    reset_timer(state)  # should not display per_speaker timer
-
-                case DebateTypes.SPEAKERS_LIST:
-                    next_state = States.OPEN_GSL
-                    state.debate = None
-                    reset_timer(state, state.gsl_default_time_seconds)
-
-                case _:
-                    raise InvalidProceduralMove("Undefined debate type")
-
-        match motion.type:
-            case Motions.POSTPONE_SESSION:
-                # TODO: create a type of force_to_database function here? or query if it's a postpone session on service.py
-                pass
-            case Motions.REOPEN_SESSION:
-                # TODO: same as above
-                pass
-            case Motions.TOUR_DE_TABLE:
-                # note: seems like belongs to debate type
-                pass
-            case Motions.END_DEBATE:
-                # clean gsl list
-                state.gsl_queue = []
-                state.debate = None
-                reset_timer(state)
-                next_state = States.VOTING_PROCEDURES  # or VOTING_PREPARATION
-
-            case Motions.VOTE_AMENDMENT:
-                # note: seems more like an informal consultation
-                pass
-            case Motions.VOTE_BY_ROLL_CALL:
-                # will define the VotingContext for resolutions
-                pass
-            case Motions.CLOSE_SPEAKERS_LIST:
-                next_state = States.CLOSED_GSL
-
-            case Motions.REOPEN_SPEAKERS_LIST:
-                next_state = States.OPEN_GSL
-
-            case Motions.SPLIT_PROPOSAL:
-                # note: seems more like an informal consultation
-                pass
-            case Motions.CHANGE_TOPIC:
-                # note: seems more like an informal consultation
-                pass
-            case Motions.QUORUM:
-                state.roll_call = RollCallContext(registry={})
-                next_state = States.ROLL_CALL
-            case _:
-                raise InvalidProceduralMove("Undefined motion type")
-
-        # additional case: if we went from GSL to something, save gsl structures
-        state.current_state = next_state
+        apply_passed_motion(state, motion)
     else:
         # motion failed, so return to last state
         state.current_state = state.voting.return_state
