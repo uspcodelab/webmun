@@ -963,7 +963,10 @@ export type ValidationError = {
 export const VotingChoice = {
     FAVOUR: 'Favour',
     AGAINST: 'Against',
-    ABSTAIN: 'Abstain'
+    ABSTAIN: 'Abstain',
+    YES_WITH_RIGHTS: 'Yes With Rights',
+    NO_WITH_RIGHTS: 'No With Rights',
+    PASS: 'Pass'
 } as const;
 
 /**
@@ -976,7 +979,6 @@ export type VotingChoice = typeof VotingChoice[keyof typeof VotingChoice];
  */
 export type VotingContext = {
     target_type: VotingType;
-    motion_in_vote?: MotionContext | null;
     /**
      * Title
      */
@@ -988,6 +990,12 @@ export type VotingContext = {
     voting_registry?: {
         [key: string]: VotingChoice;
     };
+    majority?: MajorityTypes | null;
+    motion_in_vote?: MotionContext | null;
+    /**
+     * Allow Veto Power
+     */
+    allow_veto_power?: boolean;
 };
 
 /**

@@ -14,24 +14,14 @@ import { Badge } from "@/components/ui/badge"
 import Flags from "@/components/ui/flags"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
+import { useCommitteeStore } from "@/store/useCommitteeStore"
 
-export type Motion = {
-    id: string
-    timestamp: string
-    title: string
-    proposer: string
-    proposerCode: string
-    priority: number
-}
-
-type MotionsListProps = {
-    motions: Motion[]
-}
-
-
-export default function MotionsList({ motions }: MotionsListProps) {
+export default function MotionsList() {
     const {role} = useSession()
     const isChair = role===SessionRoles.CHAIR
+
+    const motions = useCommitteeStore((state)=>state.submitted_motions)!
+    const delegations = useCommitteeStore((state)=>state.delegations)
 
     const toMinutes = (time: string): number => {
         const [hours, minutes] = time.split(":").map(Number)
@@ -42,11 +32,9 @@ export default function MotionsList({ motions }: MotionsListProps) {
     }
 
     const sortedMotions = [...motions].sort((a, b) => {
-        if (b.priority !== a.priority) {
-            return b.priority - a.priority
-        }
+        return b.priority! - a.priority!
 
-        return toMinutes(a.timestamp) - toMinutes(b.timestamp)
+        //return toMinutes(a.timestamp) - toMinutes(b.timestamp)
     })
     const queueCount = sortedMotions.length
 
@@ -60,14 +48,14 @@ export default function MotionsList({ motions }: MotionsListProps) {
                 <Item size="sm" key={motion.id}>
                     <ItemMedia variant="icon" className="h-10 w-10 bg-neutral-200 rounded-full">
                         <div className="h-10 items-center justify-center flex">
-                            <h2 className="font-bold text-black text-xs">{motion.timestamp}</h2>
+                            <h2 className="font-bold text-black text-xs">{"00:00"}</h2>
                         </div>
                     </ItemMedia>
                     <ItemContent>
-                        <ItemTitle>{motion.title}</ItemTitle>
+                        <ItemTitle>{motion.type}</ItemTitle>
                         <ItemDescription className="flex items-center gap-2">
-                            <Flags code={motion.proposerCode} className="h-4" />
-                            <span>{motion.proposer}</span>
+                            <Flags code={motion.delegate_id ? motion.delegate_id.toString() : "0"} className="h-4" />
+                            <span>{delegations[motion.delegate_id!].name}</span>
                         </ItemDescription>
                     </ItemContent>
                     <ItemFooter className="flex-col items-stretch gap-2 pt-2">
