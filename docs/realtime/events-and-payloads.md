@@ -69,6 +69,10 @@ Privilege`.
   - Moves an allowed session to `Finished` and clears active debate and timer
     data.
 
+- `LogMotionEvent`
+  - Payload: same variables from `SubmitMotionEvent` plus `representation_id` and `decision` (`Accept` or `DENY`)
+  - Records the decision from chair for a specific motion, not sent in the system by any delegation
+
 - `ToggleTimerEvent`
   - Payload: optional `toggle` (defaults to `true`).
   - Starts or pauses the timer. The current implementation toggles based on
