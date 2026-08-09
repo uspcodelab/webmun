@@ -247,7 +247,7 @@ def handle_delegate_submit_motion(
     state: SessionLiveState, event: schemas.SubmitMotionEvent, actor: SessionActor
 ) -> SessionLiveState:
     """Handles/Maps all possible states through a motion"""
-    delegate = require_delegate(actor)
+    require_delegate(actor)
 
     # Extract payload (as DelegateMotionSchema)
     payload = event.payload
