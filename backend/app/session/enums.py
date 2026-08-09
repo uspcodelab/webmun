@@ -40,6 +40,7 @@ class ChairEvents(StrEnum):
     INCREASE_TIMER = "IncreaseTimerEvent"
     OPEN_INFORMAL_VOTING = "OpenInformalVotingEvent"
     RESOLVE_MOTION = "ResolveMotionEvent"
+    LOG_MOTION = "LogMotionEvent"
     CLOSE_PROCEDURAL_VOTING = "CloseProceduralVotingEvent"
     CLOSE_INFORMAL_VOTING = "CloseInformalVotingEvent"
 
@@ -121,3 +122,10 @@ class VotingType(StrEnum):
     INFORMAL = "Informal"
     PROCEDURAL = "Procedural"
     SUBSTANTIVE = "Substantive"
+
+
+class MotionDecision(StrEnum):
+    """Tracks decision for LogMotionEvent for chair"""
+
+    ACCEPT = "Accept"
+    DENY = "Deny"

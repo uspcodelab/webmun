@@ -14,17 +14,20 @@ class SessionCreationSchema(BaseModel):
     name: str | None = None
 
 
-# --- Delegate Payloads ---
-# TODO: refactor this to only reflect the payload received by delegates, with MotionModel being a separated entity
-class DelegateMotionPayload(BaseModel):
+class MotionPayload(BaseModel):
+    """General motion payload. Used on Delegate and Chair payloads"""
+
     type: enums.Motions
     debate_type: enums.DebateTypes | None = None
-
     total_duration_minutes: int | None = None
     per_speaker_seconds: int | None = None
     target_topic: str | None = None
-
     details: str | None = None
+
+
+# --- Delegate Payloads ---
+class DelegateMotionPayload(MotionPayload):
+    pass
 
 
 class DelegateQuestionPayload(BaseModel):
@@ -75,6 +78,13 @@ class AnswerRollCallEvent(BaseModel):
 
 
 # --- Chair Payloads ---
+class ChairMotionPayload(MotionPayload):
+    """Extended payload for motions. Used to log motions"""
+
+    representation_id: int
+    decision: enums.MotionDecision
+
+
 class ChairIncreaseTimerPayload(BaseModel):
     seconds: int = 5
 
@@ -140,6 +150,11 @@ class MarkRollCallBulkPayload(BaseModel):
 
 
 # --- Chair Events ---
+class LogMotionEvent(BaseModel):
+    type: Literal[enums.ChairEvents.LOG_MOTION]
+    payload: ChairMotionPayload
+
+
 class OpenSessionEvent(BaseModel):
     type: Literal[enums.ChairEvents.OPEN_SESSION]
     payload: EmptyPayload
@@ -238,6 +253,7 @@ SessionEvent = Annotated[
     | AnswerRollCallEvent
     | JoinQueueEvent
     | LeaveQueueEvent
+    | LogMotionEvent
     | OpenSessionEvent
     | CloseSessionEvent
     | IncreaseTimerEvent

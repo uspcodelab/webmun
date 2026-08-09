@@ -98,19 +98,10 @@ def generate_next_question_id(state: SessionLiveState) -> int:
     return state._question_id_counter
 
 
-# TODO: map more things to be needed here
 def validate_motion_payload(
-    payload: schemas.DelegateMotionPayload, state: SessionLiveState
+    payload: schemas.MotionPayload, state: SessionLiveState
 ) -> None:
-    """Should validate motion payload and correct it before submitting"""
-    # can correct things
-    if payload.target_topic is None:
-        payload.target_topic = (
-            state.agenda_topics[state.active_topic_index][0]
-            if state.active_topic_index is not None
-            and 0 <= state.active_topic_index < len(state.agenda_topics)
-            else None
-        )
+    """Should validate motion payload before submitting"""
 
     # can also raise error if there are missing fields
     if (
@@ -118,11 +109,6 @@ def validate_motion_payload(
         and payload.per_speaker_seconds is None
     ):
         raise InvalidProceduralMove("Cannot submit motion without speaking time")
-
-
-def validate_question_payload(
-    payload: schemas.DelegateQuestionPayload, state: SessionLiveState
-) -> None: ...
 
 
 def count_present_delegations(state: SessionLiveState) -> int:
@@ -142,7 +128,8 @@ def count_present_delegations(state: SessionLiveState) -> int:
     )
 
 
-def tally_votes(voting: VotingContext, total_presents: int) -> bool:
+def needs_simple_majority_type(motion: enums.Motions) -> bool:
+    """Simple map for majority type. Used when creating VotingContext and tallying votes"""
     qualified_motions = (
         Motions.POSTPONE_SESSION,
         Motions.CHANGE_DEBATE_TYPE,
@@ -150,7 +137,14 @@ def tally_votes(voting: VotingContext, total_presents: int) -> bool:
         Motions.CLOSE_SPEAKERS_LIST,
         Motions.SPLIT_PROPOSAL,
     )
-    """Helper for computing votes. 
+
+    if motion not in qualified_motions:
+        return True
+    return False
+
+
+def tally_votes(voting: VotingContext, total_presents: int) -> bool:
+    """Helper for computing votes.
     Unless motion is explicitly requiring qualified majority,
     will use simple majority (also counts for informal votes)"""
     if total_presents == 0:
@@ -170,12 +164,10 @@ def tally_votes(voting: VotingContext, total_presents: int) -> bool:
     if motion is None:
         return in_favor_count >= simple
 
-    # Use qualified majority for "important" motions
     if (
-        motion.type in qualified_motions
-        and in_favor_count >= qualified
-        or motion.type not in qualified_motions
+        needs_simple_majority_type(motion.type)
         and in_favor_count >= simple
+        or in_favor_count >= qualified
     ):
         return True
 
@@ -251,10 +243,12 @@ def require_chair(actor: SessionActor) -> None:
 
 
 # -------------- HANDLERS --------------
-def handle_submit_motion(
+def handle_delegate_submit_motion(
     state: SessionLiveState, event: schemas.SubmitMotionEvent, actor: SessionActor
 ) -> SessionLiveState:
     """Handles/Maps all possible states through a motion"""
+    delegate = require_delegate(actor)
+
     # Extract payload (as DelegateMotionSchema)
     payload = event.payload
     current_state = state.current_state
@@ -269,17 +263,15 @@ def handle_submit_motion(
     ):
         raise InvalidProceduralMove("Submitting motions during caucuses is disabled")
 
-    # if actor.delegation is None and actor.role != SessionRole.CHAIR:
-    #    raise InvalidProceduralMove("Delegation context is missing")
-
     validate_motion_payload(payload, state)
 
     context = MotionContext(
         id=generate_next_motion_id(state),
-        priority=get_motion_priority(payload.type),
+        priority=get_motion_priority(payload.type) or 1,
         type=payload.type,
         timestamp=datetime.now(UTC),
         delegate_id=actor.delegation.id if actor.delegation is not None else None,
+        debate_type=payload.debate_type,
         total_duration_minutes=payload.total_duration_minutes,
         per_speaker_seconds=payload.per_speaker_seconds,
         target_topic=payload.target_topic,
@@ -293,15 +285,13 @@ def handle_submit_motion(
 def handle_submit_question(
     state: SessionLiveState, event: schemas.SubmitQuestionEvent, actor: SessionActor
 ) -> SessionLiveState:
-    # TODO: change this so Chair can also catalog motions for delegations
     require_delegate(actor)
 
     payload = event.payload
-    validate_question_payload(payload, state)
 
     context = QuestionContext(
         id=generate_next_question_id(state),
-        priority=get_question_priority(payload.type),
+        priority=get_question_priority(payload.type) or 1,
         type=payload.type,
         delegate_id=actor.delegation.id,  # type:ignore since require_delegate assumes actor delegate is not none
         details=payload.details,
@@ -658,18 +648,65 @@ def handle_resolve_motion(
     if motion is None:
         raise InvalidProceduralMove("Motion not found")
 
+    majority_type = (
+        enums.MajorityTypes.SIMPLE
+        if needs_simple_majority_type(motion.type)
+        else enums.MajorityTypes.QUALIFIED
+    )
+
     if payload.action:
         state.voting = VotingContext(
             target_type=enums.VotingType.PROCEDURAL,
             motion_in_vote=motion,
             return_state=state.current_state,
             voting_registry={},
+            majority=majority_type,
         )
 
         state.current_state = States.VOTING_EXECUTION
 
     state.submitted_motions.remove(motion)
 
+    return state
+
+
+def handle_chair_submit_motion(
+    state: SessionLiveState, event: schemas.LogMotionEvent, actor: SessionActor
+) -> SessionLiveState:
+    require_chair(actor)
+
+    payload = event.payload
+    validate_motion_payload(payload=payload, state=state)
+
+    # create motion context
+    context = MotionContext(
+        id=generate_next_motion_id(state),
+        priority=get_motion_priority(payload.type) or 1,
+        type=payload.type,
+        delegate_id=payload.representation_id,
+        debate_type=payload.debate_type,
+        total_duration_minutes=payload.total_duration_minutes,
+        per_speaker_seconds=payload.per_speaker_seconds,
+        target_topic=payload.target_topic,
+        details=payload.details,
+    )
+
+    majority_type = (
+        enums.MajorityTypes.SIMPLE
+        if needs_simple_majority_type(payload.type)
+        else enums.MajorityTypes.QUALIFIED
+    )
+
+    # set state to be in voting execution
+    state.voting = VotingContext(
+        target_type=enums.VotingType.PROCEDURAL,
+        motion_in_vote=context,
+        return_state=state.current_state,
+        voting_registry={},
+        majority=majority_type,
+    )
+
+    state.current_state = States.VOTING_EXECUTION
     return state
 
 
@@ -814,9 +851,8 @@ EventHandler: TypeAlias = Callable[
     SessionLiveState,  # Return type
 ]
 
-# TODO: check if list has all events, since it's generated by codex
 EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
-    DelegateEvents.SUBMIT_MOTION: handle_submit_motion,
+    DelegateEvents.SUBMIT_MOTION: handle_delegate_submit_motion,
     DelegateEvents.SUBMIT_QUESTION: handle_submit_question,
     DelegateEvents.JOIN_QUEUE: handle_join_queue,
     DelegateEvents.LEAVE_QUEUE: handle_leave_queue,
@@ -829,6 +865,7 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.CLOSE_INFORMAL_VOTING: handle_close_informal_voting,
     ChairEvents.CLOSE_PROCEDURAL_VOTING: handle_close_procedural_voting,
     ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
+    ChairEvents.LOG_MOTION: handle_chair_submit_motion,
     ChairEvents.SET_AGENDA: handle_set_agenda,
     ChairEvents.SET_AGENDA_ITEM: handle_set_agenda_item,
     ChairEvents.MARK_AGENDA_ITEM: handle_mark_agenda_item,
