@@ -685,6 +685,7 @@ def handle_chair_submit_motion(
         id=generate_next_motion_id(state),
         priority=get_motion_priority(payload.type) or 1,
         type=payload.type,
+        timestamp=datetime.now(UTC),
         delegate_id=payload.representation_id,
         debate_type=payload.debate_type,
         total_duration_minutes=payload.total_duration_minutes,

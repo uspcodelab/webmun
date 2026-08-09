@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 
 import app.session.engine as eng
@@ -151,6 +153,7 @@ def close_speakers_list_motion(
         id=1,
         priority=1,
         type=enums.Motions.CLOSE_SPEAKERS_LIST,
+        timestamp=datetime.now(UTC),
         delegate_id=delegate_actor.delegation.id,  # type: ignore[union-attr]
     )
 
@@ -161,6 +164,7 @@ def reopen_speakers_list_motion(delegate_actor: md.SessionActor) -> md.MotionCon
         id=1,
         priority=1,
         type=enums.Motions.REOPEN_SPEAKERS_LIST,
+        timestamp=datetime.now(UTC),
         delegate_id=delegate_actor.delegation.id,  # type: ignore[union-attr]
     )
 
