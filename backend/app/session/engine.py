@@ -373,7 +373,7 @@ def handle_open_session(
         raise InvalidProceduralMove("Session can only be opened from setup")
 
     state.current_state = States.ROLL_CALL
-    state.roll_call = RollCallContext(registry={}, current_delegation=None)
+    state.roll_call = RollCallContext(registry={})
     state.voting_choice = {}
     state.gsl_queue = []
     state.current_speaker = None
@@ -501,9 +501,13 @@ def handle_close_informal_voting(
     return state
 
 
-def apply_passed_motion(state: SessionLiveState, motion: MotionContext) -> None:
+def apply_passed_motion(
+    state: SessionLiveState,
+    motion: MotionContext,
+    return_state: States
+) -> None:
     """Apply a passed procedural motion to the live session state in place."""
-    next_state = state.current_state  # as fallback
+    next_state = return_state  # as fallback
     state.current_speaker = None
     state.timer_is_running = False
     state.timer_expiration = None
@@ -523,7 +527,7 @@ def apply_passed_motion(state: SessionLiveState, motion: MotionContext) -> None:
                 next_state = States.MODERATED_CAUCUS
                 state.debate = DebateContext(
                     debate_type=DebateTypes.MODERATED_DEBATE,
-                    return_state=state.current_state,
+                    return_state=return_state,
                     total_duration_seconds=duration_seconds,
                     per_speaker_seconds=motion.per_speaker_seconds,
                     expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
@@ -539,7 +543,7 @@ def apply_passed_motion(state: SessionLiveState, motion: MotionContext) -> None:
                 next_state = States.UNMODERATED_CAUCUS
                 state.debate = DebateContext(
                     debate_type=DebateTypes.UNMODERATED_DEBATE,
-                    return_state=state.current_state,
+                    return_state=return_state,
                     total_duration_seconds=duration_seconds,
                     per_speaker_seconds=None,
                     expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
@@ -556,14 +560,13 @@ def apply_passed_motion(state: SessionLiveState, motion: MotionContext) -> None:
 
     match motion.type:
         case Motions.POSTPONE_SESSION:
-            # TODO: create a type of force_to_database function here? or query if it's a postpone session on service.py
             pass
         case Motions.REOPEN_SESSION:
-            # TODO: same as above
             pass
         case Motions.TOUR_DE_TABLE:
-            # note: seems like belongs to debate type
-            pass
+            next_state = States.TOUR_DE_TABLE
+            state.caucus_list = [del_id for del_id, choice in state.roll_call.registry.items() if choice in (enums.RollCallChoice.PRESENT, enums.RollCallChoice.PRESENT_AND_VOTING)]
+
         case Motions.END_DEBATE:
             # clean gsl list
             state.gsl_queue = []
@@ -624,7 +627,7 @@ def handle_close_procedural_voting(
     passed = tally_votes(state.voting, present)
 
     if passed:
-        apply_passed_motion(state, motion)
+        apply_passed_motion(state, motion, return_state=state.voting.return_state)
     else:
         # motion failed, so return to last state
         state.current_state = state.voting.return_state
@@ -779,24 +782,81 @@ def handle_manual_phase_set(
 ) -> SessionLiveState: ...
 
 
-def handle_choose_speaker(
-    state: SessionLiveState, event: schemas.SpeakerEvent, actor: SessionActor
+def handle_next_speaker(
+    state: SessionLiveState, event: schemas.NextSpeakerEvent, actor: SessionActor
 ) -> SessionLiveState:
     require_chair(actor)
 
-    seconds = event.payload.seconds or get_default_speaker_seconds(state)
-    if (
-        event.payload.speaker_id is None
-        and state.current_state in (States.OPEN_GSL, States.CLOSED_GSL)
-        and state.gsl_queue
-    ):
+    if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
+        if not state.gsl_queue:
+            state.current_speaker = None
+            reset_timer(state)
+            return state
         state.current_speaker = state.gsl_queue.pop(0)
-    else:
-        state.current_speaker = event.payload.speaker_id
+        reset_timer(state, state.gsl_default_time_seconds)
+        return state
 
-    state.timer_is_running = False
-    state.timer_expiration = None  # will be calculated when timer is toggled
-    state.timer_remaining_seconds = seconds or 60  # default to something
+    if state.current_state == States.TOUR_DE_TABLE:
+        if not state.caucus_list:
+            state.current_speaker = None
+            reset_timer(state)
+            return state
+        state.current_speaker = state.caucus_list.pop(0)
+        reset_timer(state, state.gsl_default_time_seconds)
+        return state
+
+    if state.current_state == States.MODERATED_CAUCUS:
+        raise InvalidProceduralMove("Chair must grant floor during moderated caucus")
+
+    raise InvalidProceduralMove("Cannot advance speaker right now")
+
+
+def handle_add_gsl_speaker(
+    state: SessionLiveState, event: schemas.AddGslSpeakerEvent, actor: SessionActor
+) -> SessionLiveState:
+    require_chair(actor)
+
+    if state.current_state not in {States.OPEN_GSL, States.CLOSED_GSL}:
+        raise InvalidProceduralMove("Can only add speakers to the GSL")
+
+    representation_id = event.payload.representation_id
+    if representation_id not in state.delegations:
+        raise InvalidProceduralMove("Representation not found")
+    if representation_id in state.gsl_queue:
+        raise InvalidProceduralMove("Representation already in GSL queue")
+
+    state.gsl_queue.append(representation_id)
+    return state
+
+
+def handle_grant_floor(
+    state: SessionLiveState, event: schemas.GrantFloorEvent, actor: SessionActor
+) -> SessionLiveState:
+    require_chair(actor)
+
+    representation_id = event.payload.representation_id
+    if representation_id not in state.delegations:
+        raise InvalidProceduralMove("Representation not found")
+
+    if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
+        if representation_id in state.gsl_queue:
+            state.gsl_queue.remove(representation_id)
+        seconds = event.payload.seconds or state.gsl_default_time_seconds
+    elif state.current_state == States.MODERATED_CAUCUS:
+        if state.debate is None:
+            raise InvalidProceduralMove("No active moderated caucus")
+        seconds = event.payload.seconds or state.debate.per_speaker_seconds or 60
+    elif state.current_state == States.TOUR_DE_TABLE:
+        if representation_id in state.caucus_list:
+            state.caucus_list.remove(representation_id)
+        seconds = event.payload.seconds or state.gsl_default_time_seconds
+    elif state.current_state == States.UNMODERATED_CAUCUS:
+        raise InvalidProceduralMove("Cannot grant floor during unmoderated caucus")
+    else:
+        raise InvalidProceduralMove("Cannot grant floor right now")
+
+    state.current_speaker = representation_id
+    reset_timer(state, seconds)
 
     return state
 
@@ -856,18 +916,6 @@ def handle_close_roll_call(
     return state
 
 
-def handle_insert_queue(
-    state: SessionLiveState, event: schemas.ChairInsertQueueEvent, actor: SessionActor
-) -> SessionLiveState:
-    require_chair(actor)
-    del_id: int = event.payload.target
-    delegate = state.delegations.get(del_id)
-    if delegate is None:
-        raise InvalidProceduralMove("Delegate not found")
-    state.gsl_queue.append(delegate.id)
-    return state
-
-
 # Signature for events/handlers, uses legacy(ish) 3.11 TypeAlias
 EventHandler: TypeAlias = Callable[
     [SessionLiveState, Any, SessionActor],  # overall signature
@@ -896,11 +944,12 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.DELETE_AGENDA_ITEM: handle_delete_agenda_item,
     ChairEvents.MANUAL_PHASE_SET: handle_manual_phase_set,
     ChairEvents.CLOSE_SESSION: handle_close_session,
-    ChairEvents.CHOOSE_SPEAKER: handle_choose_speaker,
+    ChairEvents.NEXT_SPEAKER: handle_next_speaker,
+    ChairEvents.ADD_GSL_SPEAKER: handle_add_gsl_speaker,
+    ChairEvents.GRANT_FLOOR: handle_grant_floor,
     ChairEvents.MARK_ROLLCALL: handle_mark_roll_call,
     ChairEvents.MARK_ROLLCALL_BULK: handle_mark_roll_call_bulk,
     ChairEvents.CLOSE_ROLLCALL: handle_close_roll_call,
-    ChairEvents.INSERT_QUEUE: handle_insert_queue,
 }
 
 

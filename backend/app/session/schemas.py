@@ -105,9 +105,9 @@ class ChairResolveMotionPayload(BaseModel):
     action: bool
 
 
-class ChairForceSpeakerPayload(BaseModel):
-    speaker_id: int | None = None  # if none, will pass onto next speaker
-    seconds: int | None = None  # if none, will be based on the current seconds
+class GrantFloorPayload(BaseModel):
+    representation_id: int
+    seconds: int | None = Field(default=None, ge=1)
 
 
 class ChairSetAgendaPayload(BaseModel):
@@ -118,8 +118,8 @@ class ChairSetPhasePayload(BaseModel):
     target_phase: enums.States
 
 
-class ChairInsertQueuePayload(BaseModel):
-    target: int  # Delegate Id
+class AddGslSpeakerPayload(BaseModel):
+    representation_id: int
 
 
 class SetAgendaItemPayload(BaseModel):
@@ -185,9 +185,19 @@ class ResolveMotionEvent(BaseModel):
     payload: ChairResolveMotionPayload
 
 
-class SpeakerEvent(BaseModel):
-    type: Literal[enums.ChairEvents.CHOOSE_SPEAKER]
-    payload: ChairForceSpeakerPayload
+class NextSpeakerEvent(BaseModel):
+    type: Literal[enums.ChairEvents.NEXT_SPEAKER]
+    payload: EmptyPayload
+
+
+class AddGslSpeakerEvent(BaseModel):
+    type: Literal[enums.ChairEvents.ADD_GSL_SPEAKER]
+    payload: AddGslSpeakerPayload
+
+
+class GrantFloorEvent(BaseModel):
+    type: Literal[enums.ChairEvents.GRANT_FLOOR]
+    payload: GrantFloorPayload
 
 
 class SetAgendaEvent(BaseModel):
@@ -230,11 +240,6 @@ class CloseRollCallEvent(BaseModel):
     payload: EmptyPayload
 
 
-class ChairInsertQueueEvent(BaseModel):
-    type: Literal[enums.ChairEvents.INSERT_QUEUE]
-    payload: ChairInsertQueuePayload
-
-
 class MarkAgendaItemEvent(BaseModel):
     type: Literal[enums.ChairEvents.MARK_AGENDA_ITEM]
     payload: MarkAgendaItemPayload
@@ -268,7 +273,9 @@ SessionEvent = Annotated[
     | CloseInformalVotingEvent
     | FinishCaucusEvent
     | ResolveMotionEvent
-    | SpeakerEvent
+    | NextSpeakerEvent
+    | AddGslSpeakerEvent
+    | GrantFloorEvent
     | SetAgendaEvent
     | SetAgendaItemEvent
     | MarkAgendaItemEvent
@@ -276,7 +283,6 @@ SessionEvent = Annotated[
     | SetPhaseEvent
     | MarkRollCallEvent
     | CloseRollCallEvent
-    | ChairInsertQueueEvent
     | MarkRollCallBulkEvent,
     Field(discriminator="type"),
 ]

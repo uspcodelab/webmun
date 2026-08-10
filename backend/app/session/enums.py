@@ -19,6 +19,7 @@ class States(StrEnum):
     # States based on motions, resolutions, etc
     MODERATED_CAUCUS = "Moderated Caucus"
     UNMODERATED_CAUCUS = "Unmoderated Caucus"
+    TOUR_DE_TABLE = "Tour de Table"
     VOTING_EXECUTION = "Voting Execution"  # this handles either "motion to moderated caucus" or "motion to voting procedures", for example
     BETWEEN_DEBATES = "Between Debates"
 
@@ -54,11 +55,12 @@ class ChairEvents(StrEnum):
     MARK_AGENDA_ITEM = "MarkAgendaItemEvent"
     DELETE_AGENDA_ITEM = "DeleteAgendaItemEvent"
     SET_AGENDA = "SetAgenda"
-    CHOOSE_SPEAKER = "SpeakerEvent"
+    NEXT_SPEAKER = "NextSpeakerEvent"
+    ADD_GSL_SPEAKER = "AddGslSpeakerEvent"
+    GRANT_FLOOR = "GrantFloorEvent"
     MARK_ROLLCALL = "MarkRollCallEvent"
     MARK_ROLLCALL_BULK = "MarkRollCallBulkEvent"
     CLOSE_ROLLCALL = "CloseRollCallEvent"
-    INSERT_QUEUE = "InsertQueueEvent"
 
 
 # --- Additional Info ---

@@ -201,10 +201,26 @@ def resolve_motion_event() -> sch.ResolveMotionEvent:
 
 
 @pytest.fixture
-def choose_speaker_event() -> sch.SpeakerEvent:
-    return sch.SpeakerEvent(
-        type=enums.ChairEvents.CHOOSE_SPEAKER,
-        payload=sch.ChairForceSpeakerPayload(speaker_id=1, seconds=45),
+def next_speaker_event() -> sch.NextSpeakerEvent:
+    return sch.NextSpeakerEvent(
+        type=enums.ChairEvents.NEXT_SPEAKER,
+        payload=sch.EmptyPayload(),
+    )
+
+
+@pytest.fixture
+def add_gsl_speaker_event() -> sch.AddGslSpeakerEvent:
+    return sch.AddGslSpeakerEvent(
+        type=enums.ChairEvents.ADD_GSL_SPEAKER,
+        payload=sch.AddGslSpeakerPayload(representation_id=1),
+    )
+
+
+@pytest.fixture
+def grant_floor_event() -> sch.GrantFloorEvent:
+    return sch.GrantFloorEvent(
+        type=enums.ChairEvents.GRANT_FLOOR,
+        payload=sch.GrantFloorPayload(representation_id=1, seconds=45),
     )
 
 
@@ -229,14 +245,6 @@ def mark_roll_call_bulk_event() -> sch.MarkRollCallBulkEvent:
                 2: enums.RollCallChoice.ABSENT,
             },
         ),
-    )
-
-
-@pytest.fixture
-def insert_queue_event() -> sch.ChairInsertQueueEvent:
-    return sch.ChairInsertQueueEvent(
-        type=enums.ChairEvents.INSERT_QUEUE,
-        payload=sch.ChairInsertQueuePayload(target=0),
     )
 
 
@@ -797,28 +805,162 @@ def test_tally_votes_correctly_marks_fail_majority(
     assert not res
 
 
-def test_chair_can_choose_speaker(
+def test_chair_can_advance_gsl_speaker(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
-    choose_speaker_event: sch.SpeakerEvent,
+    next_speaker_event: sch.NextSpeakerEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, choose_speaker_event, chair_actor)
+    open_gsl_state.gsl_queue = [1, 2]
+
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
 
     assert state.current_speaker == 1
+    assert state.gsl_queue == [2]
     assert state.timer_is_running is False
     assert state.timer_expiration is None
-    assert state.timer_remaining_seconds == 45
+    assert state.timer_remaining_seconds == state.gsl_default_time_seconds
 
 
-def test_delegate_cannot_choose_speaker(
+def test_chair_can_advance_tour_de_table_speaker(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
-    choose_speaker_event: sch.SpeakerEvent,
+    next_speaker_event: sch.NextSpeakerEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.current_state = enums.States.TOUR_DE_TABLE
+    open_gsl_state.caucus_list = [1, 2]
+
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+
+    assert state.current_speaker == 1
+    assert state.caucus_list == [2]
+    assert state.timer_remaining_seconds == state.gsl_default_time_seconds
+
+
+def test_next_speaker_clears_current_speaker_when_gsl_empty(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    next_speaker_event: sch.NextSpeakerEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.current_speaker = 1
+    open_gsl_state.timer_is_running = True
+
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+
+    assert state.current_speaker is None
+    assert state.timer_remaining_seconds == 0
+    assert state.timer_is_running is False
+
+
+def test_next_speaker_rejects_moderated_caucus(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    next_speaker_event: sch.NextSpeakerEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.current_state = enums.States.MODERATED_CAUCUS
+
+    with pytest.raises(eng.InvalidProceduralMove, match="must grant floor"):
+        engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+
+
+def test_delegate_cannot_advance_speaker(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    next_speaker_event: sch.NextSpeakerEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
     with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
-        engine.dispatch(open_gsl_state, choose_speaker_event, delegate_actor)
+        engine.dispatch(open_gsl_state, next_speaker_event, delegate_actor)
+
+
+def test_chair_can_add_gsl_speaker(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    add_gsl_speaker_event: sch.AddGslSpeakerEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    state = engine.dispatch(open_gsl_state, add_gsl_speaker_event, chair_actor)
+
+    assert state.gsl_queue == [1]
+
+
+def test_add_gsl_speaker_rejects_duplicates(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    add_gsl_speaker_event: sch.AddGslSpeakerEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.gsl_queue = [1]
+
+    with pytest.raises(eng.InvalidProceduralMove, match="already in GSL queue"):
+        engine.dispatch(open_gsl_state, add_gsl_speaker_event, chair_actor)
+
+
+def test_chair_can_grant_floor_and_remove_gsl_queue_entry(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    grant_floor_event: sch.GrantFloorEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.gsl_queue = [0, 1, 2]
+
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+
+    assert state.current_speaker == 1
+    assert state.gsl_queue == [0, 2]
+    assert state.timer_remaining_seconds == 45
+
+
+def test_chair_can_grant_floor_and_remove_tour_de_table_entry(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    grant_floor_event: sch.GrantFloorEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.current_state = enums.States.TOUR_DE_TABLE
+    open_gsl_state.caucus_list = [0, 1, 2]
+
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+
+    assert state.current_speaker == 1
+    assert state.caucus_list == [0, 2]
+    assert state.timer_remaining_seconds == 45
+
+
+def test_chair_can_grant_floor_in_moderated_caucus(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    grant_floor_event: sch.GrantFloorEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.current_state = enums.States.MODERATED_CAUCUS
+    open_gsl_state.debate = md.DebateContext(
+        debate_type=enums.DebateTypes.MODERATED_DEBATE,
+        return_state=enums.States.OPEN_GSL,
+        per_speaker_seconds=60,
+    )
+    open_gsl_state.caucus_list = [0, 1]
+
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+
+    assert state.current_speaker == 1
+    assert state.caucus_list == [0, 1]
+    assert state.timer_remaining_seconds == 45
+
+
+def test_grant_floor_rejects_unmoderated_caucus(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    grant_floor_event: sch.GrantFloorEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.current_state = enums.States.UNMODERATED_CAUCUS
+
+    with pytest.raises(eng.InvalidProceduralMove, match="unmoderated caucus"):
+        engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
 
 
 def test_chair_can_mark_roll_call(
@@ -888,17 +1030,6 @@ def test_chair_cannot_mark_roll_call_bulk_nonexistent_delegations(
 
     with pytest.raises(eng.InvalidProceduralMove):
         engine.dispatch(session_state, event, chair_actor)
-
-
-def test_chair_insert_queue_uses_delegation_id(
-    engine: eng.SessionEngine,
-    open_gsl_state: md.SessionLiveState,
-    insert_queue_event: sch.ChairInsertQueueEvent,
-    chair_actor: md.SessionActor,
-) -> None:
-    state = engine.dispatch(open_gsl_state, insert_queue_event, chair_actor)
-
-    assert state.gsl_queue == [0]
 
 
 def test_chair_open_session_starts_roll_call(

@@ -89,7 +89,6 @@ class DebateContext(BaseModel):
 
 class RollCallContext(BaseModel):
     registry: dict[int, enums.RollCallChoice] = {}  # Delegation Id as key
-    current_delegation: int | None = None  # perhaps not needed
 
 
 class AgendaItem(BaseModel):
@@ -121,7 +120,6 @@ class SessionLiveState(BaseModel):
     gsl_default_time_seconds: int = 60
 
     # Caucus variables
-    # TODO: how to add a popup placard that fades away after some moment in frontend? related to CHOOSE_SPEAKER
     caucus_list: list[
         int
     ] = []  # special list that is only used during moderated caucus, has different semantic functionality than gsl queue
