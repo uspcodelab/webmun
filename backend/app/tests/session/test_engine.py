@@ -487,6 +487,83 @@ def test_chair_can_close_roll_call(
     }
 
 
+def test_quorum_roll_call_restores_closed_gsl(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    close_procedural_voting_event: sch.CloseProceduralVotingEvent,
+    close_roll_call_event: sch.CloseRollCallEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    session_state.current_state = enums.States.VOTING_EXECUTION
+    session_state.voting_choice = {
+        0: enums.RollCallChoice.PRESENT,
+        1: enums.RollCallChoice.PRESENT,
+        2: enums.RollCallChoice.PRESENT,
+    }
+    session_state.voting = md.VotingContext(
+        target_type=enums.VotingType.PROCEDURAL,
+        return_state=enums.States.CLOSED_GSL,
+        motion_in_vote=md.MotionContext(
+            id=1,
+            type=enums.Motions.QUORUM,
+            timestamp=datetime.now(UTC),
+        ),
+        voting_registry={
+            0: enums.VotingChoice.FAVOUR,
+            1: enums.VotingChoice.FAVOUR,
+        },
+    )
+
+    state = engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
+
+    assert state.current_state == enums.States.ROLL_CALL
+    assert state.roll_call.return_state == enums.States.CLOSED_GSL
+
+    state = engine.dispatch(state, close_roll_call_event, chair_actor)
+
+    assert state.current_state == enums.States.CLOSED_GSL
+
+
+def test_quorum_roll_call_restores_moderated_caucus(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    close_procedural_voting_event: sch.CloseProceduralVotingEvent,
+    close_roll_call_event: sch.CloseRollCallEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    debate = md.DebateContext(
+        debate_type=enums.DebateTypes.MODERATED_DEBATE,
+        return_state=enums.States.OPEN_GSL,
+        per_speaker_seconds=60,
+    )
+    session_state.current_state = enums.States.VOTING_EXECUTION
+    session_state.debate = debate
+    session_state.voting_choice = {
+        0: enums.RollCallChoice.PRESENT,
+        1: enums.RollCallChoice.PRESENT,
+        2: enums.RollCallChoice.PRESENT,
+    }
+    session_state.voting = md.VotingContext(
+        target_type=enums.VotingType.PROCEDURAL,
+        return_state=enums.States.MODERATED_CAUCUS,
+        motion_in_vote=md.MotionContext(
+            id=1,
+            type=enums.Motions.QUORUM,
+            timestamp=datetime.now(UTC),
+        ),
+        voting_registry={
+            0: enums.VotingChoice.FAVOUR,
+            1: enums.VotingChoice.FAVOUR,
+        },
+    )
+
+    state = engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
+    state = engine.dispatch(state, close_roll_call_event, chair_actor)
+
+    assert state.current_state == enums.States.MODERATED_CAUCUS
+    assert state.debate == debate
+
+
 def test_delegate_cannot_close_roll_call(
     engine: eng.SessionEngine,
     session_state: md.SessionLiveState,

@@ -599,7 +599,7 @@ def apply_passed_motion(
             # note: seems more like an informal consultation
             pass
         case Motions.QUORUM:
-            state.roll_call = RollCallContext(registry={})
+            state.roll_call = RollCallContext(registry={}, return_state=return_state)
             next_state = States.ROLL_CALL
         case _:
             raise InvalidProceduralMove("Undefined motion type")
@@ -910,8 +910,8 @@ def handle_close_roll_call(
     for delegation_id in state.delegations:
         state.roll_call.registry.setdefault(delegation_id, RollCallChoice.ABSENT)
 
-    # may also empty roll call if needed, to avoid loading stale values
-    state.current_state = States.OPEN_GSL
+    # Initial roll call enters Open GSL; quorum roll calls restore their source state.
+    state.current_state = state.roll_call.return_state or States.OPEN_GSL
     state.voting_choice = {
         delegation_id: RollCallChoice.PRESENT_AND_VOTING
         if choice == RollCallChoice.PRESENT_AND_VOTING

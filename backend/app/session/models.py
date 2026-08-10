@@ -89,6 +89,7 @@ class DebateContext(BaseModel):
 
 class RollCallContext(BaseModel):
     registry: dict[int, enums.RollCallChoice] = {}  # Delegation Id as key
+    return_state: enums.States | None = None
 
 
 class AgendaItem(BaseModel):
