@@ -502,9 +502,7 @@ def handle_close_informal_voting(
 
 
 def apply_passed_motion(
-    state: SessionLiveState,
-    motion: MotionContext,
-    return_state: States
+    state: SessionLiveState, motion: MotionContext, return_state: States
 ) -> None:
     """Apply a passed procedural motion to the live session state in place."""
     next_state = return_state  # as fallback
@@ -565,7 +563,15 @@ def apply_passed_motion(
             pass
         case Motions.TOUR_DE_TABLE:
             next_state = States.TOUR_DE_TABLE
-            state.caucus_list = [del_id for del_id, choice in state.roll_call.registry.items() if choice in (enums.RollCallChoice.PRESENT, enums.RollCallChoice.PRESENT_AND_VOTING)]
+            state.caucus_list = [
+                del_id
+                for del_id, choice in state.roll_call.registry.items()
+                if choice
+                in (
+                    enums.RollCallChoice.PRESENT,
+                    enums.RollCallChoice.PRESENT_AND_VOTING,
+                )
+            ]
 
         case Motions.END_DEBATE:
             # clean gsl list
