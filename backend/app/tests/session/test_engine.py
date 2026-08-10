@@ -481,7 +481,7 @@ def test_chair_can_close_roll_call(
     state = engine.dispatch(session_state, close_roll_call_event, chair_actor)
 
     assert state.current_state == enums.States.OPEN_GSL
-    assert state.voting_choice == {
+    assert state.roll_call.registry == {
         1: enums.RollCallChoice.PRESENT,
         2: enums.RollCallChoice.PRESENT_AND_VOTING,
     }
@@ -495,7 +495,7 @@ def test_quorum_roll_call_restores_closed_gsl(
     chair_actor: md.SessionActor,
 ) -> None:
     session_state.current_state = enums.States.VOTING_EXECUTION
-    session_state.voting_choice = {
+    session_state.roll_call.registry = {
         0: enums.RollCallChoice.PRESENT,
         1: enums.RollCallChoice.PRESENT,
         2: enums.RollCallChoice.PRESENT,
@@ -538,7 +538,7 @@ def test_quorum_roll_call_restores_moderated_caucus(
     )
     session_state.current_state = enums.States.VOTING_EXECUTION
     session_state.debate = debate
-    session_state.voting_choice = {
+    session_state.roll_call.registry = {
         0: enums.RollCallChoice.PRESENT,
         1: enums.RollCallChoice.PRESENT,
         2: enums.RollCallChoice.PRESENT,
@@ -729,7 +729,7 @@ def test_chair_can_close_passed_procedural_vote(
     close_procedural_voting_event: sch.CloseProceduralVotingEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    procedural_voting_state.voting_choice = {
+    procedural_voting_state.roll_call.registry = {
         0: enums.RollCallChoice.PRESENT,
         1: enums.RollCallChoice.PRESENT,
         2: enums.RollCallChoice.PRESENT,
@@ -757,7 +757,7 @@ def test_chair_can_close_failed_procedural_vote(
     close_procedural_voting_event: sch.CloseProceduralVotingEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    procedural_voting_state.voting_choice = {
+    procedural_voting_state.roll_call.registry = {
         0: enums.RollCallChoice.PRESENT,
         1: enums.RollCallChoice.PRESENT,
         2: enums.RollCallChoice.PRESENT,

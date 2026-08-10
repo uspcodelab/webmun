@@ -15,3 +15,4 @@
 - Treat `representation_id` as the delegation identity everywhere.
 - For cross-boundary changes, verify the backend tests and the frontend build/typecheck. Report pre-existing failures separately.
 - Inspect security advisories before changing dependencies. Do not run `npm audit fix --force` without approval and a review of the resulting version changes.
+- For any commit done by an agent, include the agent as coauthor (for example, Codex should append `-m "Co-authored-by: Codex <codex@openai.com>"`)
