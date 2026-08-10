@@ -210,6 +210,11 @@ class CloseProceduralVotingEvent(BaseModel):
     payload: EmptyPayload
 
 
+class FinishCaucusEvent(BaseModel):
+    type: Literal[enums.ChairEvents.FINISH_CAUCUS]
+    payload: EmptyPayload
+
+
 class MarkRollCallEvent(BaseModel):
     type: Literal[enums.ChairEvents.MARK_ROLLCALL]
     payload: MarkRollCallPayload
@@ -261,6 +266,7 @@ SessionEvent = Annotated[
     | OpenInformalVotingEvent
     | CloseProceduralVotingEvent
     | CloseInformalVotingEvent
+    | FinishCaucusEvent
     | ResolveMotionEvent
     | SpeakerEvent
     | SetAgendaEvent

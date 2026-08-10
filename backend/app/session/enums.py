@@ -43,6 +43,7 @@ class ChairEvents(StrEnum):
     LOG_MOTION = "LogMotionEvent"
     CLOSE_PROCEDURAL_VOTING = "CloseProceduralVotingEvent"
     CLOSE_INFORMAL_VOTING = "CloseInformalVotingEvent"
+    FINISH_CAUCUS = "FinishCaucusEvent"
 
     # Disruptive events (i.e manual override events)
     MANUAL_PHASE_SET = "SetPhaseEvent"

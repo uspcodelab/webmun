@@ -146,6 +146,14 @@ def close_procedural_voting_event() -> sch.CloseProceduralVotingEvent:
 
 
 @pytest.fixture
+def finish_caucus_event() -> sch.FinishCaucusEvent:
+    return sch.FinishCaucusEvent(
+        type=enums.ChairEvents.FINISH_CAUCUS,
+        payload=sch.EmptyPayload(),
+    )
+
+
+@pytest.fixture
 def close_speakers_list_motion(
     delegate_actor: md.SessionActor,
 ) -> md.MotionContext:
@@ -698,6 +706,56 @@ def test_delegate_cannot_close_procedural_vote(
             close_procedural_voting_event,
             delegate_actor,
         )
+
+
+def test_chair_can_finish_caucus_and_restore_original_gsl_state(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    finish_caucus_event: sch.FinishCaucusEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    open_gsl_state.current_state = enums.States.MODERATED_CAUCUS
+    open_gsl_state.current_speaker = 0
+    open_gsl_state.caucus_list = [0, 1]
+    open_gsl_state.timer_is_running = True
+    open_gsl_state.timer_remaining_seconds = 30
+    open_gsl_state.debate = md.DebateContext(
+        debate_type=enums.DebateTypes.MODERATED_DEBATE,
+        return_state=enums.States.OPEN_GSL,
+        total_duration_seconds=600,
+        per_speaker_seconds=60,
+        expires_at=datetime.now(UTC),
+    )
+
+    state = engine.dispatch(open_gsl_state, finish_caucus_event, chair_actor)
+
+    assert state.current_state == enums.States.OPEN_GSL
+    assert state.debate is None
+    assert state.current_speaker is None
+    assert state.caucus_list == []
+    assert state.timer_is_running is False
+    assert state.timer_expiration is None
+    assert state.timer_remaining_seconds == 0
+
+
+def test_delegate_cannot_finish_caucus(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    finish_caucus_event: sch.FinishCaucusEvent,
+    delegate_actor: md.SessionActor,
+) -> None:
+    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+        engine.dispatch(open_gsl_state, finish_caucus_event, delegate_actor)
+
+
+def test_chair_cannot_finish_without_active_caucus(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    finish_caucus_event: sch.FinishCaucusEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    with pytest.raises(eng.InvalidProceduralMove, match="No active caucus"):
+        engine.dispatch(open_gsl_state, finish_caucus_event, chair_actor)
 
 
 def test_tally_votes_correctly_marks_success_simple(

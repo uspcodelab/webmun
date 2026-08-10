@@ -634,6 +634,26 @@ def handle_close_procedural_voting(
     return state
 
 
+def handle_finish_caucus(
+    state: SessionLiveState, event: schemas.FinishCaucusEvent, actor: SessionActor
+) -> SessionLiveState:
+    require_chair(actor)
+
+    if state.debate is None or state.current_state not in {
+        States.MODERATED_CAUCUS,
+        States.UNMODERATED_CAUCUS,
+    }:
+        raise InvalidProceduralMove("No active caucus")
+
+    return_state = state.debate.return_state
+    state.current_speaker = None
+    state.caucus_list = []
+    state.debate = None
+    reset_timer(state)
+    state.current_state = return_state
+    return state
+
+
 # handles setting state into VOTING_EXECUTION or rejecting the motion
 def handle_resolve_motion(
     state: SessionLiveState, event: schemas.ResolveMotionEvent, actor: SessionActor
@@ -867,6 +887,7 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.OPEN_INFORMAL_VOTING: handle_open_informal_voting,
     ChairEvents.CLOSE_INFORMAL_VOTING: handle_close_informal_voting,
     ChairEvents.CLOSE_PROCEDURAL_VOTING: handle_close_procedural_voting,
+    ChairEvents.FINISH_CAUCUS: handle_finish_caucus,
     ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
     ChairEvents.LOG_MOTION: handle_chair_submit_motion,
     ChairEvents.SET_AGENDA: handle_set_agenda,
