@@ -64,7 +64,6 @@ class AmendmentContext(BaseModel):
     target_resolution_id: str
     is_friendly: bool
     representation_id: int
-    status: enums.AmendmentStatus = enums.AmendmentStatus.PENDING
 
 
 class ResolutionContext(BaseModel):
@@ -75,7 +74,6 @@ class ResolutionContext(BaseModel):
 
     roll_call_vote: bool = False
     parent_resolution_id: str | None = None
-    status: enums.ResolutionStatus = enums.ResolutionStatus.DRAFT
 
 
 class QuestionContext(BaseModel):
@@ -102,10 +100,10 @@ class VotingContext(BaseModel):
     allow_veto_power: bool = False
 
     def is_choice_allowed(
-        self, 
+        self,
         choice: enums.VotingChoice,
         is_roll_call: bool,
-        is_present_and_voting: bool
+        is_present_and_voting: bool,
     ) -> bool:
         if self.target_type == enums.VotingType.PROCEDURAL:
             return choice in (enums.VotingChoice.FAVOUR, enums.VotingChoice.AGAINST)
@@ -115,10 +113,10 @@ class VotingContext(BaseModel):
                 return False
             if not is_roll_call and choice in {
                 enums.VotingChoice.YES_WITH_RIGHTS,
-                enums.VotingChoice.NO_WITH_RIGHTS, 
-                enums.VotingChoice.PASS
+                enums.VotingChoice.NO_WITH_RIGHTS,
+                enums.VotingChoice.PASS,
             }:
-                return False 
+                return False
 
         return True
 

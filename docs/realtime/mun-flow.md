@@ -196,11 +196,11 @@ The state includes both the phase and the context required to continue it:
 - submitted motions and questions; and
 - the current voting context and the phase to return to.
 
-Draft resolution and amendment terminal statuses are currently kept in the
-live snapshot so connected clients can render the result. There is not yet a
-separate durable audit/event stream. A future audit implementation should move
-terminal outcomes and tallies out of the live draft list and notify clients
-with explicit result events.
+`draft_resolutions` contains only active drafts. A terminal substantive vote
+removes its resolution from the live list, and a completed unfriendly amendment
+is removed from its pending list. The planned audit/event stream will retain
+the outcome and tally, then notify connected clients with explicit result
+events.
 
 ### Commands in, snapshots out
 

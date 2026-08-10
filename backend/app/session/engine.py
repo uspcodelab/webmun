@@ -2,7 +2,7 @@
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from math import ceil
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, cast
 
 import app.session.enums as enums
 import app.session.schemas as schemas
@@ -99,11 +99,19 @@ def generate_next_question_id(state: SessionLiveState) -> int:
 
 
 def validate_motion_payload(
-    payload: schemas.MotionPayload
+    payload: schemas.MotionPayload,
+    state: SessionLiveState,
+    representation_id: int,
 ) -> None:
-    """Should validate motion payload before submitting"""
+    """Validate a motion before reserving it in the submitted-motion queue."""
+    if payload.type not in MOTIONS_ALLOWED.get(state.current_state, set()):
+        raise InvalidProceduralMove("Cannot submit this motion at this phase")
+    if (
+        state.current_state in {States.MODERATED_CAUCUS, States.UNMODERATED_CAUCUS}
+        and not state.can_set_motion
+    ):
+        raise InvalidProceduralMove("Submitting motions during caucuses is disabled")
 
-    # can also raise error if there are missing fields
     if (
         payload.type == Motions.CHANGE_DEBATE_TYPE
         and payload.debate_type == DebateTypes.MODERATED_DEBATE
@@ -131,6 +139,23 @@ def validate_motion_payload(
 
     if payload.type == Motions.VOTE_AMENDMENT:
         raise InvalidProceduralMove("Vote amendment is handled automatically")
+
+    if representation_id not in state.delegations:
+        raise InvalidProceduralMove("Representation not found")
+
+    match payload.type:
+        case Motions.INTRODUCE_RESOLUTION_PROPOSAL:
+            _ensure_resolution_id_available(state, cast(str, payload.resolution_id))
+        case Motions.INTRODUCE_AMENDMENT_PROPOSAL:
+            _get_draft_resolution(state, payload.target_resolution_id)
+            _ensure_amendment_id_available(state, cast(str, payload.amendment_id))
+        case Motions.SPLIT_PROPOSAL:
+            _get_draft_resolution(state, payload.target_resolution_id)
+            _ensure_resolution_id_available(
+                state, cast(str, payload.split_resolution_id)
+            )
+        case Motions.VOTE_BY_ROLL_CALL:
+            _get_draft_resolution(state, payload.target_resolution_id)
 
 
 def count_present_delegations(state: SessionLiveState) -> int:
@@ -270,27 +295,8 @@ def handle_delegate_submit_motion(
     """Handles/Maps all possible states through a motion"""
     require_delegate(actor)
 
-    # Extract payload (as DelegateMotionSchema)
     payload = event.payload
-    current_state = state.current_state
-
-    # check if motion can be made for this state
-    if payload.type not in MOTIONS_ALLOWED.get(current_state, set()):
-        raise InvalidProceduralMove("Cannot submit this motion at this phase")
-
-    if (
-        current_state in {States.MODERATED_CAUCUS, States.UNMODERATED_CAUCUS}
-        and not state.can_set_motion
-    ):
-        raise InvalidProceduralMove("Submitting motions during caucuses is disabled")
-
-    validate_motion_payload(payload)
-    if payload.type in {
-        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
-        Motions.SPLIT_PROPOSAL,
-        Motions.VOTE_BY_ROLL_CALL,
-    }:
-        _get_draft_resolution(state, payload.target_resolution_id)
+    validate_motion_payload(payload, state, actor.delegation.id)  # type: ignore
 
     context = MotionContext(
         id=generate_next_motion_id(state),
@@ -391,16 +397,19 @@ def _record_vote(
 
     attendance = state.roll_call.registry.get(representation_id)
     if voting.target_type == enums.VotingType.SUBSTANTIVE and attendance not in {
-        enums.RollCallChoice.PRESENT, enums.RollCallChoice.PRESENT_AND_VOTING
+        enums.RollCallChoice.PRESENT,
+        enums.RollCallChoice.PRESENT_AND_VOTING,
     }:
-            raise InvalidProceduralMove("Representation is not eligible to vote")
+        raise InvalidProceduralMove("Representation is not eligible to vote")
 
     if not voting.is_choice_allowed(
-        choice=vote, 
-        is_roll_call= bool(voting.resolution_in_vote and voting.resolution_in_vote.roll_call_vote),
-        is_present_and_voting= attendance == enums.RollCallChoice.PRESENT_AND_VOTING
+        choice=vote,
+        is_roll_call=bool(
+            voting.resolution_in_vote and voting.resolution_in_vote.roll_call_vote
+        ),
+        is_present_and_voting=attendance == enums.RollCallChoice.PRESENT_AND_VOTING,
     ):
-            raise InvalidProceduralMove("Vote choice is not allowed")
+        raise InvalidProceduralMove("Vote choice is not allowed")
 
     voting.voting_registry[representation_id] = vote
 
@@ -663,13 +672,10 @@ def apply_passed_voting_preparation_motion(
             ).roll_call_vote = True
         case Motions.SPLIT_PROPOSAL:
             parent = _get_draft_resolution(state, motion.target_resolution_id)
-            if motion.split_title is None or motion.split_resolution_id is None:
-                raise InvalidProceduralMove("Invalid split proposal")
-            _ensure_resolution_id_available(state, motion.split_resolution_id)
             state.draft_resolutions.append(
                 ResolutionContext(
-                    id=motion.split_resolution_id,
-                    title=motion.split_title,
+                    id=cast(str, motion.split_resolution_id),
+                    title=cast(str, motion.split_title),
                     delegate_id=parent.delegate_id,
                     parent_resolution_id=parent.id,
                     roll_call_vote=parent.roll_call_vote,
@@ -684,6 +690,11 @@ def _ensure_resolution_id_available(
 ) -> None:
     if any(resolution.id == resolution_id for resolution in state.draft_resolutions):
         raise InvalidProceduralMove("Resolution ID already exists")
+    if any(
+        resolution_id in {motion.resolution_id, motion.split_resolution_id}
+        for motion in state.submitted_motions
+    ):
+        raise InvalidProceduralMove("Resolution ID already reserved")
 
 
 def _ensure_amendment_id_available(state: SessionLiveState, amendment_id: str) -> None:
@@ -693,6 +704,8 @@ def _ensure_amendment_id_available(state: SessionLiveState, amendment_id: str) -
         for amendment in resolution.amendments
     ):
         raise InvalidProceduralMove("Amendment ID already exists")
+    if any(amendment_id == motion.amendment_id for motion in state.submitted_motions):
+        raise InvalidProceduralMove("Amendment ID already reserved")
 
 
 def _get_draft_resolution(
@@ -701,17 +714,9 @@ def _get_draft_resolution(
     resolution = next(
         (r for r in state.draft_resolutions if r.id == resolution_id), None
     )
-    if resolution is None or resolution.status != enums.ResolutionStatus.DRAFT:
+    if resolution is None:
         raise InvalidProceduralMove("Draft resolution not found")
     return resolution
-
-
-def _eligible_roll_call_representation_ids(state: SessionLiveState) -> list[int]:
-    return [
-        representation_id
-        for representation_id, choice in state.roll_call.registry.items()
-        if choice in {RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING}
-    ]
 
 
 def _open_next_amendment_or_substantive(state: SessionLiveState) -> None:
@@ -720,7 +725,7 @@ def _open_next_amendment_or_substantive(state: SessionLiveState) -> None:
         raise InvalidProceduralMove("No resolution vote in progress")
     resolution = state.voting.resolution_in_vote
     pending = next(
-        (a for a in resolution.amendments if a.status == enums.AmendmentStatus.PENDING),
+        (amendment for amendment in resolution.amendments if not amendment.is_friendly),
         None,
     )
     if pending is not None:
@@ -768,17 +773,11 @@ def handle_close_procedural_voting(
     amendment = state.voting.amendment_in_vote
     resolution = state.voting.resolution_in_vote
     motion = state.voting.motion_in_vote
-    present = (
-        len(_eligible_roll_call_representation_ids(state))
-        if amendment is not None
-        else count_present_delegations(state)
-    )
+    present = count_present_delegations(state)
     passed = tally_votes(state.voting, present)
 
     if amendment is not None and resolution is not None:
-        amendment.status = (
-            enums.AmendmentStatus.ADOPTED if passed else enums.AmendmentStatus.REJECTED
-        )
+        resolution.amendments.remove(amendment)
         state.voting = VotingContext(
             target_type=enums.VotingType.SUBSTANTIVE,
             return_state=States.VOTING_PREPARATION,
@@ -838,57 +837,32 @@ def handle_resolve_motion(
     if motion is None:
         raise InvalidProceduralMove("Motion not found")
 
+    state.submitted_motions.remove(motion)
+    if not payload.action:
+        return state
+
     if motion.type == Motions.INTRODUCE_RESOLUTION_PROPOSAL:
-        if payload.action:
-            if (
-                motion.resolution_title is None
-                or motion.resolution_id is None
-                or motion.delegate_id is None
-            ):
-                raise InvalidProceduralMove("Invalid resolution introduction")
-            _ensure_resolution_id_available(state, motion.resolution_id)
-            state.draft_resolutions.append(
-                ResolutionContext(
-                    id=motion.resolution_id,
-                    title=motion.resolution_title,
-                    delegate_id=motion.delegate_id,
-                )
+        state.draft_resolutions.append(
+            ResolutionContext(
+                id=cast(str, motion.resolution_id),
+                title=cast(str, motion.resolution_title),
+                delegate_id=cast(int, motion.delegate_id),
             )
-        state.submitted_motions.remove(motion)
+        )
         return state
 
     if motion.type == Motions.INTRODUCE_AMENDMENT_PROPOSAL:
-        if payload.action:
-            target = _get_draft_resolution(state, motion.target_resolution_id)
-            if (
-                motion.is_friendly is None
-                or motion.amendment_id is None
-                or motion.delegate_id is None
-            ):
-                raise InvalidProceduralMove("Invalid amendment introduction")
-            _ensure_amendment_id_available(state, motion.amendment_id)
-            target.amendments.append(
-                AmendmentContext(
-                    id=motion.amendment_id,
-                    target_resolution_id=target.id,
-                    is_friendly=motion.is_friendly,
-                    representation_id=motion.delegate_id,
-                    status=(
-                        enums.AmendmentStatus.ADOPTED
-                        if motion.is_friendly
-                        else enums.AmendmentStatus.PENDING
-                    ),
-                )
+        target = _get_draft_resolution(state, motion.target_resolution_id)
+        is_friendly = cast(bool, motion.is_friendly)
+        target.amendments.append(
+            AmendmentContext(
+                id=cast(str, motion.amendment_id),
+                target_resolution_id=target.id,
+                is_friendly=is_friendly,
+                representation_id=cast(int, motion.delegate_id),
             )
-        state.submitted_motions.remove(motion)
+        )
         return state
-
-    if motion.type in {Motions.SPLIT_PROPOSAL, Motions.VOTE_BY_ROLL_CALL}:
-        if state.current_state != States.VOTING_PREPARATION:
-            raise InvalidProceduralMove(
-                "This motion is only available in voting preparation"
-            )
-        _get_draft_resolution(state, motion.target_resolution_id)
 
     majority_type = (
         enums.MajorityTypes.SIMPLE
@@ -896,18 +870,14 @@ def handle_resolve_motion(
         else enums.MajorityTypes.QUALIFIED
     )
 
-    if payload.action:
-        state.voting = VotingContext(
-            target_type=enums.VotingType.PROCEDURAL,
-            motion_in_vote=motion,
-            return_state=state.current_state,
-            voting_registry={},
-            majority=majority_type,
-        )
-
-        state.current_state = States.VOTING_EXECUTION
-
-    state.submitted_motions.remove(motion)
+    state.voting = VotingContext(
+        target_type=enums.VotingType.PROCEDURAL,
+        motion_in_vote=motion,
+        return_state=state.current_state,
+        voting_registry={},
+        majority=majority_type,
+    )
+    state.current_state = States.VOTING_EXECUTION
 
     return state
 
@@ -918,7 +888,7 @@ def handle_chair_submit_motion(
     require_chair(actor)
 
     payload = event.payload
-    validate_motion_payload(payload=payload)
+    validate_motion_payload(payload, state, payload.representation_id)
 
     # create motion context
     context = MotionContext(
@@ -1080,6 +1050,17 @@ def handle_grant_floor(
     if representation_id not in state.delegations:
         raise InvalidProceduralMove("Representation not found")
 
+    seconds = _grant_floor_seconds(state, representation_id, event.payload.seconds)
+    state.current_speaker = representation_id
+    reset_timer(state, seconds)
+
+    return state
+
+
+def _grant_floor_seconds(
+    state: SessionLiveState, representation_id: int, requested_seconds: int | None
+) -> int:
+    """Apply phase-specific floor rules and return the resulting speaker time."""
     if (
         state.current_state == States.VOTING_PROCEDURES
         and state.voting is not None
@@ -1093,28 +1074,26 @@ def handle_grant_floor(
         if representation_id not in state.voting.rights_queue:
             raise InvalidProceduralMove("Representation has no right to speak")
         state.voting.rights_queue.remove(representation_id)
-        seconds = 30
-    elif state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
+        return 30
+
+    if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
         if representation_id in state.gsl_queue:
             state.gsl_queue.remove(representation_id)
-        seconds = event.payload.seconds or state.gsl_default_time_seconds
-    elif state.current_state == States.MODERATED_CAUCUS:
+        return requested_seconds or state.gsl_default_time_seconds
+
+    if state.current_state == States.MODERATED_CAUCUS:
         if state.debate is None:
             raise InvalidProceduralMove("No active moderated caucus")
-        seconds = event.payload.seconds or state.debate.per_speaker_seconds or 60
-    elif state.current_state == States.TOUR_DE_TABLE:
+        return requested_seconds or state.debate.per_speaker_seconds or 60
+
+    if state.current_state == States.TOUR_DE_TABLE:
         if representation_id in state.caucus_list:
             state.caucus_list.remove(representation_id)
-        seconds = event.payload.seconds or state.gsl_default_time_seconds
-    elif state.current_state == States.UNMODERATED_CAUCUS:
+        return requested_seconds or state.gsl_default_time_seconds
+
+    if state.current_state == States.UNMODERATED_CAUCUS:
         raise InvalidProceduralMove("Cannot grant floor during unmoderated caucus")
-    else:
-        raise InvalidProceduralMove("Cannot grant floor right now")
-
-    state.current_speaker = representation_id
-    reset_timer(state, seconds)
-
-    return state
+    raise InvalidProceduralMove("Cannot grant floor right now")
 
 
 def handle_start_resolution_vote(
@@ -1127,14 +1106,7 @@ def handle_start_resolution_vote(
         raise InvalidProceduralMove(
             "Resolution voting can only start in voting preparation"
         )
-    resolution = next(
-        (
-            draft
-            for draft in state.draft_resolutions
-            if draft.status == enums.ResolutionStatus.DRAFT
-        ),
-        None,
-    )
+    resolution = next(iter(state.draft_resolutions), None)
     if resolution is None:
         raise InvalidProceduralMove("No draft resolution is available to vote")
     state.current_state = States.VOTING_PROCEDURES
@@ -1147,22 +1119,11 @@ def handle_start_resolution_vote(
     return state
 
 
-def _all_eligible_voted(state: SessionLiveState, voting: VotingContext) -> bool:
-    return set(_eligible_roll_call_representation_ids(state)) <= set(
-        voting.voting_registry
-    )
-
-
 def _finish_substantive_vote(state: SessionLiveState) -> None:
     if state.voting is None or state.voting.resolution_in_vote is None:
         raise InvalidProceduralMove("No substantive vote in progress")
     resolution = state.voting.resolution_in_vote
-    passed = tally_votes(
-        state.voting, len(_eligible_roll_call_representation_ids(state))
-    )
-    resolution.status = (
-        enums.ResolutionStatus.ADOPTED if passed else enums.ResolutionStatus.REJECTED
-    )
+    state.draft_resolutions.remove(resolution)
     state.voting = None
     state.current_speaker = None
     reset_timer(state)
@@ -1224,7 +1185,7 @@ def handle_advance_substantive_vote_round(
     ):
         raise InvalidProceduralMove("No roll-call substantive vote in progress")
     if voting.substantive_round == enums.SubstantiveVoteRound.INITIAL:
-        if not _all_eligible_voted(state, voting):
+        if len(voting.voting_registry) != count_present_delegations(state):
             raise InvalidProceduralMove("Every eligible representation must vote")
         voting.substantive_round = enums.SubstantiveVoteRound.YES_WITH_RIGHTS
         voting.rights_queue = [

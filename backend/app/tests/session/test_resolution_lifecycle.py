@@ -1,6 +1,8 @@
 import app.session.enums as enums
+import app.session.engine as engine_module
 import app.session.models as models
 import app.session.schemas as schemas
+import pytest
 
 
 def _submit_motion(engine, state, actor, **payload):
@@ -87,7 +89,7 @@ def test_resolution_and_pending_amendment_are_voted_in_order(
         ),
         chair_actor,
     )
-    assert resolution.amendments[0].status == enums.AmendmentStatus.ADOPTED
+    assert resolution.amendments == []
     assert session_state.voting is not None
     assert session_state.voting.target_type == enums.VotingType.SUBSTANTIVE
 
@@ -143,5 +145,20 @@ def test_roll_call_requires_all_votes_then_processes_rights_queue(
     assert session_state.timer_remaining_seconds == 30
     engine.dispatch(session_state, advance, chair_actor)
     engine.dispatch(session_state, advance, chair_actor)
-    assert resolution.status == enums.ResolutionStatus.ADOPTED
+    assert resolution not in session_state.draft_resolutions
     assert session_state.current_state == enums.States.VOTING_PREPARATION
+
+
+def test_duplicate_pending_resolution_id_is_rejected(
+    engine, session_state, delegate_actor
+):
+    session_state.current_state = enums.States.OPEN_GSL
+    payload = {
+        "type": enums.Motions.INTRODUCE_RESOLUTION_PROPOSAL,
+        "resolution_title": "Clean Water",
+        "resolution_id": "resolution-clean-water",
+    }
+    _submit_motion(engine, session_state, delegate_actor, **payload)
+
+    with pytest.raises(engine_module.InvalidProceduralMove, match="already reserved"):
+        _submit_motion(engine, session_state, delegate_actor, **payload)

@@ -31,8 +31,9 @@ event. It is also persisted so an active session can be restored.
 
 - **Drafts:** `draft_resolutions` holds accepted active resolution drafts. A
   draft has its delegate-supplied `id`, title, submitter, optional parent ID,
-  roll-call flag, amendments, and current status. Amendments record their
-  delegate-supplied ID, target, submitter, friendliness, and status.
+  roll-call flag, and amendments. Amendments record their delegate-supplied ID,
+  target, submitter, and friendliness. Terminal resolutions and completed
+  unfriendly amendments are removed from live state.
 
 - **Active vote:** for a resolution vote, `voting.resolution_in_vote` identifies
   the draft. Pending amendment procedural votes also set

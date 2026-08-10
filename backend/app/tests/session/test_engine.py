@@ -318,13 +318,14 @@ def test_delegate_cannot_submit_chair_motion(
 
 def test_chair_can_log_motion(
     engine: eng.SessionEngine,
-    session_state: md.SessionLiveState,
+    open_gsl_state: md.SessionLiveState,
     log_motion_event: sch.LogMotionEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, log_motion_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, log_motion_event, chair_actor)
     assert state.current_state == enums.States.VOTING_EXECUTION
-    assert state.voting is not None and state.voting.motion_in_vote is not None
+    assert state.voting is not None
+    assert state.voting.motion_in_vote is not None
     assert state.voting.motion_in_vote.type == log_motion_event.payload.type
 
 

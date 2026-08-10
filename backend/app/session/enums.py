@@ -138,18 +138,6 @@ class MotionDecision(StrEnum):
     DENY = "Deny"
 
 
-class ResolutionStatus(StrEnum):
-    DRAFT = "DRAFT"
-    ADOPTED = "ADOPTED"
-    REJECTED = "REJECTED"
-
-
-class AmendmentStatus(StrEnum):
-    PENDING = "PENDING"
-    ADOPTED = "ADOPTED"
-    REJECTED = "REJECTED"
-
-
 class SubstantiveVoteRound(StrEnum):
     INITIAL = "INITIAL"
     YES_WITH_RIGHTS = "YES_WITH_RIGHTS"
