@@ -99,7 +99,7 @@ def generate_next_question_id(state: SessionLiveState) -> int:
 
 
 def validate_motion_payload(
-    payload: schemas.MotionPayload, state: SessionLiveState
+    payload: schemas.MotionPayload
 ) -> None:
     """Should validate motion payload before submitting"""
 
@@ -284,7 +284,7 @@ def handle_delegate_submit_motion(
     ):
         raise InvalidProceduralMove("Submitting motions during caucuses is disabled")
 
-    validate_motion_payload(payload, state)
+    validate_motion_payload(payload)
     if payload.type in {
         Motions.INTRODUCE_AMENDMENT_PROPOSAL,
         Motions.SPLIT_PROPOSAL,
@@ -388,34 +388,20 @@ def _record_vote(
     """Validate and record one vote.  Substantive eligibility is frozen on start."""
     if representation_id in voting.voting_registry:
         raise InvalidProceduralMove("Already cast vote")
-    if voting.target_type == enums.VotingType.PROCEDURAL:
-        if not voting.is_choice_allowed(vote):
-            raise InvalidProceduralMove("Vote choice is not allowed")
-    elif voting.target_type == enums.VotingType.SUBSTANTIVE:
-        if representation_id not in _eligible_roll_call_representation_ids(state):
+
+    attendance = state.roll_call.registry.get(representation_id)
+    if voting.target_type == enums.VotingType.SUBSTANTIVE and attendance not in {
+        enums.RollCallChoice.PRESENT, enums.RollCallChoice.PRESENT_AND_VOTING
+    }:
             raise InvalidProceduralMove("Representation is not eligible to vote")
-        if voting.substantive_round != enums.SubstantiveVoteRound.INITIAL:
-            raise InvalidProceduralMove("Votes are closed during rights of reply")
-        allowed = {
-            enums.VotingChoice.FAVOUR,
-            enums.VotingChoice.AGAINST,
-            enums.VotingChoice.ABSTAIN,
-        }
-        if voting.resolution_in_vote and voting.resolution_in_vote.roll_call_vote:
-            allowed |= {
-                enums.VotingChoice.YES_WITH_RIGHTS,
-                enums.VotingChoice.NO_WITH_RIGHTS,
-            }
-        if vote not in allowed:
+
+    if not voting.is_choice_allowed(
+        choice=vote, 
+        is_roll_call= bool(voting.resolution_in_vote and voting.resolution_in_vote.roll_call_vote),
+        is_present_and_voting= attendance == enums.RollCallChoice.PRESENT_AND_VOTING
+    ):
             raise InvalidProceduralMove("Vote choice is not allowed")
-        if (
-            vote == enums.VotingChoice.ABSTAIN
-            and state.roll_call.registry.get(representation_id)
-            == enums.RollCallChoice.PRESENT_AND_VOTING
-        ):
-            raise InvalidProceduralMove(
-                "Present and voting representations cannot abstain"
-            )
+
     voting.voting_registry[representation_id] = vote
 
 
@@ -932,7 +918,7 @@ def handle_chair_submit_motion(
     require_chair(actor)
 
     payload = event.payload
-    validate_motion_payload(payload=payload, state=state)
+    validate_motion_payload(payload=payload)
 
     # create motion context
     context = MotionContext(
