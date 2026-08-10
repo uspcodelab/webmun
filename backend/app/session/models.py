@@ -174,8 +174,6 @@ class SessionLiveState(BaseModel):
     voting: VotingContext | None = None
 
     # present delegations with voting choice
-    voting_choice: dict[int, enums.RollCallChoice] | None = None  # DelegationId as key
-
     roll_call: RollCallContext  # Not None, even if registry is empty
 
     draft_resolutions: list[ResolutionContext] = []

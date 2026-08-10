@@ -137,13 +137,13 @@ def count_present_delegations(state: SessionLiveState) -> int:
     """Count total present delegations.
     A delegation is considered present (even if AFK)
     if it's Roll Call Choice is Present / Present and Voting"""
-    if state.voting_choice is None:
+    if not state.roll_call.registry:
         return 0
 
     return len(
         [
             True
-            for _, vote in state.voting_choice.items()
+            for _, vote in state.roll_call.registry.items()
             if vote == enums.RollCallChoice.PRESENT
             or vote == enums.RollCallChoice.PRESENT_AND_VOTING
         ]
@@ -442,7 +442,6 @@ def handle_open_session(
 
     state.current_state = States.ROLL_CALL
     state.roll_call = RollCallContext(registry={})
-    state.voting_choice = {}
     state.gsl_queue = []
     state.current_speaker = None
     state.debate = None
@@ -1311,7 +1310,7 @@ def handle_close_roll_call(
 
     # Initial roll call enters Open GSL; quorum roll calls restore their source state.
     state.current_state = state.roll_call.return_state or States.OPEN_GSL
-    state.voting_choice = {
+    state.roll_call.registry = {
         delegation_id: RollCallChoice.PRESENT_AND_VOTING
         if choice == RollCallChoice.PRESENT_AND_VOTING
         else RollCallChoice.PRESENT
