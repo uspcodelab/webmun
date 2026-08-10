@@ -47,3 +47,19 @@ uv run pytest
 
 We deeply recommend contributers to first lint and test their code before sending the commit. This way we make our codebase better. 
 
+## Realtime resolution voting events
+
+Resolution-related motions use delegation-supplied `resolution_id`,
+`amendment_id`, and `split_resolution_id`, along with `resolution_title`,
+`target_resolution_id`, `is_friendly`, and `split_title` as applicable. The server
+derives the submitting representation and accepts a draft before it enters state.
+Once debate ends, the chair starts the first `DRAFT` item in `draft_resolutions`
+with `StartResolutionVoteEvent {}`. Pending unfriendly amendments are voted
+procedurally before substantive voting begins.
+
+For substantive votes, delegates use `CastVoteEvent { vote }`; chairs can record
+a vote with `RecordSubstantiveVoteEvent { representation_id, vote }`. Chairs close
+ordinary substantive votes with `CloseSubstantiveVotingEvent`. Roll-call votes use
+`AdvanceSubstantiveVoteRoundEvent` for the initial, yes-with-rights, and
+no-with-rights rounds; right-of-reply speakers are served through the existing
+`NextSpeakerEvent` or `GrantFloorEvent` controls for 30 seconds each.

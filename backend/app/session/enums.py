@@ -61,6 +61,10 @@ class ChairEvents(StrEnum):
     MARK_ROLLCALL = "MarkRollCallEvent"
     MARK_ROLLCALL_BULK = "MarkRollCallBulkEvent"
     CLOSE_ROLLCALL = "CloseRollCallEvent"
+    START_RESOLUTION_VOTE = "StartResolutionVoteEvent"
+    ADVANCE_SUBSTANTIVE_VOTE_ROUND = "AdvanceSubstantiveVoteRoundEvent"
+    RECORD_SUBSTANTIVE_VOTE = "RecordSubstantiveVoteEvent"
+    CLOSE_SUBSTANTIVE_VOTING = "CloseSubstantiveVotingEvent"
 
 
 # --- Additional Info ---
@@ -132,3 +136,21 @@ class MotionDecision(StrEnum):
 
     ACCEPT = "Accept"
     DENY = "Deny"
+
+
+class ResolutionStatus(StrEnum):
+    DRAFT = "DRAFT"
+    ADOPTED = "ADOPTED"
+    REJECTED = "REJECTED"
+
+
+class AmendmentStatus(StrEnum):
+    PENDING = "PENDING"
+    ADOPTED = "ADOPTED"
+    REJECTED = "REJECTED"
+
+
+class SubstantiveVoteRound(StrEnum):
+    INITIAL = "INITIAL"
+    YES_WITH_RIGHTS = "YES_WITH_RIGHTS"
+    NO_WITH_RIGHTS = "NO_WITH_RIGHTS"

@@ -47,7 +47,35 @@ class MotionContext(BaseModel):
     per_speaker_seconds: int | None = None
     target_topic: str | None = None
 
+    # Substantive-related things
+    resolution_title: str | None = None
+    resolution_id: str | None = None
+    target_resolution_id: str | None = None
+    amendment_id: str | None = None
+    is_friendly: bool | None = None
+    split_title: str | None = None
+    split_resolution_id: str | None = None
+
     details: str | None = None
+
+
+class AmendmentContext(BaseModel):
+    id: str
+    target_resolution_id: str
+    is_friendly: bool
+    representation_id: int
+    status: enums.AmendmentStatus = enums.AmendmentStatus.PENDING
+
+
+class ResolutionContext(BaseModel):
+    id: str
+    title: str
+    delegate_id: int
+    amendments: list[AmendmentContext] = []
+
+    roll_call_vote: bool = False
+    parent_resolution_id: str | None = None
+    status: enums.ResolutionStatus = enums.ResolutionStatus.DRAFT
 
 
 class QuestionContext(BaseModel):
@@ -66,7 +94,10 @@ class VotingContext(BaseModel):
     majority: enums.MajorityTypes | None = None
 
     motion_in_vote: MotionContext | None = None
-    # resolution_in_vote: ResolutionContext
+    resolution_in_vote: ResolutionContext | None = None
+    amendment_in_vote: AmendmentContext | None = None
+    substantive_round: enums.SubstantiveVoteRound | None = None
+    rights_queue: list[int] = []
 
     allow_veto_power: bool = False
 
@@ -146,6 +177,8 @@ class SessionLiveState(BaseModel):
     voting_choice: dict[int, enums.RollCallChoice] | None = None  # DelegationId as key
 
     roll_call: RollCallContext  # Not None, even if registry is empty
+
+    draft_resolutions: list[ResolutionContext] = []
 
     # Additional config
     has_veto_power: bool = False

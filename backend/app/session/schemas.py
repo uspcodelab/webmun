@@ -22,6 +22,13 @@ class MotionPayload(BaseModel):
     total_duration_minutes: int | None = None
     per_speaker_seconds: int | None = None
     target_topic: str | None = None
+    resolution_title: str | None = None
+    resolution_id: str | None = None
+    target_resolution_id: str | None = None
+    amendment_id: str | None = None
+    is_friendly: bool | None = None
+    split_title: str | None = None
+    split_resolution_id: str | None = None
     details: str | None = None
 
 
@@ -103,6 +110,11 @@ class ChairOpenInformalVotingPayload(BaseModel):
 class ChairResolveMotionPayload(BaseModel):
     motion_id: int  # or motion_id if possible
     action: bool
+
+
+class RecordSubstantiveVotePayload(BaseModel):
+    representation_id: int
+    vote: enums.VotingChoice
 
 
 class GrantFloorPayload(BaseModel):
@@ -220,6 +232,26 @@ class CloseProceduralVotingEvent(BaseModel):
     payload: EmptyPayload
 
 
+class StartResolutionVoteEvent(BaseModel):
+    type: Literal[enums.ChairEvents.START_RESOLUTION_VOTE]
+    payload: EmptyPayload
+
+
+class AdvanceSubstantiveVoteRoundEvent(BaseModel):
+    type: Literal[enums.ChairEvents.ADVANCE_SUBSTANTIVE_VOTE_ROUND]
+    payload: EmptyPayload
+
+
+class RecordSubstantiveVoteEvent(BaseModel):
+    type: Literal[enums.ChairEvents.RECORD_SUBSTANTIVE_VOTE]
+    payload: RecordSubstantiveVotePayload
+
+
+class CloseSubstantiveVotingEvent(BaseModel):
+    type: Literal[enums.ChairEvents.CLOSE_SUBSTANTIVE_VOTING]
+    payload: EmptyPayload
+
+
 class FinishCaucusEvent(BaseModel):
     type: Literal[enums.ChairEvents.FINISH_CAUCUS]
     payload: EmptyPayload
@@ -270,6 +302,10 @@ SessionEvent = Annotated[
     | ToggleTimerEvent
     | OpenInformalVotingEvent
     | CloseProceduralVotingEvent
+    | StartResolutionVoteEvent
+    | AdvanceSubstantiveVoteRoundEvent
+    | RecordSubstantiveVoteEvent
+    | CloseSubstantiveVotingEvent
     | CloseInformalVotingEvent
     | FinishCaucusEvent
     | ResolveMotionEvent
