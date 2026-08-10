@@ -648,17 +648,34 @@ def apply_passed_motion(
             reset_timer(state)
             next_state = States.VOTING_PREPARATION  # or VOTING_PREPARATION
 
-        case Motions.VOTE_AMENDMENT:
-            raise InvalidProceduralMove("Vote amendment is handled automatically")
-        case Motions.VOTE_BY_ROLL_CALL:
-            resolution = _get_draft_resolution(state, motion.target_resolution_id)
-            resolution.roll_call_vote = True
         case Motions.CLOSE_SPEAKERS_LIST:
             next_state = States.CLOSED_GSL
 
         case Motions.REOPEN_SPEAKERS_LIST:
             next_state = States.OPEN_GSL
 
+        case Motions.CHANGE_TOPIC:
+            # note: seems more like an informal consultation
+            pass
+        case Motions.QUORUM:
+            state.roll_call = RollCallContext(registry={}, return_state=return_state)
+            next_state = States.ROLL_CALL
+        case _:
+            raise InvalidProceduralMove("Undefined motion type")
+
+    # additional case: if we went from GSL to something, save gsl structures
+    state.current_state = next_state
+
+
+def apply_passed_voting_preparation_motion(
+    state: SessionLiveState, motion: MotionContext
+) -> None:
+    """Apply a passed motion that changes a draft resolution, not debate state."""
+    match motion.type:
+        case Motions.VOTE_BY_ROLL_CALL:
+            _get_draft_resolution(
+                state, motion.target_resolution_id
+            ).roll_call_vote = True
         case Motions.SPLIT_PROPOSAL:
             parent = _get_draft_resolution(state, motion.target_resolution_id)
             if motion.split_title is None or motion.split_resolution_id is None:
@@ -673,17 +690,8 @@ def apply_passed_motion(
                     roll_call_vote=parent.roll_call_vote,
                 )
             )
-        case Motions.CHANGE_TOPIC:
-            # note: seems more like an informal consultation
-            pass
-        case Motions.QUORUM:
-            state.roll_call = RollCallContext(registry={}, return_state=return_state)
-            next_state = States.ROLL_CALL
         case _:
-            raise InvalidProceduralMove("Undefined motion type")
-
-    # additional case: if we went from GSL to something, save gsl structures
-    state.current_state = next_state
+            raise InvalidProceduralMove("Not a voting preparation motion")
 
 
 def _ensure_resolution_id_available(
@@ -798,7 +806,11 @@ def handle_close_procedural_voting(
         raise InvalidProceduralMove("Can't close voting if motion is None")
 
     if passed:
-        apply_passed_motion(state, motion, return_state=state.voting.return_state)
+        if motion.type in {Motions.SPLIT_PROPOSAL, Motions.VOTE_BY_ROLL_CALL}:
+            apply_passed_voting_preparation_motion(state, motion)
+            state.current_state = state.voting.return_state
+        else:
+            apply_passed_motion(state, motion, return_state=state.voting.return_state)
     else:
         # motion failed, so return to last state
         state.current_state = state.voting.return_state
@@ -831,7 +843,6 @@ def handle_finish_caucus(
 def handle_resolve_motion(
     state: SessionLiveState, event: schemas.ResolveMotionEvent, actor: SessionActor
 ) -> SessionLiveState:
-    # TODO: check how to resolve INTRODUCE_RESOLUTION_PROPOSAL and INTRODUCE_AMENDMENT_PROPOSAL motions separately from procedural motions
     require_chair(actor)
 
     payload = event.payload

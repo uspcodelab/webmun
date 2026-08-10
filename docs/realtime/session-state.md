@@ -25,7 +25,20 @@ event. It is also persisted so an active session can be restored.
   `agenda_topics` hold pending procedural information.
 
 - **Voting and attendance:** `voting`, `voting_choice`, and `roll_call` hold
-  voting context and roll-call records.
+  voting context and roll-call records. New substantive eligibility is derived
+  from `roll_call.registry`; `voting_choice` is legacy state planned for
+  removal.
+
+- **Drafts:** `draft_resolutions` holds accepted active resolution drafts. A
+  draft has its delegate-supplied `id`, title, submitter, optional parent ID,
+  roll-call flag, amendments, and current status. Amendments record their
+  delegate-supplied ID, target, submitter, friendliness, and status.
+
+- **Active vote:** for a resolution vote, `voting.resolution_in_vote` identifies
+  the draft. Pending amendment procedural votes also set
+  `voting.amendment_in_vote`. A roll-call substantive vote uses
+  `voting.substantive_round` and `voting.rights_queue` to represent its active
+  stage and speaker order.
 
 ## Using a snapshot on the frontend
 

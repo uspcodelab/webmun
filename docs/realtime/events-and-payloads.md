@@ -16,7 +16,7 @@ An event is an action a client requests. Its payload is the event-specific input
 ## Delegate events
 
 - `SubmitMotionEvent`
-  - Payload: `type`, `delegate`, and optional `debate_type`,
+  - Payload: `type` and optional `debate_type`,
     `total_duration_minutes`, `per_speaker_seconds`, `target_topic`, and
     `details`.
   - Submits a motion allowed in the current phase. The backend records the
@@ -35,9 +35,10 @@ An event is an action a client requests. Its payload is the event-specific input
   - Removes the authenticated delegate from the open GSL queue.
 
 - `CastVoteEvent`
-  - Payload: `type` (`FORMAL` or `INFORMAL`), `vote` (`FAVOUR`, `AGAINST`, or
-    `ABSTAIN`), and optional `motion_id` and `title`.
+  - Payload: `vote`.
   - Records one vote from the authenticated delegate while voting is active.
+    Substantive votes permit `Favour`, `Against`, and `Abstain`; a roll-call
+    initial round also permits `Yes With Rights` and `No With Rights`.
 
 - `AnswerRollCallEvent`
   - Payload: `choice` (`Present` or `Present and Voting`).
@@ -52,6 +53,19 @@ An event is an action a client requests. Its payload is the event-specific input
 
 `SubmitMotionEvent.payload.type` is one of the backend `Motions` values, such
 as `Mudar Tipo de Debate`, `Encerramento de Debate`, or `Quórum`. Which motion types are allowed depends on `current_state`. The optional fields are validated when the selected motion needs them; for example, a debate-type motion can need `debate_type` and duration information.
+
+Resolution-related motions require the following additional fields:
+
+- `Introdução da Proposta de Resolução`: `resolution_id`, `resolution_title`.
+- `Introdução da Proposta de Emenda`: `target_resolution_id`, `amendment_id`,
+  `is_friendly`.
+- `Divisão da Proposta`: `target_resolution_id`, `split_resolution_id`,
+  `split_title`.
+- `Votação por Chamada`: `target_resolution_id`.
+
+These IDs are supplied by the delegate and are accepted into live state only
+after chair acceptance. The authenticated actor supplies the submitting
+representation; clients do not send it.
 
 ### Question payload values
 
@@ -101,6 +115,30 @@ Privilege`.
   - Tallies the current procedural vote and applies its result or returns to
     the earlier phase.
 
+- `StartResolutionVoteEvent`
+  - Payload: `{}`.
+  - Valid only in Voting Preparation. Starts the first `DRAFT` resolution in
+    `draft_resolutions` list order and enters Voting Procedures. Pending
+    unfriendly amendments open procedural votes before the substantive vote.
+
+- `RecordSubstantiveVoteEvent`
+  - Payload: `representation_id`, `vote`.
+  - Lets the chair record one allowed substantive vote for an eligible
+    representation. The representation must exist in the session and cannot
+    be recorded twice.
+
+- `CloseSubstantiveVotingEvent`
+  - Payload: `{}`.
+  - Closes and tallies a standard substantive resolution vote. It is not used
+    for a roll-call substantive vote.
+
+- `AdvanceSubstantiveVoteRoundEvent`
+  - Payload: `{}`.
+  - Advances a roll-call substantive vote from its initial vote to the
+    yes-with-rights queue, then the no-with-rights queue, then the final tally.
+    Every eligible representation must vote before the first advance, and the
+    active rights queue must be empty before later advances.
+
 - `FinishCaucusEvent`
   - Payload: `{}`.
   - Ends an active moderated or unmoderated caucus. Clears its speaker, timer,
@@ -111,8 +149,9 @@ Privilege`.
   - Payload: `{}`.
   - In Open or Closed GSL, pops the next `representation_id` from `gsl_queue`
     into `current_speaker`. In Tour de Table, does the same with `caucus_list`.
-    An empty list clears the current speaker and timer. It is not valid for a
-    moderated or unmoderated caucus.
+    An empty list clears the current speaker and timer. During a roll-call
+    rights round, it serves the next representation in that rights queue for
+    30 seconds. It is not valid for a moderated or unmoderated caucus.
 
 - `AddGslSpeakerEvent`
   - Payload: `representation_id`.
@@ -124,7 +163,9 @@ Privilege`.
   - Makes a valid representation the current speaker in GSL, moderated
     caucus, or Tour de Table. In GSL and Tour de Table, removes that
     representation from its pending queue/list first. In moderated caucus, it
-    leaves `caucus_list` unchanged. It is not valid during unmoderated caucus.
+    leaves `caucus_list` unchanged. During a roll-call rights round, only a
+    queued representation may receive the floor and the duration is forced to
+    30 seconds. It is not valid during unmoderated caucus.
 
 - `MarkRollCallEvent`
   - Payload: `delegation_id` and `choice` (`Present`, `Present and Voting`, or

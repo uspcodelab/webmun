@@ -41,12 +41,19 @@ Open GSL <-------------------------------+
                                           v
                                       procedural motion / chair action
 
-Open or Closed GSL -- accepted end-debate motion --> Voting Procedures
+Open or Closed GSL -- accepted end-debate motion --> Voting Preparation
                                                         |
-                                                        | substantive-resolution flow
-                                                        | is not implemented yet
+                                                        | chair starts next draft
                                                         v
-                                                     Finished
+                                                   Voting Procedures
+                                                        |
+                                   pending amendments -> procedural amendment votes
+                                                        |
+                                                        v
+                                             substantive resolution vote
+                                                        |
+                                                        v
+                                                 Voting Preparation
 ```
 
 `Finished` can also be reached when the chair closes the session from an
@@ -123,10 +130,48 @@ WebMUN currently supports two distinct voting mechanisms:
   uses `Voting Execution` temporarily and returns to its origin phase when
   closed; it does not itself apply a procedural transition.
 
-`Voting Procedures` is the intended destination after an accepted
-end-debate motion. Substantive voting on resolutions, amendments, and related
-final outcomes is not implemented yet. This is a known boundary, rather than
-a promise that the state name alone provides a complete resolution workflow.
+An accepted end-debate motion enters `Voting Preparation`. The chair then uses
+`StartResolutionVoteEvent` to start the first `DRAFT` item in
+`draft_resolutions`, in list order. The session enters `Voting Procedures`.
+
+Before a resolution's substantive vote, each pending unfriendly amendment on
+that resolution is voted procedurally in submission order. A passed amendment
+becomes adopted; a failed amendment becomes rejected. Friendly amendments are
+accepted directly when the chair accepts their introduction.
+
+The substantive vote has two forms:
+
+- **Standard vote:** each eligible delegate may submit `Favour`, `Against`, or
+  `Abstain`; the chair may record a vote on a delegation's behalf and closes
+  the vote with `CloseSubstantiveVotingEvent`.
+- **Roll-call vote:** a passed `Vote By Roll Call` motion marks one draft for
+  roll call. Every representation marked `Present` or `Present and Voting` in
+  the completed roll call must vote. The initial round also accepts
+  `Yes With Rights` and `No With Rights`. The chair advances through the yes
+  and no rights queues using `AdvanceSubstantiveVoteRoundEvent`; the existing
+  floor controls serve each queued representation for 30 seconds.
+
+`Present and Voting` representations cannot abstain. A terminal substantive
+vote returns to `Voting Preparation`, where the chair may start the next draft
+when one is available.
+
+### Resolution preparation motions
+
+Delegates submit resolution-related motion fields as strings. The chair must
+accept the introduction before the draft enters live state; acceptance is the
+formatting and procedural gate.
+
+- Resolution introduction requires `resolution_id` and `resolution_title`.
+- Amendment introduction requires `target_resolution_id`, `amendment_id`, and
+  `is_friendly`.
+- Split Proposal requires `target_resolution_id`, `split_resolution_id`, and
+  `split_title`. When passed in Voting Preparation, it retains the parent and
+  appends a child draft with the parent's submitter and roll-call setting.
+- Vote By Roll Call requires `target_resolution_id` and, when passed in Voting
+  Preparation, marks only that draft for a roll-call substantive vote.
+
+`VOTE_AMENDMENT` is not an available motion. Pending unfriendly amendments are
+handled automatically as part of their target resolution's vote.
 
 ### 6. Close the session
 
@@ -150,6 +195,12 @@ The state includes both the phase and the context required to continue it:
 - caucus/debate context;
 - submitted motions and questions; and
 - the current voting context and the phase to return to.
+
+Draft resolution and amendment terminal statuses are currently kept in the
+live snapshot so connected clients can render the result. There is not yet a
+separate durable audit/event stream. A future audit implementation should move
+terminal outcomes and tallies out of the live draft list and notify clients
+with explicit result events.
 
 ### Commands in, snapshots out
 
