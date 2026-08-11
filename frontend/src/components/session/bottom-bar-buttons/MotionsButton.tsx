@@ -39,53 +39,42 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
-import { States } from "@/schemas/types.gen"
+import { MajorityTypes, States } from "@/schemas/types.gen"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
+import { 
+  Motions, 
+  Questions, 
+  DebateTypes,
+  DelegateEvents,
+  type SubmitMotionEvent, 
+  type SubmitQuestionEvent, 
+  type DelegateQuestionPayload,
+  type DelegateMotionPayload } from "@/schemas/types.gen"
+import { sendMessage } from "@/context/SessionContext"
 
-const motions = [
-  "Moção para Adiamento de Sessão",
-  "Moção para Reabertura de Sessão",
-  "Moção para Mudar Tipo de Debate",
-  "Moção para Tour de Table",
-  "Moção para Encerramento de Debate",
-  "Moção para Votação de Emenda",
-  "Moção para Fechamento de Lista de Discursos",
-  "Moção para Reabertura de Lista de Discursos",
-  "Moção para Divisão da Proposta",
-  "Moção para Introdução da Proposta de Resolução",
-  "Moção para Introdução de Proposta de Emenda",
-  "Moção para Votação por Chamada",
-  "Moção para contagem de Quórum",
-] as const
-
-const points = [
-  "Questão de Privilégio Pessoal",
-  "Questão de Ordem",
-  "Questão de Dúvida",
-] as const
-
-const motionRequiredMajority: Record<string, string> = {
-  "Moção para Adiamento de Sessão": "Maioria simples",
-  "Moção para Reabertura de Sessão": "Maioria simples",
-  "Moção para Mudar Tipo de Debate": "Maioria simples",
-  "Moção para Tour de Table": "Maioria simples",
-  "Moção para Encerramento de Debate": "Maioria qualificada",
-  "Moção para Votação de Emenda": "Maioria qualificada",
-  "Moção para Fechamento de Lista de Discursos": "Maioria simples",
-  "Moção para Reabertura de Lista de Discursos": "Maioria simples",
-  "Moção para Divisão da Proposta": "Maioria simples",
-  "Moção para Introdução da Proposta de Resolução": "Maioria simples",
-  "Moção para Introdução de Proposta de Emenda": "Maioria simples",
-  "Moção para Votação por Chamada": "Maioria simples",
-  "Moção para contagem de Quórum": "Maioria simples",
+const motionRequiredMajority: Record<Motions, MajorityTypes | ""> = {
+  [Motions.ADIAMENTO_DE_SESSÃO]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.REABERTURA_DE_SESSÃO]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.MUDAR_TIPO_DE_DEBATE]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.TOUR_DE_TABLE]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.ENCERRAMENTO_DE_DEBATE]: MajorityTypes.MAIORIA_QUALIFICADA,
+  [Motions.VOTAÇÃO_DE_EMENDA]: MajorityTypes.MAIORIA_QUALIFICADA,
+  [Motions.FECHAMENTO_DA_LISTA_DE_DISCURSOS]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.REABERTURA_DE_LISTA_DE_DISCURSOS]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.DIVISÃO_DA_PROPOSTA]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.INTRODUÇÃO_DA_PROPOSTA_DE_RESOLUÇÃO]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.INTRODUÇÃO_DA_PROPOSTA_DE_EMENDA]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.VOTAÇÃO_POR_CHAMADA]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.MUDANÇA_DE_TÓPICO]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions.CONTAGEM_DE_QUÓRUM]: MajorityTypes.MAIORIA_SIMPLES,
+  [Motions[""]]: "",
 }
 
 type MotionKind = "moção" | "questão"
-type DebateKind = "moderado" | "não moderado" | "lista de discursos" | ""
 
 function QuestionsMotionsList(type: MotionKind) {
-  return type === "moção" ? motions : points
+  return Object.values(type === "moção" ? Motions : Questions)
 }
 
 export default function TestButton() {
@@ -95,8 +84,9 @@ export default function TestButton() {
 
   const currentState = useCommitteeStore((state) => state.current_state)
   const [motionKind, setMotionKind] = useState<MotionKind>("moção")
-  const [selectedMotion, setSelectedMotion] = useState("")
-  const [debateKindChange, setDebateKind] = useState<DebateKind>("")
+  const [selectedMotion, setSelectedMotion] = useState<Motions>("")
+  const [selectedQuestion, setSelectedQuestion] = useState<Questions | "">("")
+  const [debateKindChange, setDebateKind] = useState<DebateTypes | "">("")
   const [unmoderatedMinutes, setUnmoderatedMinutes] = useState("")
   const [speechCount, setSpeechCount] = useState("")
   const [minutesPerSpeech, setMinutesPerSpeech] = useState("")
@@ -105,14 +95,33 @@ export default function TestButton() {
   const [answerText, setAnswerText] = useState("")
 
   const motionOptions = QuestionsMotionsList(motionKind)
-  const showDebateKindField = selectedMotion === "Moção para Mudar Tipo de Debate"
-  const showUnmoderatedField = showDebateKindField && debateKindChange === "não moderado"
-  const showModeratedFields = showDebateKindField && debateKindChange === "moderado"
+  const showDebateKindField = selectedMotion === Motions.MUDAR_TIPO_DE_DEBATE
+  const showUnmoderatedField = showDebateKindField && debateKindChange === DebateTypes.DEBATE_NÃO_MODERADO
+  const showModeratedFields = showDebateKindField && debateKindChange === DebateTypes.DEBATE_MODERADO
   const showMotionDecision = motionKind === "moção" && selectedMotion.length > 0
   const selectedMotionMajority = motionRequiredMajority[selectedMotion] ?? "Maioria não definida"
 
+  const motionBody : DelegateMotionPayload = {
+    type: selectedMotion,
+    ...(unmoderatedMinutes !== "" && {total_duration_minutes: Number(unmoderatedMinutes)}),
+    ...(minutesPerSpeech !== "" && {per_speaker_seconds: Number(minutesPerSpeech)}), //TODO: Fix inconsitency in minutes / seconds
+    ...(debateKindChange !== "" && {debate_type: debateKindChange}),
+    ...(minutesPerSpeech !== "" && {per_speaker_seconds: Number(minutesPerSpeech)}),
+    //TODO: add change topic
+  }
+
+  const questionBody : DelegateQuestionPayload | null = 
+  selectedQuestion === "" ? null :
+  {
+    type: selectedQuestion,
+    details: questionText
+  }
+  
+
+
   const resetMotionFields = () => {
     setSelectedMotion("")
+    setSelectedQuestion("")
     setDebateKind("")
     setUnmoderatedMinutes("")
     setSpeechCount("")
@@ -199,8 +208,9 @@ export default function TestButton() {
               <Field>
                 <Select
                   value={selectedMotion}
-                  onValueChange={(value) => {
-                    setSelectedMotion(value)
+                  onValueChange={(value : any) => {
+                    if(motionKind === "moção") setSelectedMotion(value)
+                    else if(motionKind === "questão") setSelectedQuestion(value)
                     setDebateKind("")
                     setUnmoderatedMinutes("")
                     setSpeechCount("")
@@ -215,11 +225,13 @@ export default function TestButton() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      {motionOptions.map((item) => (
+                      {motionOptions.map((item) => 
+                       {
+                        if(item !== "") return (
                         <SelectItem key={item} value={item}>
                           {item}
                         </SelectItem>
-                      ))}
+                      )})}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -228,15 +240,15 @@ export default function TestButton() {
               {showDebateKindField && (
                 <Field>
                   <FieldLabel>Para qual tipo de debate?</FieldLabel>
-                  <Select value={debateKindChange} onValueChange={(value) => setDebateKind(value as DebateKind)}>
+                  <Select value={debateKindChange} onValueChange={(value) => setDebateKind(value as DebateTypes)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o novo tipo" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectItem value="lista de discursos">Lista de Discursos</SelectItem>
-                        <SelectItem value="moderado">Debate moderado</SelectItem>
-                        <SelectItem value="não moderado">Debate não moderado</SelectItem>
+                        <SelectItem value={DebateTypes.LISTA_DE_DISCURSOS}>Lista de Discursos</SelectItem>
+                        <SelectItem value={DebateTypes.DEBATE_MODERADO}>Debate moderado</SelectItem>
+                        <SelectItem value={DebateTypes.DEBATE_NÃO_MODERADO}>Debate não moderado</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -305,7 +317,7 @@ export default function TestButton() {
               )}
               {showMotionDecision && !isChair && (
                 <div className="flex gap-3 pt-1">
-                  <Button className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
+                  <Button onClick={()=>{sendMessage({type:DelegateEvents.SUBMIT_MOTION_EVENT, payload: motionBody} satisfies SubmitMotionEvent)}} className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
                     Enviar moção
                   </Button>
                 </div>
@@ -321,6 +333,7 @@ export default function TestButton() {
                       onChange={(event) => setQuestionText(event.target.value)}
                     />
                   </Field>
+                  { isChair && (
                   <Field>
                     <FieldLabel>Digite a resposta</FieldLabel>
                     <Input
@@ -328,9 +341,10 @@ export default function TestButton() {
                       value={answerText}
                       onChange={(event) => setAnswerText(event.target.value)}
                     />
-                  </Field>
-                  <Button className="w-full bg-green-800 text-white hover:bg-green-700" type="button">
-                    Registrar questão e resposta
+                  </Field>)
+                  }
+                  <Button onClick={()=>{if(questionBody)sendMessage({type:DelegateEvents.SUBMIT_QUESTION_EVENT, payload: questionBody} satisfies SubmitQuestionEvent)}} className="w-full bg-green-800 text-white hover:bg-green-700" type="button">
+                    Registrar questão{isChair && " e resposta"}
                   </Button>
                 </>
               )}

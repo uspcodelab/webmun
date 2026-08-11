@@ -16,20 +16,21 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { sendMessage } from "@/context/SessionContext"
-import { type SpeakerEvent, ChairEvents } from "@/schemas/types.gen"
+import { type JoinQueueEvent, type SpeakerEvent, ChairEvents, DelegateEvents } from "@/schemas/types.gen"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
 
-const isAlredyInQueue = true // Replace with actual logic to determine if the user is already in the queue
 //TODO determine if queue is open, if not obscure the button and show a message that the queue is closed
 
 export default function SpeakerList() {
 
-    const {role} = useSession()
+    const {role, representation_id} = useSession()
     const isChair = role===SessionRoles.CHAIR
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
     const delegationsById = useCommitteeStore((state) => state.delegations)
+
+    const alreadyInQueue = representation_id ? gslQueue.includes(representation_id) : false
     const queuedDelegations = gslQueue.flatMap((delegationId) => {
         const delegation = delegationsById[String(delegationId)]
         return delegation ? [delegation] : []
@@ -79,7 +80,8 @@ export default function SpeakerList() {
                 <Button
                     variant="outline"
                     className="mr-4 mb-2 ml-4 w-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-                    disabled={isAlredyInQueue}
+                    disabled={alreadyInQueue}
+                    onClick={()=>sendMessage({type:DelegateEvents.JOIN_QUEUE_EVENT, payload:{}} satisfies JoinQueueEvent)}
                 >
                     Se colocar na lista de oradores
                 </Button>
@@ -92,7 +94,7 @@ export default function SpeakerList() {
                                 variant="outline"
                                 className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
                                 disabled={waitingCount === 0}
-                                onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: {} } as SpeakerEvent)}
+                                onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: {} } satisfies SpeakerEvent)}
                             >
                                 <span className="md:hidden">Proximo</span>
                                 <span className="hidden md:inline">Proximo Orador</span>

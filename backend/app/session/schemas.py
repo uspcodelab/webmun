@@ -14,23 +14,24 @@ class SessionCreationSchema(BaseModel):
     name: str | None = None
 
 
-# --- Delegate Payloads ---
-# TODO: refactor this to only reflect the payload received by delegates, with MotionModel being a separated entity
-class DelegateMotionPayload(BaseModel):
-    type: enums.Motions
-    delegate: int
-    debate_type: enums.DebateTypes | None = None
+class MotionPayload(BaseModel):
+    """General motion payload. Used on Delegate and Chair payloads"""
 
+    type: enums.Motions
+    debate_type: enums.DebateTypes | None = None
     total_duration_minutes: int | None = None
     per_speaker_seconds: int | None = None
     target_topic: str | None = None
-
     details: str | None = None
+
+
+# --- Delegate Payloads ---
+class DelegateMotionPayload(MotionPayload):
+    pass
 
 
 class DelegateQuestionPayload(BaseModel):
     type: enums.Questions
-    delegate: int
     details: str | None = None
 
 
@@ -77,6 +78,13 @@ class AnswerRollCallEvent(BaseModel):
 
 
 # --- Chair Payloads ---
+class ChairMotionPayload(MotionPayload):
+    """Extended payload for motions. Used to log motions"""
+
+    representation_id: int
+    decision: enums.MotionDecision
+
+
 class ChairIncreaseTimerPayload(BaseModel):
     seconds: int = 5
 
@@ -97,9 +105,9 @@ class ChairResolveMotionPayload(BaseModel):
     action: bool
 
 
-class ChairForceSpeakerPayload(BaseModel):
-    speaker_id: int | None = None  # if none, will pass onto next speaker
-    seconds: int | None = None  # if none, will be based on the current seconds
+class GrantFloorPayload(BaseModel):
+    representation_id: int
+    seconds: int | None = Field(default=None, ge=1)
 
 
 class ChairSetAgendaPayload(BaseModel):
@@ -110,8 +118,8 @@ class ChairSetPhasePayload(BaseModel):
     target_phase: enums.States
 
 
-class ChairInsertQueuePayload(BaseModel):
-    target: int  # Delegate Id
+class AddGslSpeakerPayload(BaseModel):
+    representation_id: int
 
 
 class SetAgendaItemPayload(BaseModel):
@@ -142,6 +150,11 @@ class MarkRollCallBulkPayload(BaseModel):
 
 
 # --- Chair Events ---
+class LogMotionEvent(BaseModel):
+    type: Literal[enums.ChairEvents.LOG_MOTION]
+    payload: ChairMotionPayload
+
+
 class OpenSessionEvent(BaseModel):
     type: Literal[enums.ChairEvents.OPEN_SESSION]
     payload: EmptyPayload
@@ -172,9 +185,19 @@ class ResolveMotionEvent(BaseModel):
     payload: ChairResolveMotionPayload
 
 
-class SpeakerEvent(BaseModel):
-    type: Literal[enums.ChairEvents.CHOOSE_SPEAKER]
-    payload: ChairForceSpeakerPayload
+class NextSpeakerEvent(BaseModel):
+    type: Literal[enums.ChairEvents.NEXT_SPEAKER]
+    payload: EmptyPayload
+
+
+class AddGslSpeakerEvent(BaseModel):
+    type: Literal[enums.ChairEvents.ADD_GSL_SPEAKER]
+    payload: AddGslSpeakerPayload
+
+
+class GrantFloorEvent(BaseModel):
+    type: Literal[enums.ChairEvents.GRANT_FLOOR]
+    payload: GrantFloorPayload
 
 
 class SetAgendaEvent(BaseModel):
@@ -197,6 +220,11 @@ class CloseProceduralVotingEvent(BaseModel):
     payload: EmptyPayload
 
 
+class FinishCaucusEvent(BaseModel):
+    type: Literal[enums.ChairEvents.FINISH_CAUCUS]
+    payload: EmptyPayload
+
+
 class MarkRollCallEvent(BaseModel):
     type: Literal[enums.ChairEvents.MARK_ROLLCALL]
     payload: MarkRollCallPayload
@@ -210,11 +238,6 @@ class MarkRollCallBulkEvent(BaseModel):
 class CloseRollCallEvent(BaseModel):
     type: Literal[enums.ChairEvents.CLOSE_ROLLCALL]
     payload: EmptyPayload
-
-
-class ChairInsertQueueEvent(BaseModel):
-    type: Literal[enums.ChairEvents.INSERT_QUEUE]
-    payload: ChairInsertQueuePayload
 
 
 class MarkAgendaItemEvent(BaseModel):
@@ -240,6 +263,7 @@ SessionEvent = Annotated[
     | AnswerRollCallEvent
     | JoinQueueEvent
     | LeaveQueueEvent
+    | LogMotionEvent
     | OpenSessionEvent
     | CloseSessionEvent
     | IncreaseTimerEvent
@@ -247,8 +271,11 @@ SessionEvent = Annotated[
     | OpenInformalVotingEvent
     | CloseProceduralVotingEvent
     | CloseInformalVotingEvent
+    | FinishCaucusEvent
     | ResolveMotionEvent
-    | SpeakerEvent
+    | NextSpeakerEvent
+    | AddGslSpeakerEvent
+    | GrantFloorEvent
     | SetAgendaEvent
     | SetAgendaItemEvent
     | MarkAgendaItemEvent
@@ -256,7 +283,6 @@ SessionEvent = Annotated[
     | SetPhaseEvent
     | MarkRollCallEvent
     | CloseRollCallEvent
-    | ChairInsertQueueEvent
     | MarkRollCallBulkEvent,
     Field(discriminator="type"),
 ]
