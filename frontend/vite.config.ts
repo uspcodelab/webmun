@@ -14,4 +14,14 @@ export default defineConfig({
 		  "@": path.resolve(__dirname, "./src"),
 	  },
   },
+  server: {
+    watch: {
+      usePolling: true, // Alternative to setting environment variables
+    },
+    host: true, // Exposes the server to the local network inside Docker
+    strictPort: true,
+    hmr: {
+      clientPort: 5173, // Forces the browser to connect to the exposed host port
+    },
+  },
 })
