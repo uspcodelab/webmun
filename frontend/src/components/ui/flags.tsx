@@ -1,5 +1,5 @@
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 
 export default function Flags({
@@ -15,8 +15,14 @@ export default function Flags({
   const [src, setSrc] = useState(baseSrc)
   const [usedFallback, setUsedFallback] = useState(false)
 
+  useEffect(() => {
+    setSrc(baseSrc)
+    setUsedFallback(false)
+  }, [baseSrc])
+
   return (
     <img
+      key={normalized}
       src={src}
       alt={code}
       className={cn(className)}

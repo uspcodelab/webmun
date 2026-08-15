@@ -4,8 +4,8 @@ import { useCommitteeStore } from '../store/useCommitteeStore.ts'
 import { SessionProvider } from '@/context/SessionContext.tsx';
 import MotionsList from "@/components/session/motions-list"
 import SpeakerList from "@/components/session/speaker-list"
-//import ModeratedDebate from "@/components/session/moderated-debate"
-//import UnmoderatedDebate from "@/components/session/unmoderated-debate"
+import ModeratedDebate from "@/components/session/moderated-debate"
+import UnmoderatedDebate from "@/components/session/unmoderated-debate"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
@@ -78,7 +78,7 @@ export default function SessionPage() {
                     //{debateType === DebateTypes.SPEAKERS_LIST && <SpeakerList />}
                     }
                     <SpeakerList />
-                    <MotionsList motions={motions} />
+                    <MotionsList  />
                 </div>
             </div>
             <BottomBar />
