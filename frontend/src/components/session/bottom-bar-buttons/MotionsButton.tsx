@@ -208,9 +208,9 @@ export default function TestButton() {
               <Field>
                 <Select
                   value={selectedMotion}
-                  onValueChange={(value : any) => {
-                    if(motionKind === "moção") setSelectedMotion(value)
-                    else if(motionKind === "questão") setSelectedQuestion(value)
+                  onValueChange={(value : Motions | Questions | "") => {
+                    if(motionKind === "moção") setSelectedMotion(value as Motions)
+                    else if(motionKind === "questão") setSelectedQuestion(value as Questions | "")
                     setDebateKind("")
                     setUnmoderatedMinutes("")
                     setSpeechCount("")
