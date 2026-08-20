@@ -5,6 +5,27 @@ export type ClientOptions = {
 };
 
 /**
+ * AddGslSpeakerEvent
+ */
+export type AddGslSpeakerEvent = {
+    /**
+     * Type
+     */
+    type: 'AddGslSpeakerEvent';
+    payload: AddGslSpeakerPayload;
+};
+
+/**
+ * AddGslSpeakerPayload
+ */
+export type AddGslSpeakerPayload = {
+    /**
+     * Representation Id
+     */
+    representation_id: number;
+};
+
+/**
  * AgendaItem
  */
 export type AgendaItem = {
@@ -50,7 +71,7 @@ export type BodyDummyCommitteesDummyGet = {
     /**
      * Types
      */
-    types: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | ResolveMotionEvent | SpeakerEvent | SetAgendaEvent | SetAgendaItemEvent | MarkAgendaItemEvent | DeleteAgendaItemEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | ChairInsertQueueEvent | MarkRollCallBulkEvent;
+    types: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | LogMotionEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | FinishCaucusEvent | ResolveMotionEvent | NextSpeakerEvent | AddGslSpeakerEvent | GrantFloorEvent | SetAgendaEvent | SetAgendaItemEvent | MarkAgendaItemEvent | DeleteAgendaItemEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | MarkRollCallBulkEvent;
     schemas: SessionLiveState;
 };
 
@@ -74,39 +95,28 @@ export const ChairEvents = {
     INCREASE_TIMER_EVENT: 'IncreaseTimerEvent',
     OPEN_INFORMAL_VOTING_EVENT: 'OpenInformalVotingEvent',
     RESOLVE_MOTION_EVENT: 'ResolveMotionEvent',
+    LOG_MOTION_EVENT: 'LogMotionEvent',
     CLOSE_PROCEDURAL_VOTING_EVENT: 'CloseProceduralVotingEvent',
     CLOSE_INFORMAL_VOTING_EVENT: 'CloseInformalVotingEvent',
+    FINISH_CAUCUS_EVENT: 'FinishCaucusEvent',
     SET_PHASE_EVENT: 'SetPhaseEvent',
     CLOSE_SESSION_EVENT: 'CloseSessionEvent',
     SET_AGENDA_ITEM_EVENT: 'SetAgendaItemEvent',
     MARK_AGENDA_ITEM_EVENT: 'MarkAgendaItemEvent',
     DELETE_AGENDA_ITEM_EVENT: 'DeleteAgendaItemEvent',
     SET_AGENDA: 'SetAgenda',
-    SPEAKER_EVENT: 'SpeakerEvent',
+    NEXT_SPEAKER_EVENT: 'NextSpeakerEvent',
+    ADD_GSL_SPEAKER_EVENT: 'AddGslSpeakerEvent',
+    GRANT_FLOOR_EVENT: 'GrantFloorEvent',
     MARK_ROLL_CALL_EVENT: 'MarkRollCallEvent',
     MARK_ROLL_CALL_BULK_EVENT: 'MarkRollCallBulkEvent',
-    CLOSE_ROLL_CALL_EVENT: 'CloseRollCallEvent',
-    INSERT_QUEUE_EVENT: 'InsertQueueEvent'
+    CLOSE_ROLL_CALL_EVENT: 'CloseRollCallEvent'
 } as const;
 
 /**
  * ChairEvents
  */
 export type ChairEvents = typeof ChairEvents[keyof typeof ChairEvents];
-
-/**
- * ChairForceSpeakerPayload
- */
-export type ChairForceSpeakerPayload = {
-    /**
-     * Speaker Id
-     */
-    speaker_id?: number | null;
-    /**
-     * Seconds
-     */
-    seconds?: number | null;
-};
 
 /**
  * ChairIncreaseTimerPayload
@@ -119,24 +129,34 @@ export type ChairIncreaseTimerPayload = {
 };
 
 /**
- * ChairInsertQueueEvent
+ * ChairMotionPayload
+ *
+ * Extended payload for motions. Used to log motions
  */
-export type ChairInsertQueueEvent = {
+export type ChairMotionPayload = {
+    type: Motions;
+    debate_type?: DebateTypes | null;
     /**
-     * Type
+     * Total Duration Minutes
      */
-    type: 'InsertQueueEvent';
-    payload: ChairInsertQueuePayload;
-};
-
-/**
- * ChairInsertQueuePayload
- */
-export type ChairInsertQueuePayload = {
+    total_duration_minutes?: number | null;
     /**
-     * Target
+     * Per Speaker Seconds
      */
-    target: number;
+    per_speaker_seconds?: number | null;
+    /**
+     * Target Topic
+     */
+    target_topic?: string | null;
+    /**
+     * Details
+     */
+    details?: string | null;
+    /**
+     * Representation Id
+     */
+    representation_id: number;
+    decision: MotionDecision;
 };
 
 /**
@@ -392,6 +412,42 @@ export type EmptyPayload = {
 };
 
 /**
+ * FinishCaucusEvent
+ */
+export type FinishCaucusEvent = {
+    /**
+     * Type
+     */
+    type: 'FinishCaucusEvent';
+    payload: EmptyPayload;
+};
+
+/**
+ * GrantFloorEvent
+ */
+export type GrantFloorEvent = {
+    /**
+     * Type
+     */
+    type: 'GrantFloorEvent';
+    payload: GrantFloorPayload;
+};
+
+/**
+ * GrantFloorPayload
+ */
+export type GrantFloorPayload = {
+    /**
+     * Representation Id
+     */
+    representation_id: number;
+    /**
+     * Seconds
+     */
+    seconds?: number | null;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -442,6 +498,17 @@ export type LeaveQueueEvent = {
     payload?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * LogMotionEvent
+ */
+export type LogMotionEvent = {
+    /**
+     * Type
+     */
+    type: 'LogMotionEvent';
+    payload: ChairMotionPayload;
 };
 
 /**
@@ -573,6 +640,20 @@ export type MotionContext = {
 };
 
 /**
+ * MotionDecision
+ *
+ * Tracks decision for LogMotionEvent for chair
+ */
+export const MotionDecision = { ACCEPT: 'Accept', DENY: 'Deny' } as const;
+
+/**
+ * MotionDecision
+ *
+ * Tracks decision for LogMotionEvent for chair
+ */
+export type MotionDecision = typeof MotionDecision[keyof typeof MotionDecision];
+
+/**
  * Motions
  */
 export const Motions = {
@@ -597,6 +678,17 @@ export const Motions = {
  * Motions
  */
 export type Motions = typeof Motions[keyof typeof Motions];
+
+/**
+ * NextSpeakerEvent
+ */
+export type NextSpeakerEvent = {
+    /**
+     * Type
+     */
+    type: 'NextSpeakerEvent';
+    payload: EmptyPayload;
+};
 
 /**
  * OpenInformalVotingEvent
@@ -692,10 +784,7 @@ export type RollCallContext = {
     registry?: {
         [key: string]: RollCallChoice;
     };
-    /**
-     * Current Delegation
-     */
-    current_delegation?: number | null;
+    return_state?: States | null;
 };
 
 /**
@@ -785,12 +874,6 @@ export type SessionLiveState = {
      */
     active_topic_index?: string | null;
     voting?: VotingContext | null;
-    /**
-     * Voting Choice
-     */
-    voting_choice?: {
-        [key: string]: RollCallChoice;
-    } | null;
     roll_call: RollCallContext;
     /**
      * Has Veto Power
@@ -867,17 +950,6 @@ export type SetPhaseEvent = {
 };
 
 /**
- * SpeakerEvent
- */
-export type SpeakerEvent = {
-    /**
-     * Type
-     */
-    type: 'SpeakerEvent';
-    payload: ChairForceSpeakerPayload;
-};
-
-/**
  * States
  */
 export const States = {
@@ -891,6 +963,7 @@ export const States = {
     FINISHED: 'Finished',
     MODERATED_CAUCUS: 'Moderated Caucus',
     UNMODERATED_CAUCUS: 'Unmoderated Caucus',
+    TOUR_DE_TABLE: 'Tour de Table',
     VOTING_EXECUTION: 'Voting Execution',
     BETWEEN_DEBATES: 'Between Debates'
 } as const;

@@ -12,20 +12,20 @@ import {
 } from "@/components/ui/item"
 import { Badge } from "@/components/ui/badge"
 import Flags from "@/components/ui/flags"
-import { sendMessage,useSession } from "@/context/SessionContext"
-import { SessionRoles, ChairEvents, type ResolveMotionEvent} from "@/schemas/types.gen"
+import { sendMessage, useSession } from "@/context/SessionContext"
+import { SessionRoles, ChairEvents, type ResolveMotionEvent } from "@/schemas/types.gen"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 
 
 export default function MotionsList() {
-    const {role} = useSession()
-    const isChair = role===SessionRoles.CHAIR
+    const { role } = useSession()
+    const isChair = role === SessionRoles.CHAIR
 
-    const motions = useCommitteeStore((state)=>state.submitted_motions)!
-    const delegations = useCommitteeStore((state)=>state.delegations)
+    const motions = useCommitteeStore((state) => state.submitted_motions)!
+    const delegations = useCommitteeStore((state) => state.delegations)
 
     const sortedMotions = [...motions].sort((a, b) => {
-        if(b.priority !== a.priority) return b.priority! - a.priority!
+        if (b.priority !== a.priority) return b.priority! - a.priority!
 
         return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
     })
@@ -42,9 +42,9 @@ export default function MotionsList() {
                     <ItemMedia variant="icon" className="h-10 w-10 bg-neutral-200 rounded-full">
                         <div className="h-10 items-center justify-center flex">
                             <h2 className="font-bold text-black text-xs">{new Date(motion.timestamp).toLocaleTimeString('pt-BR', {
-  hour: '2-digit',
-  minute: '2-digit'
-})}</h2>
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}</h2>
                         </div>
                     </ItemMedia>
                     <ItemContent>
@@ -58,9 +58,9 @@ export default function MotionsList() {
                         {isChair && (
                             <div className="flex items-center gap-2">
                                 <Button size="sm" className="flex-1 bg-green-800 text-white hover:bg-green-700"
-                                onClick={()=>sendMessage({type:ChairEvents.RESOLVE_MOTION_EVENT, payload:{motion_id:motion.id!, action:true }} satisfies ResolveMotionEvent)}>Acatar</Button>
+                                    onClick={() => sendMessage({ type: ChairEvents.RESOLVE_MOTION_EVENT, payload: { motion_id: motion.id!, action: true } } satisfies ResolveMotionEvent)}>Acatar</Button>
                                 <Button size="sm" className="flex-1 bg-red-800 text-white hover:bg-red-700"
-                                onClick={()=>sendMessage({type:ChairEvents.RESOLVE_MOTION_EVENT, payload:{motion_id:motion.id!, action:false }} satisfies ResolveMotionEvent)}>Rejeitar</Button>
+                                    onClick={() => sendMessage({ type: ChairEvents.RESOLVE_MOTION_EVENT, payload: { motion_id: motion.id!, action: false } } satisfies ResolveMotionEvent)}>Rejeitar</Button>
                             </div>
                         )}
                         <Separator />

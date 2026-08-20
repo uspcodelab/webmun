@@ -16,7 +16,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { sendMessage } from "@/context/SessionContext"
-import { type JoinQueueEvent, type SpeakerEvent, ChairEvents, DelegateEvents } from "@/schemas/types.gen"
+import { type JoinQueueEvent, type NextSpeakerEvent, ChairEvents, DelegateEvents } from "@/schemas/types.gen"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
 
@@ -94,7 +94,7 @@ export default function SpeakerList() {
                                 variant="outline"
                                 className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
                                 disabled={waitingCount === 0}
-                                onClick={() => sendMessage({ type: ChairEvents.SPEAKER_EVENT, payload: {} } satisfies SpeakerEvent)}
+                                onClick={() => sendMessage({ type: ChairEvents.NEXT_SPEAKER_EVENT, payload: {} } satisfies NextSpeakerEvent)}
                             >
                                 <span className="md:hidden">Proximo</span>
                                 <span className="hidden md:inline">Proximo Orador</span>

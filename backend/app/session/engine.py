@@ -870,8 +870,9 @@ def handle_mark_roll_call(
     state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor
 ) -> SessionLiveState:
     require_chair(actor)
-    if state.current_state != States.ROLL_CALL or state.roll_call is None:
-        raise InvalidProceduralMove("Cannot mark roll call right now")
+    #removed these lines so chair can freely change the roll call
+    #if state.current_state != States.ROLL_CALL or state.roll_call is None:
+    #   raise InvalidProceduralMove("Cannot mark roll call right now")
 
     if event.payload.delegation_id not in state.delegations:
         raise InvalidProceduralMove("Delegation does not exist")

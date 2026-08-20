@@ -10,7 +10,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { DoorOpen } from "lucide-react"
+import { DoorOpen, } from "lucide-react"
+import { Link } from "react-router-dom"
 
 
 export default function TestButton() {
@@ -34,7 +35,9 @@ export default function TestButton() {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction variant="destructive">Sair para a Dashboard</AlertDialogAction>
+          <AlertDialogAction variant="destructive" asChild>
+            <Link to="/dashboard">Sair para a Dashboard</Link>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

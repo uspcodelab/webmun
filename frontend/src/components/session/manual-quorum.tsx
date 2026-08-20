@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/item"
 import { Separator } from "@/components/ui/separator"
 import { CircleFlag } from 'react-circle-flags'
-import { type MarkRollCallBulkEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
+import { type MarkRollCallBulkEvent, ChairEvents, RollCallChoice, States } from "@/schemas/types.gen"
 
 
 export default function ManualQuorum() {
@@ -41,13 +41,13 @@ export default function ManualQuorum() {
 
         setTempQuorum(nextQuorum)
     }
-
+    const currentState = useCommitteeStore((state) => state.current_state)
 
     return (
         <Dialog>
             <form>
                 <DialogTrigger asChild>
-                    <Button variant="outline" >
+                    <Button variant="outline" disabled={currentState === States.SETUP_ROOM}>
                         Editar Quórum
                     </Button>
                 </DialogTrigger>
