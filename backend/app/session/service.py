@@ -127,7 +127,6 @@ async def activate_session(
         current_state=enums.States.SETUP,
         gsl_default_time_seconds=60,
         roll_call=RollCallContext(registry={}),
-        voting_choice={},
     )
 
     updated = replace(

@@ -51,13 +51,13 @@ export default function TestButton() {
           <ManualQuorum />
           <div className="flex flex-row gap-2 mt-4">
             {currentState === States.SETUP_ROOM &&
-              <Button variant="outline" className="bg-green-800 text-white hover:bg-green-700" onClick={() => sendMessage({ type: ChairEvents.OPEN_SESSION_EVENT, payload: {} } as OpenSessionEvent)}>Abrir Sessao e iniciar Quórum</Button>}
+              <Button variant="outline" className="bg-green-800 text-white hover:bg-green-700" onClick={() => sendMessage({ type: ChairEvents.OPEN_SESSION_EVENT, payload: {} } satisfies OpenSessionEvent)}>Abrir Sessao e iniciar Quórum</Button>}
             {currentState === States.ROLL_CALL &&
-              <Button variant="destructive" onClick={() => sendMessage({ type: ChairEvents.CLOSE_ROLL_CALL_EVENT, payload: {} } as CloseRollCallEvent)}>
+              <Button variant="destructive" onClick={() => sendMessage({ type: ChairEvents.CLOSE_ROLL_CALL_EVENT, payload: {} } satisfies CloseRollCallEvent)}>
                 Fechar Quórum
               </Button>}
             {currentState !== States.SETUP_ROOM && currentState !== States.ROLL_CALL &&
-              <Button variant="destructive" className="bg-red-800 text-white hover:bg-red-700" onClick={() => sendMessage({ type: ChairEvents.CLOSE_SESSION_EVENT, payload: {} } as CloseSessionEvent)}>
+              <Button variant="destructive" className="bg-red-800 text-white hover:bg-red-700" onClick={() => sendMessage({ type: ChairEvents.CLOSE_SESSION_EVENT, payload: {} } satisfies CloseSessionEvent)}>
                 Fechar Sessão
               </Button>}
           </div>

@@ -69,6 +69,10 @@ Privilege`.
   - Moves an allowed session to `Finished` and clears active debate and timer
     data.
 
+- `LogMotionEvent`
+  - Payload: same variables from `SubmitMotionEvent` plus `representation_id` and `decision` (`Accept` or `DENY`)
+  - Records the decision from chair for a specific motion, not sent in the system by any delegation
+
 - `ToggleTimerEvent`
   - Payload: optional `toggle` (defaults to `true`).
   - Starts or pauses the timer. The current implementation toggles based on
@@ -97,11 +101,30 @@ Privilege`.
   - Tallies the current procedural vote and applies its result or returns to
     the earlier phase.
 
-- `SpeakerEvent`
-  - Payload: optional `speaker_id` and `seconds`.
-  - Sets a current speaker and the timer duration. Although the schema allows
-    an omitted `speaker_id`, the current handler requires an existing
-    delegation ID.
+- `FinishCaucusEvent`
+  - Payload: `{}`.
+  - Ends an active moderated or unmoderated caucus. Clears its speaker, timer,
+    and caucus list, then returns to the GSL state stored when the caucus was
+    opened.
+
+- `NextSpeakerEvent`
+  - Payload: `{}`.
+  - In Open or Closed GSL, pops the next `representation_id` from `gsl_queue`
+    into `current_speaker`. In Tour de Table, does the same with `caucus_list`.
+    An empty list clears the current speaker and timer. It is not valid for a
+    moderated or unmoderated caucus.
+
+- `AddGslSpeakerEvent`
+  - Payload: `representation_id`.
+  - Adds a valid representation to the GSL queue during Open or Closed GSL.
+    Duplicate queue entries are rejected.
+
+- `GrantFloorEvent`
+  - Payload: `representation_id` and optional positive `seconds`.
+  - Makes a valid representation the current speaker in GSL, moderated
+    caucus, or Tour de Table. In GSL and Tour de Table, removes that
+    representation from its pending queue/list first. In moderated caucus, it
+    leaves `caucus_list` unchanged. It is not valid during unmoderated caucus.
 
 - `MarkRollCallEvent`
   - Payload: `delegation_id` and `choice` (`Present`, `Present and Voting`, or
@@ -117,10 +140,6 @@ Privilege`.
   - Payload: `{}`.
   - Marks unrecorded delegations absent, creates voting eligibility, and moves
     to Open GSL.
-
-- `InsertQueueEvent`
-  - Payload: `target`.
-  - Adds the target delegation to the GSL queue.
 
 - `SetAgendaEvent`
   - Payload: `agenda`, a list of strings.

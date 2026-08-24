@@ -15,7 +15,7 @@ export default function Timer() {
     const isChair = role===SessionRoles.CHAIR
     const delegations = useCommitteeStore((state) => state.delegations);
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker);
-    const speaker = currentSpeaker !== null && currentSpeaker !== undefined ? delegations[currentSpeaker] : {
+    let speaker = currentSpeaker !== null && currentSpeaker !== undefined ? delegations[currentSpeaker] : {
         id: -1,
         seat: "",
         name: "Mesa",
@@ -73,10 +73,10 @@ const [Seconds, setRemainingSeconds] = useState(0);
             
             {isChair && (
                 <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon-lg" aria-label={timerIsRunning ? "Pause timer" : "Start timer"} onClick={() => {sendMessage({type: ChairEvents.TOGGLE_TIMER_EVENT, payload: {}} as ToggleTimerEvent);}}>
+                <Button variant="outline" size="icon-lg" aria-label={timerIsRunning ? "Pause timer" : "Start timer"} onClick={() => {sendMessage({type: ChairEvents.TOGGLE_TIMER_EVENT, payload: {}} satisfies ToggleTimerEvent);}}>
                 {timerIsRunning ? <Pause /> : <Play />}
                 </Button>
-                <Button onClick={() => sendMessage({type: ChairEvents.INCREASE_TIMER_EVENT, payload: { seconds: 5 }} as IncreaseTimerEvent)}><Plus />5s</Button>
+                <Button onClick={() => sendMessage({type: ChairEvents.INCREASE_TIMER_EVENT, payload: { seconds: 5 }} satisfies IncreaseTimerEvent)}><Plus />5s</Button>
                 
                 </div>
             )}

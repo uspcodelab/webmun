@@ -60,8 +60,8 @@ export default function VoteButton() {
                 </p>
               </div>
             </div>
-            <Button onClick={() => {sendMessage({type: ChairEvents.OPEN_INFORMAL_VOTING_EVENT, payload:{title: title.current?.value, veto_power: veto.current?.checked, majority: majority.current?.value}} as OpenInformalVotingEvent)}} className="w-full bg-green-800 text-white hover:bg-green-700">Iniciar Votação</Button>
-            <Button onClick={() => {sendMessage({type: ChairEvents.CLOSE_INFORMAL_VOTING_EVENT, payload:{} } as CloseInformalVotingEvent)}} className="w-full bg-red-800 text-white hover:bg-red-700">Fechar Votação</Button>
+            <Button onClick={() => {sendMessage({type: ChairEvents.OPEN_INFORMAL_VOTING_EVENT, payload:{title: title.current?.value, veto_power: veto.current?.checked as boolean, majority: (majority.current?.value) as MajorityTypes}} satisfies OpenInformalVotingEvent)}} className="w-full bg-green-800 text-white hover:bg-green-700">Iniciar Votação</Button>
+            <Button onClick={() => {sendMessage({type: ChairEvents.CLOSE_INFORMAL_VOTING_EVENT, payload:{} } satisfies CloseInformalVotingEvent)}} className="w-full bg-red-800 text-white hover:bg-red-700">Fechar Votação</Button>
           </div>
         </div>
       </DialogContent>
