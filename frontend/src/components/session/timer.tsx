@@ -63,7 +63,7 @@ export default function Timer() {
 				<h3 className="text-[1.75vh]">Com a Palavra:</h3>
 			</div>
 			<div className="flex items-center justify-center gap-2">
-				<Flags code={speaker.code} className="h-5" />
+				<Flags code={speaker.code} className="h-3" />
 				<h3 className="uppercase text-[1.75vh]">{speaker.name}</h3>
 			</div>
 		</div>
