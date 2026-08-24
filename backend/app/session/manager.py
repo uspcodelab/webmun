@@ -47,7 +47,9 @@ class ConnectionManager:
         for connection in self.active_connections[session_id]:
             await connection.send_json(message.model_dump(mode="json"))
 
-    async def send_message(self, session_id: int, message: ServerSessionMessage, websocket: WebSocket):
+    async def send_message(
+        self, session_id: int, message: ServerSessionMessage, websocket: WebSocket
+    ):
         """Sends a ServerSessionMessage to connected socket"""
         if self.active_connections.get(session_id, {}).get(websocket):
             await websocket.send_json(message.model_dump(mode="json"))

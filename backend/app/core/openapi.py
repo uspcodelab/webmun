@@ -17,9 +17,7 @@ def add_websocket_message_schemas(openapi_schema: dict[str, Any]) -> None:
     validated on the WebSocket endpoint, so export them explicitly instead of
     maintaining a fake HTTP route solely for schema generation.
     """
-    components = openapi_schema.setdefault("components", {}).setdefault(
-        "schemas", {}
-    )
+    components = openapi_schema.setdefault("components", {}).setdefault("schemas", {})
 
     for name, message_type in {
         "ChairEvents": ChairEvents,
