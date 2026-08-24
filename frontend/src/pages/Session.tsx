@@ -11,6 +11,7 @@ import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 import VotingPopup from '@/components/session/voting-popup.tsx';
+import VotingResultsPopup from '@/components/session/voting-results-popup.tsx';
 import { Spinner } from "@/components/ui/spinner"
 import { States } from '@/schemas/types.gen';
 import { Clock8 } from 'lucide-react';
@@ -48,6 +49,7 @@ export default function SessionPage() {
             </div> */}
 
                 <VotingPopup />
+                <VotingResultsPopup />
                 <TopBar />
                 <div className="flex h-[82vh] w-full">
                     <div className="min-w-0 flex-1 bg-neutral-100">

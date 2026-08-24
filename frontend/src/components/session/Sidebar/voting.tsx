@@ -2,17 +2,17 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 
 import { useCommitteeStore } from "@/store/useCommitteeStore"
-import {Badge} from "@/components/ui/badge"
+import { Badge } from "@/components/ui/badge"
 
 import { useSession } from "@/context/SessionContext"
-import { SessionRoles, RollCallChoice, VotingChoice, MajorityTypes} from "@/schemas/types.gen"
+import { SessionRoles, RollCallChoice, VotingChoice, MajorityTypes } from "@/schemas/types.gen"
 
-//TODO determine if queue is open, if not obscure the button and show a message that the queue is closed
+//TODO implement rules of procedure to determine if abstentions count towards the majority or not. For now, we will assume they do not count towards the majority.
 
 export default function VotingMenu() {
 
     const voteTitle = useCommitteeStore((state) => state.voting?.motion_in_vote?.type ?? "ERROR:VotingTitle not found")
-    
+
 
     const expectedVotes = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
     const yayVotes = useCommitteeStore((state) => Object.entries(state.voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.FAVOUR).length)
@@ -25,10 +25,17 @@ export default function VotingMenu() {
             ? expectedVotes
             : Math.floor(expectedVotes / 2) + 1
 
+    const canBeVetoed = useCommitteeStore((state) => state.voting?.allow_veto_power ?? false)
+    const whoCanVeto = useCommitteeStore((state) => Object.values(state.delegations)
+        .filter((delegation) => ["fr", "us", "cn", "ru", "uk"].includes(delegation.code.toLowerCase()))
+        .map((delegation) => delegation.id))
+    const isVetoed = useCommitteeStore((state) => Object.entries(state.voting?.voting_registry ?? {})
+        .some(([id, choice]) => choice === VotingChoice.AGAINST
+            && whoCanVeto.some((vetoId) => String(vetoId) === id)))
 
-    const {role} = useSession()
-    const isChair = role===SessionRoles.CHAIR
-    
+    const { role } = useSession()
+    const isChair = role === SessionRoles.CHAIR
+
     const votedCount = yayVotes + nayVotes + abstentions
     const pendingVotes = expectedVotes - votedCount
     const majorityPosition = expectedVotes
@@ -45,7 +52,7 @@ export default function VotingMenu() {
             <div className="mx-4">
                 <p className="font-bold">Resultados parciais:</p>
                 <p className="flex justify-center my-4">Votaram {votedCount} de {expectedVotes} delegações</p>
-                
+
 
                 <div className="mb-4 flex flex-col gap-2">
                     <div
@@ -79,7 +86,7 @@ export default function VotingMenu() {
                             style={{ left: `${majorityPosition}%` }}
                         />
                     </div>
-                    
+
                 </div>
                 <div className="flex flex-row gap-2 justify-center my-4">
                     <Badge className="bg-green-200 text-green-800">Sim: {yayVotes}</Badge>
@@ -87,8 +94,16 @@ export default function VotingMenu() {
                     <Badge className="bg-red-200 text-red-800">Não: {nayVotes}</Badge>
                 </div>
                 <p className="text-muted-foreground flex justify-center mb-4">Maioria Necessaria: {requiredMajority} votos</p>
-                
+
             </div>
+            {canBeVetoed && isVetoed && (
+                <h2 className="text-red-700 font-bold text-xl">A moção foi vetada.</h2>
+            )}
+            {!canBeVetoed || !isVetoed ? yayVotes >= requiredMajority ? (
+                <h2 className="text-green-700 font-bold text-xl">A moção passa!</h2>
+            ) : (
+                <h2 className="text-red-700 font-bold text-xl">A moção nao passsa.</h2>
+            ) : null}
             {isChair && (
                 <div className="ml-4 mr-4 mb-2   flex w-auto min-w-0 flex-row gap-2 overflow-hidden">
                     <Button variant="destructive" className="flex-1 min-w-0">
