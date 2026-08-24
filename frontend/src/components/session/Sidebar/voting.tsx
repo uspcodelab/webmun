@@ -26,13 +26,19 @@ export default function VotingMenu() {
             : Math.floor(expectedVotes / 2) + 1
 
     const canBeVetoed = useCommitteeStore((state) => state.voting?.allow_veto_power ?? false)
-    const whoCanVeto = useCommitteeStore((state) => Object.values(state.delegations)
-        .filter((delegation) => ["fr", "us", "cn", "ru", "uk"].includes(delegation.code.toLowerCase()))
-        .map((delegation) => delegation.id))
-    const isVetoed = useCommitteeStore((state) => Object.entries(state.voting?.voting_registry ?? {})
-        .some(([id, choice]) => choice === VotingChoice.AGAINST
-            && whoCanVeto.some((vetoId) => String(vetoId) === id)))
+    const delegations = useCommitteeStore((state) => state.delegations)
+    const whoCanVeto = Object.values(delegations)
+        .filter((delegation) => ["fr", "us", "cn", "ru", "uk"].includes(delegation.code?.toLowerCase() ?? ""))
+        .map((delegation) => delegation.id)
+    const isVetoed = useCommitteeStore((state) => {
+        const votingRegistry = state.voting?.voting_registry
+        if (!votingRegistry) return false
 
+        return Object.entries(votingRegistry)
+            .some(([id, choice]) => choice === VotingChoice.AGAINST
+                && whoCanVeto.some((vetoId) => String(vetoId) === id))
+    })
+    
     const { role } = useSession()
     const isChair = role === SessionRoles.CHAIR
 
