@@ -2,6 +2,7 @@
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -140,3 +141,13 @@ class SessionLiveState(BaseModel):
 
     # Additional config
     has_veto_power: bool = False
+
+
+class SessionEffect(BaseModel):
+    type: enums.SessionEffectType
+    data: dict[str, Any] = {}
+
+
+class DispatchOutcome(BaseModel):
+    state: SessionLiveState
+    effect: SessionEffect | None = None

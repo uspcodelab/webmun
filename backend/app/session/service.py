@@ -7,7 +7,6 @@ from dataclasses import replace
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.session.enums as enums
@@ -209,19 +208,17 @@ async def handle_client_messages(
     logger: logging.Logger,
     session_id: int,
     actor: SessionActor,
-    data,
+    data: schemas.EventMessage,
 ):
-    adapter = TypeAdapter(schemas.SessionEvent)
-
-    # if schema is None:
-    # raise ValueError("Unsupported event type")
-
-    event = adapter.validate_json(data)
+    event = data.event
     state = manager.room_states[session_id]
 
     logger.info(event)  # Debugging
 
-    new_state = engine.dispatch(state, event, actor)
-    manager.room_states[session_id] = new_state
+    dispatch_outcome = engine.dispatch(state, event, actor)
+    message = schemas.DispatchResultMessage(
+        state=dispatch_outcome.state, effect=dispatch_outcome.effect
+    )
+    manager.room_states[session_id] = dispatch_outcome.state
 
-    await manager.broadcast_state(session_id)
+    await manager.broadcast_message(session_id, message)

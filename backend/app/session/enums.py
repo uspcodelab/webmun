@@ -1,6 +1,10 @@
 from enum import StrEnum
 
 
+class SessionEffectType(StrEnum):
+    VOTE_CLOSED = "Vote Closed"
+
+
 # --- States ---
 class States(StrEnum):
     # Normal flow of states

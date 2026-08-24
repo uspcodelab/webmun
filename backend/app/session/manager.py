@@ -4,6 +4,8 @@ This file describes the overall manager for websocket and states
 
 from fastapi import WebSocket
 
+from app.session.schemas import ServerSessionMessage, StateSnapshotMessage
+
 from .models import SessionActor, SessionLiveState
 
 
@@ -17,11 +19,11 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, session_id: int, actor: SessionActor):
         self.active_connections.setdefault(session_id, {})[websocket] = actor
 
-        # when someone connects, send current state as SessionLiveState
+        # Send the initial state through the same typed protocol as later updates.
         if session_id in self.room_states:
-            # TODO: check if it's better to create with mode='json' or model_dump_json()
+            state = self.room_states[session_id]
             await websocket.send_json(
-                self.room_states[session_id].model_dump(mode="json")
+                StateSnapshotMessage(state=state).model_dump(mode="json")
             )
 
     def disconnect(self, websocket: WebSocket, session_id: int):
@@ -40,14 +42,12 @@ class ConnectionManager:
             {actor.delegation.id for actor in actors if actor.delegation is not None}
         )
 
-    # More things from connection manager here
-    async def broadcast_state(self, session_id: int):
+    async def broadcast_message(self, session_id: int, message: ServerSessionMessage):
         """Sends current state to all clients in the room"""
-        state = self.room_states.get(session_id)
-        if not state:
-            return
-
         for connection in self.active_connections[session_id]:
-            await connection.send_json(state.model_dump(mode="json"))
+            await connection.send_json(message.model_dump(mode="json"))
 
-    # TODO: add broadcast_event so we send only the event + deltas (fields changed)/event only, or keep broadcasting entire state
+    async def send_message(self, session_id: int, message: ServerSessionMessage, websocket: WebSocket):
+        """Sends a ServerSessionMessage to connected socket"""
+        if self.active_connections.get(session_id, {}).get(websocket):
+            await websocket.send_json(message.model_dump(mode="json"))

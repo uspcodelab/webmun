@@ -1,7 +1,7 @@
 # Test suite for service layer
 import json
 from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -11,6 +11,7 @@ from app.session import enums
 from app.session.enums import SessionRole
 from app.session.manager import ConnectionManager
 from app.session.models import SessionActor, SessionLiveState
+from app.session.schemas import EventMessage, JoinQueueEvent
 from app.session.service import (
     ActorResolutionError,
     SessionFetchError,
@@ -186,17 +187,22 @@ async def test_handle_client_messages_dispatches_and_broadcasts(
 
     broadcasts = []
 
-    async def fake_broadcast_state(session_id: int):
+    async def fake_broadcast_message(session_id: int, message):
         broadcasts.append(session_id)
 
     # replaces real broadcast state with this one
-    connection_manager.broadcast_state = fake_broadcast_state
+    connection_manager.broadcast_message = fake_broadcast_message
 
+    # data sent by the websocket
     data = json.dumps(
         {
             "type": enums.DelegateEvents.JOIN_QUEUE,
             "payload": {},
         }
+    )
+
+    client_message = EventMessage(
+        request_id=uuid4(), event=JoinQueueEvent.model_validate_json(data)
     )
 
     await handle_client_messages(
@@ -205,7 +211,7 @@ async def test_handle_client_messages_dispatches_and_broadcasts(
         logger=__import__("logging").getLogger("test"),
         session_id=session_state.session_id,
         actor=delegate_actor,
-        data=data,
+        data=client_message,
     )
 
     # tests if engine dispatched the message
