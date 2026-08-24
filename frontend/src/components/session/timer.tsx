@@ -15,7 +15,7 @@ export default function Timer() {
     const isChair = role===SessionRoles.CHAIR
     const delegations = useCommitteeStore((state) => state.delegations);
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker);
-    let speaker = currentSpeaker !== null && currentSpeaker !== undefined ? delegations[currentSpeaker] : {
+    const speaker = currentSpeaker !== null && currentSpeaker !== undefined ? delegations[currentSpeaker] : {
         id: -1,
         seat: "",
         name: "Mesa",

@@ -37,7 +37,7 @@ export default function ModeratedDebate() {
         <div className="flex min-h-0 flex-1 flex-col">
             <div className="mr-4 mb-2 ml-4 mt-4 ">
                 <h2 className="text-xl font-bold">Debate Moderado</h2>
-                <p className="ml-auto">Historico de Oradores:</p>
+                <p className="ml-auto text-muted-foreground">Historico de Oradores:</p>
             </div>
             <ScrollArea className="mr-4 mb-2 ml-4 mt-0 min-h-0 flex-1 rounded-md border ">
                 {queuedDelegations.map((delegate, index) => {
