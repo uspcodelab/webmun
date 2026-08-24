@@ -288,7 +288,9 @@ def test_delegate_can_submit_motion_in_open_gsl(
     submit_debate_motion_event: sch.SubmitMotionEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, submit_debate_motion_event, delegate_actor).state
+    state = engine.dispatch(
+        open_gsl_state, submit_debate_motion_event, delegate_actor
+    ).state
 
     assert len(state.submitted_motions) == 1
     assert state.submitted_motions[0].id == 1
@@ -424,7 +426,9 @@ def test_delegate_can_cast_vote(
     cast_vote_event: sch.CastVoteEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor).state
+    state = engine.dispatch(
+        informal_voting_state, cast_vote_event, delegate_actor
+    ).state
 
     assert state.voting is not None
     assert state.voting.voting_registry == {0: enums.VotingChoice.FAVOUR}
@@ -514,7 +518,9 @@ def test_quorum_roll_call_restores_closed_gsl(
         },
     )
 
-    state = engine.dispatch(session_state, close_procedural_voting_event, chair_actor).state
+    state = engine.dispatch(
+        session_state, close_procedural_voting_event, chair_actor
+    ).state
 
     assert state.current_state == enums.States.ROLL_CALL
     assert state.roll_call.return_state == enums.States.CLOSED_GSL
@@ -557,7 +563,9 @@ def test_quorum_roll_call_restores_moderated_caucus(
         },
     )
 
-    state = engine.dispatch(session_state, close_procedural_voting_event, chair_actor).state
+    state = engine.dispatch(
+        session_state, close_procedural_voting_event, chair_actor
+    ).state
     state = engine.dispatch(state, close_roll_call_event, chair_actor).state
 
     assert state.current_state == enums.States.MODERATED_CAUCUS
@@ -630,7 +638,9 @@ def test_chair_can_open_informal_voting(
     open_informal_voting_event: sch.OpenInformalVotingEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, open_informal_voting_event, chair_actor).state
+    state = engine.dispatch(
+        open_gsl_state, open_informal_voting_event, chair_actor
+    ).state
 
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None

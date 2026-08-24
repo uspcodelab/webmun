@@ -50,6 +50,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 			const data = JSON.parse(event.data) as ServerSessionMessage;
 			console.log("Received data", data);
 			switch (data.type) {
+				case 'state_snapshot': {
+					UpdateStore(data.state)
+					break;
+				}
 				case 'dispatch_result': {
 					UpdateStore(data.state);
 					if (data.effect) {
