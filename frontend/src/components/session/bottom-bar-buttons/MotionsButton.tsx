@@ -1,5 +1,6 @@
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -42,15 +43,16 @@ import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { MajorityTypes, States } from "@/schemas/types.gen"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
-import { 
-  Motions, 
-  Questions, 
+import {
+  Motions,
+  Questions,
   DebateTypes,
   DelegateEvents,
-  type SubmitMotionEvent, 
-  type SubmitQuestionEvent, 
+  type SubmitMotionEvent,
+  type SubmitQuestionEvent,
   type DelegateQuestionPayload,
-  type DelegateMotionPayload } from "@/schemas/types.gen"
+  type DelegateMotionPayload
+} from "@/schemas/types.gen"
 import { sendMessage } from "@/context/SessionContext"
 
 const motionRequiredMajority: Record<Motions, MajorityTypes | ""> = {
@@ -79,8 +81,8 @@ function QuestionsMotionsList(type: MotionKind) {
 
 export default function TestButton() {
 
-  const {role} = useSession()
-  const isChair = role===SessionRoles.CHAIR
+  const { role } = useSession()
+  const isChair = role === SessionRoles.CHAIR
 
   const currentState = useCommitteeStore((state) => state.current_state)
   const [motionKind, setMotionKind] = useState<MotionKind>("moção")
@@ -101,22 +103,22 @@ export default function TestButton() {
   const showMotionDecision = motionKind === "moção" && selectedMotion.length > 0
   const selectedMotionMajority = motionRequiredMajority[selectedMotion] ?? "Maioria não definida"
 
-  const motionBody : DelegateMotionPayload = {
+  const motionBody: DelegateMotionPayload = {
     type: selectedMotion,
-    ...(unmoderatedMinutes !== "" && {total_duration_minutes: Number(unmoderatedMinutes)}),
-    ...(minutesPerSpeech !== "" && {per_speaker_seconds: Number(minutesPerSpeech)}), //TODO: Fix inconsitency in minutes / seconds
-    ...(debateKindChange !== "" && {debate_type: debateKindChange}),
-    ...(minutesPerSpeech !== "" && {per_speaker_seconds: Number(minutesPerSpeech)}),
+    ...(unmoderatedMinutes !== "" && { total_duration_minutes: Number(unmoderatedMinutes) }),
+    ...(minutesPerSpeech !== "" && { per_speaker_seconds: Number(minutesPerSpeech) }), //TODO: Fix inconsitency in minutes / seconds
+    ...(debateKindChange !== "" && { debate_type: debateKindChange }),
+    ...(minutesPerSpeech !== "" && { per_speaker_seconds: Number(minutesPerSpeech) }),
     //TODO: add change topic
   }
 
-  const questionBody : DelegateQuestionPayload | null = 
-  selectedQuestion === "" ? null :
-  {
-    type: selectedQuestion,
-    details: questionText
-  }
-  
+  const questionBody: DelegateQuestionPayload | null =
+    selectedQuestion === "" ? null :
+      {
+        type: selectedQuestion,
+        details: questionText
+      }
+
 
 
   const resetMotionFields = () => {
@@ -130,7 +132,16 @@ export default function TestButton() {
   }
 
   return (
-    <Dialog>
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open) return
+
+        setMotionKind("moção")
+        resetMotionFields()
+        setQuestionText("")
+        setAnswerText("")
+      }}
+    >
       <DialogTrigger asChild>
         <Button disabled={currentState === States.SETUP_ROOM || currentState === States.ROLL_CALL} className="m-4 flex h-8/10  flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
           <span className="flex h-[3vh] w-[3vh] items-center justify-center [&>svg]:size-full">
@@ -208,9 +219,9 @@ export default function TestButton() {
               <Field>
                 <Select
                   value={selectedMotion}
-                  onValueChange={(value : Motions | Questions | "") => {
-                    if(motionKind === "moção") setSelectedMotion(value as Motions)
-                    else if(motionKind === "questão") setSelectedQuestion(value as Questions | "")
+                  onValueChange={(value: Motions | Questions | "") => {
+                    if (motionKind === "moção") setSelectedMotion(value as Motions)
+                    else if (motionKind === "questão") setSelectedQuestion(value as Questions | "")
                     setDebateKind("")
                     setUnmoderatedMinutes("")
                     setSpeechCount("")
@@ -225,13 +236,13 @@ export default function TestButton() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      {motionOptions.map((item) => 
-                       {
-                        if(item !== "") return (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
-                      )})}
+                      {motionOptions.map((item) => {
+                        if (item !== "") return (
+                          <SelectItem key={item} value={item}>
+                            {item}
+                          </SelectItem>
+                        )
+                      })}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -307,19 +318,25 @@ export default function TestButton() {
 
               {showMotionDecision && isChair && (
                 <div className="flex gap-3 pt-1">
-                  <Button className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
-                    Acatar moção
-                  </Button>
-                  <Button className="bg-red-800 text-white hover:bg-red-700 flex-1" type="button">
-                    Rejeitar moção
-                  </Button>
+                  <DialogClose asChild>
+                    <Button className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
+                      Acatar moção
+                    </Button>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Button className="bg-red-800 text-white hover:bg-red-700 flex-1" type="button">
+                      Rejeitar moção
+                    </Button>
+                  </DialogClose>
                 </div>
               )}
               {showMotionDecision && !isChair && (
                 <div className="flex gap-3 pt-1">
-                  <Button onClick={()=>{sendMessage({type:DelegateEvents.SUBMIT_MOTION_EVENT, payload: motionBody} satisfies SubmitMotionEvent)}} className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
-                    Enviar moção
-                  </Button>
+                  <DialogClose asChild>
+                    <Button onClick={() => { sendMessage({ type: DelegateEvents.SUBMIT_MOTION_EVENT, payload: motionBody } satisfies SubmitMotionEvent) }} className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
+                      Enviar moção
+                    </Button>
+                  </DialogClose>
                 </div>
               )}
 
@@ -333,15 +350,15 @@ export default function TestButton() {
                       onChange={(event) => setQuestionText(event.target.value)}
                     />
                   </Field>
-                  { isChair && (
-                  <Field>
-                    <FieldLabel>Digite a resposta</FieldLabel>
-                    <Input
-                      placeholder="Escreva a resposta"
-                      value={answerText}
-                      onChange={(event) => setAnswerText(event.target.value)}
-                    />
-                  </Field>)
+                  {isChair && (
+                    <Field>
+                      <FieldLabel>Digite a resposta</FieldLabel>
+                      <Input
+                        placeholder="Escreva a resposta"
+                        value={answerText}
+                        onChange={(event) => setAnswerText(event.target.value)}
+                      />
+                    </Field>)
                   }
                   <Button onClick={()=>{if(questionBody)sendMessage({type:DelegateEvents.SUBMIT_QUESTION_EVENT, payload: questionBody} satisfies SubmitQuestionEvent)}} className="w-full bg-green-800 text-white hover:bg-green-700" type="button">
                     Registrar questão{isChair && " e resposta"}
