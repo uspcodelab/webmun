@@ -2,18 +2,21 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 
-export default function Flags({
-	code,
-	className = "h-10",
-}: {
-	code: string
+interface FlagsProps {
+	code?: string | null
 	className?: string
-}) {
-	const normalized = (code || "").toLowerCase()
+}
+
+function FlagImage({ code, className }: { code: string, className?: string }) {
+	const normalized = code.toLowerCase().trim()
 	const baseSrc = `${import.meta.env.BASE_URL}flags/${normalized}.svg`
 	const publicSrc = `${import.meta.env.BASE_URL}public/flags/${normalized}.svg`
 	const [src, setSrc] = useState(baseSrc)
-	const [usedFallback, setUsedFallback] = useState(false)
+	const [hasError, setHasError] = useState(false)
+
+	if (hasError) {
+		return null
+	}
 
 	return (
 		<img
@@ -21,16 +24,23 @@ export default function Flags({
 			src={src}
 			alt={code}
 			className={cn(className)}
-			onError={(e) => {
-				if (!usedFallback) {
-					setUsedFallback(true)
+			onError={() => {
+				if (src != publicSrc) {
 					setSrc(publicSrc)
-					return
+				} else {
+					setHasError(true)
 				}
-
-				// hide only if both paths fail
-				; (e.currentTarget as HTMLImageElement).style.display = "none"
 			}}
 		/>
 	)
+}
+
+export default function Flags({ code, className = "h-10" }: FlagsProps) {
+	const normalized = (code || "").toLowerCase().trim()
+	if (!normalized || normalized === "null" || normalized === "0") {
+		return null
+	}
+
+	// Passing key={normalized} tells React to create a fresh FlagImage whenever the code changes
+	return <FlagImage key={normalized} code={code!} className={className} />
 }
