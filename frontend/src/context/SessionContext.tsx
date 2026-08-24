@@ -3,7 +3,7 @@ import { createContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useParams } from 'react-router-dom';
 import { UpdateStore } from '@/store/useCommitteeStore';
-import {type SessionRepresentation,type BodyDummyCommitteesDummyGet as Types} from '@/schemas/types.gen';
+import {type SessionEvent, type SessionRepresentation} from '@/schemas/types.gen';
 
 
 interface SessionContextType{
@@ -37,7 +37,7 @@ export function SessionProvider({ children }: { children: ReactNode })
 		socket = ws
 
         ws.onopen = () => {
-            ws?.send(JSON.stringify({ access_token: token }));
+            ws?.send(JSON.stringify({ type: 'authenticate', access_token: token }));
             setStatus("Connected");
         }
 
@@ -82,10 +82,14 @@ export function SessionProvider({ children }: { children: ReactNode })
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
-export function sendMessage(data: Types["types"]) {
+export function sendMessage(event: SessionEvent) {
     if (socket && socket.readyState === WebSocket.OPEN) 
     {
-        socket.send(JSON.stringify(data));
+        socket.send(JSON.stringify({
+            type: 'event',
+            request_id: crypto.randomUUID(),
+            event,
+        }));
     } 
     else 
     {

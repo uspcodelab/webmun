@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "generate:schema": "openapi-ts",
+    "generate:schema": "openapi-ts --file openapi-ts.config.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -16,7 +16,7 @@
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@fontsource-variable/geist": "^5.2.8",
-    "@hey-api/openapi-ts": "^0.99.0",
+    "@hey-api/openapi-ts": "^0.97.0",
     "@supabase/supabase-js": "^2.110.8",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-table": "^8.21.3",

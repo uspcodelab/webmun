@@ -31,28 +31,14 @@ from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.dep import get_connection_manager, get_logger, get_session_engine
 from app.session.engine import SessionEngine
-from app.session.enums import ChairEvents, DelegateEvents
 from app.session.manager import ConnectionManager
-from app.session.models import SessionLiveState
 from app.session.schemas import (
     AuthenticateMessage,
     EventMessage,
     SessionCreationSchema,
-    SessionEvent,
 )
 
 router = APIRouter()
-
-
-@router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
-async def dummy(
-    types: SessionEvent,
-    schemas: SessionLiveState,
-    enum1: DelegateEvents,
-    enum2: ChairEvents,
-):
-    """Dummy workaround to make FastAPI add all schemas to the OpenAPI file"""
-    return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
 @router.get("/health", status_code=status.HTTP_200_OK)
