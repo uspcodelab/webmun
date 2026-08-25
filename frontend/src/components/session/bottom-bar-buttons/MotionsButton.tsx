@@ -42,13 +42,13 @@ import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { MajorityTypes, States } from "@/schemas/types.gen"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
-import { 
-  Motions, 
-  Questions, 
+import {
+  Motions,
+  Questions,
   DebateTypes,
   DelegateEvents,
-  type SubmitMotionEvent, 
-  type SubmitQuestionEvent, 
+  type SubmitMotionEvent,
+  type SubmitQuestionEvent,
   type DelegateQuestionPayload,
   type DelegateMotionPayload } from "@/schemas/types.gen"
 import { sendMessage } from "@/context/SessionContext"
@@ -110,13 +110,13 @@ export default function TestButton() {
     //TODO: add change topic
   }
 
-  const questionBody : DelegateQuestionPayload | null = 
+  const questionBody : DelegateQuestionPayload | null =
   selectedQuestion === "" ? null :
   {
     type: selectedQuestion,
     details: questionText
   }
-  
+
 
 
   const resetMotionFields = () => {
@@ -225,7 +225,7 @@ export default function TestButton() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      {motionOptions.map((item) => 
+                      {motionOptions.map((item) =>
                        {
                         if(item !== "") return (
                         <SelectItem key={item} value={item}>

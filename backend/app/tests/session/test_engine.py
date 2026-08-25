@@ -288,7 +288,9 @@ def test_delegate_can_submit_motion_in_open_gsl(
     submit_debate_motion_event: sch.SubmitMotionEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, submit_debate_motion_event, delegate_actor)
+    state = engine.dispatch(
+        open_gsl_state, submit_debate_motion_event, delegate_actor
+    ).state
 
     assert len(state.submitted_motions) == 1
     assert state.submitted_motions[0].id == 1
@@ -322,7 +324,7 @@ def test_chair_can_log_motion(
     log_motion_event: sch.LogMotionEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, log_motion_event, chair_actor)
+    state = engine.dispatch(session_state, log_motion_event, chair_actor).state
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None and state.voting.motion_in_vote is not None
     assert state.voting.motion_in_vote.type == log_motion_event.payload.type
@@ -344,7 +346,7 @@ def test_delegate_can_submit_question(
     submit_question_event: sch.SubmitQuestionEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, submit_question_event, delegate_actor)
+    state = engine.dispatch(session_state, submit_question_event, delegate_actor).state
 
     assert len(state.submitted_questions) == 1
     assert state.submitted_questions[0].id == 1
@@ -358,7 +360,7 @@ def test_delegate_can_join_queue(
     join_queue_event: sch.JoinQueueEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, join_queue_event, delegate_actor)
+    state = engine.dispatch(open_gsl_state, join_queue_event, delegate_actor).state
 
     assert state.gsl_queue == [0]
 
@@ -403,7 +405,7 @@ def test_delegate_can_leave_queue(
 ) -> None:
     open_gsl_state.gsl_queue.append(0)
 
-    state = engine.dispatch(open_gsl_state, leave_queue_event, delegate_actor)
+    state = engine.dispatch(open_gsl_state, leave_queue_event, delegate_actor).state
 
     assert state.gsl_queue == []
 
@@ -424,7 +426,9 @@ def test_delegate_can_cast_vote(
     cast_vote_event: sch.CastVoteEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor)
+    state = engine.dispatch(
+        informal_voting_state, cast_vote_event, delegate_actor
+    ).state
 
     assert state.voting is not None
     assert state.voting.voting_registry == {0: enums.VotingChoice.FAVOUR}
@@ -460,7 +464,7 @@ def test_delegate_can_answer_roll_call(
 ) -> None:
     session_state.current_state = enums.States.ROLL_CALL
 
-    state = engine.dispatch(session_state, answer_roll_call_event, delegate_actor)
+    state = engine.dispatch(session_state, answer_roll_call_event, delegate_actor).state
 
     assert state.roll_call.registry == {0: enums.RollCallChoice.PRESENT}
 
@@ -478,7 +482,7 @@ def test_chair_can_close_roll_call(
         3: enums.RollCallChoice.ABSENT,
     }
 
-    state = engine.dispatch(session_state, close_roll_call_event, chair_actor)
+    state = engine.dispatch(session_state, close_roll_call_event, chair_actor).state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.roll_call.registry == {
@@ -514,12 +518,14 @@ def test_quorum_roll_call_restores_closed_gsl(
         },
     )
 
-    state = engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
+    state = engine.dispatch(
+        session_state, close_procedural_voting_event, chair_actor
+    ).state
 
     assert state.current_state == enums.States.ROLL_CALL
     assert state.roll_call.return_state == enums.States.CLOSED_GSL
 
-    state = engine.dispatch(state, close_roll_call_event, chair_actor)
+    state = engine.dispatch(state, close_roll_call_event, chair_actor).state
 
     assert state.current_state == enums.States.CLOSED_GSL
 
@@ -557,8 +563,10 @@ def test_quorum_roll_call_restores_moderated_caucus(
         },
     )
 
-    state = engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
-    state = engine.dispatch(state, close_roll_call_event, chair_actor)
+    state = engine.dispatch(
+        session_state, close_procedural_voting_event, chair_actor
+    ).state
+    state = engine.dispatch(state, close_roll_call_event, chair_actor).state
 
     assert state.current_state == enums.States.MODERATED_CAUCUS
     assert state.debate == debate
@@ -584,7 +592,7 @@ def test_chair_can_toggle_timer(
 ) -> None:
     session_state.timer_remaining_seconds = 30
 
-    state = engine.dispatch(session_state, toggle_timer_event, chair_actor)
+    state = engine.dispatch(session_state, toggle_timer_event, chair_actor).state
 
     assert state.timer_is_running is True
     assert state.timer_expiration is not None
@@ -608,7 +616,7 @@ def test_chair_can_increase_paused_timer(
 ) -> None:
     session_state.timer_remaining_seconds = 30
 
-    state = engine.dispatch(session_state, increase_timer_event, chair_actor)
+    state = engine.dispatch(session_state, increase_timer_event, chair_actor).state
 
     assert state.timer_remaining_seconds == 45
     assert state.timer_is_running is False
@@ -630,7 +638,9 @@ def test_chair_can_open_informal_voting(
     open_informal_voting_event: sch.OpenInformalVotingEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, open_informal_voting_event, chair_actor)
+    state = engine.dispatch(
+        open_gsl_state, open_informal_voting_event, chair_actor
+    ).state
 
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None
@@ -657,7 +667,7 @@ def test_chair_can_close_informal_voting(
 ) -> None:
     state = engine.dispatch(
         informal_voting_state, close_informal_voting_event, chair_actor
-    )
+    ).state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.voting is None
@@ -682,7 +692,7 @@ def test_chair_can_resolve_motion_into_procedural_voting(
 ) -> None:
     open_gsl_state.submitted_motions.append(close_speakers_list_motion)
 
-    state = engine.dispatch(open_gsl_state, resolve_motion_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, resolve_motion_event, chair_actor).state
 
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None
@@ -703,7 +713,7 @@ def test_chair_can_deny_motion_without_opening_vote(
         payload=sch.ChairResolveMotionPayload(motion_id=1, action=False),
     )
 
-    state = engine.dispatch(open_gsl_state, event, chair_actor)
+    state = engine.dispatch(open_gsl_state, event, chair_actor).state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.voting is None
@@ -741,14 +751,17 @@ def test_chair_can_close_passed_procedural_vote(
         2: enums.VotingChoice.AGAINST,
     }
 
-    state = engine.dispatch(
+    outcome = engine.dispatch(
         procedural_voting_state,
         close_procedural_voting_event,
         chair_actor,
     )
+    state = outcome.state
 
     assert state.current_state == enums.States.CLOSED_GSL
     assert state.voting is None
+    assert outcome.effect is not None
+    assert outcome.effect.data.get("passed") is True
 
 
 def test_chair_can_close_failed_procedural_vote(
@@ -769,14 +782,17 @@ def test_chair_can_close_failed_procedural_vote(
         2: enums.VotingChoice.AGAINST,
     }
 
-    state = engine.dispatch(
+    outcome = engine.dispatch(
         procedural_voting_state,
         close_procedural_voting_event,
         chair_actor,
     )
+    state = outcome.state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.voting is None
+    assert outcome.effect is not None
+    assert outcome.effect.data.get("passed") is False
 
 
 def test_delegate_cannot_close_procedural_vote(
@@ -812,7 +828,7 @@ def test_chair_can_finish_caucus_and_restore_original_gsl_state(
         expires_at=datetime.now(UTC),
     )
 
-    state = engine.dispatch(open_gsl_state, finish_caucus_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, finish_caucus_event, chair_actor).state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.debate is None
@@ -890,7 +906,7 @@ def test_chair_can_advance_gsl_speaker(
 ) -> None:
     open_gsl_state.gsl_queue = [1, 2]
 
-    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.gsl_queue == [2]
@@ -908,7 +924,7 @@ def test_chair_can_advance_tour_de_table_speaker(
     open_gsl_state.current_state = enums.States.TOUR_DE_TABLE
     open_gsl_state.caucus_list = [1, 2]
 
-    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.caucus_list == [2]
@@ -924,7 +940,7 @@ def test_next_speaker_clears_current_speaker_when_gsl_empty(
     open_gsl_state.current_speaker = 1
     open_gsl_state.timer_is_running = True
 
-    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor).state
 
     assert state.current_speaker is None
     assert state.timer_remaining_seconds == 0
@@ -959,7 +975,7 @@ def test_chair_can_add_gsl_speaker(
     add_gsl_speaker_event: sch.AddGslSpeakerEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, add_gsl_speaker_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, add_gsl_speaker_event, chair_actor).state
 
     assert state.gsl_queue == [1]
 
@@ -984,7 +1000,7 @@ def test_chair_can_grant_floor_and_remove_gsl_queue_entry(
 ) -> None:
     open_gsl_state.gsl_queue = [0, 1, 2]
 
-    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.gsl_queue == [0, 2]
@@ -1000,7 +1016,7 @@ def test_chair_can_grant_floor_and_remove_tour_de_table_entry(
     open_gsl_state.current_state = enums.States.TOUR_DE_TABLE
     open_gsl_state.caucus_list = [0, 1, 2]
 
-    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.caucus_list == [0, 2]
@@ -1021,7 +1037,7 @@ def test_chair_can_grant_floor_in_moderated_caucus(
     )
     open_gsl_state.caucus_list = [0, 1]
 
-    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.caucus_list == [0, 1]
@@ -1048,7 +1064,7 @@ def test_chair_can_mark_roll_call(
 ) -> None:
     session_state.current_state = enums.States.ROLL_CALL
 
-    state = engine.dispatch(session_state, mark_roll_call_event, chair_actor)
+    state = engine.dispatch(session_state, mark_roll_call_event, chair_actor).state
 
     assert state.roll_call.registry == {1: enums.RollCallChoice.PRESENT_AND_VOTING}
 
@@ -1079,7 +1095,7 @@ def test_chair_can_mark_roll_call_bulk(
 ) -> None:
     session_state.current_state = enums.States.ROLL_CALL
 
-    state = engine.dispatch(session_state, mark_roll_call_bulk_event, chair_actor)
+    state = engine.dispatch(session_state, mark_roll_call_bulk_event, chair_actor).state
 
     assert state.roll_call.registry == {
         1: enums.RollCallChoice.PRESENT,
@@ -1118,7 +1134,7 @@ def test_chair_open_session_starts_roll_call(
     session_state.current_state = enums.States.SETUP
     session_state.roll_call.registry = {1: enums.RollCallChoice.PRESENT}
 
-    state = engine.dispatch(session_state, open_session_event, chair_actor)
+    state = engine.dispatch(session_state, open_session_event, chair_actor).state
 
     assert state.current_state == enums.States.ROLL_CALL
     assert state.roll_call.registry == {}
@@ -1131,7 +1147,7 @@ def test_chair_can_set_agenda(
     set_agenda_event: sch.SetAgendaEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, set_agenda_event, chair_actor)
+    state = engine.dispatch(session_state, set_agenda_event, chair_actor).state
 
     assert state.agenda_topics == [("Topic A", True), ("Topic B", True)]
     assert state.active_topic_index == 0
@@ -1144,6 +1160,6 @@ def test_chair_can_manually_set_phase(
     manual_phase_set_event: sch.SetPhaseEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, manual_phase_set_event, chair_actor)
+    state = engine.dispatch(session_state, manual_phase_set_event, chair_actor).state
 
     assert state.current_state == enums.States.OPEN_GSL

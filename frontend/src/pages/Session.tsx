@@ -4,41 +4,12 @@ import { useCommitteeStore } from '../store/useCommitteeStore.ts'
 import { SessionProvider } from '@/context/SessionContext.tsx';
 import MotionsList from "@/components/session/motions-list"
 import SpeakerList from "@/components/session/speaker-list"
-import ModeratedDebate from "@/components/session/moderated-debate"
-import UnmoderatedDebate from "@/components/session/unmoderated-debate"
 import BottomBar from "@/components/session/bottom-bar"
 import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 import VotingPopup from '@/components/session/voting-popup.tsx';
 
 export default function SessionPage() {
-
-    const motions = [
-        {
-            id: "motion-1",
-            timestamp: "15:58",
-            title: "Mocao para debate moderado, de 3 discursos",
-            proposer: "Republica Francesa",
-            proposerCode: "fr",
-            priority: 2,
-        },
-        {
-            id: "motion-2",
-            timestamp: "16:02",
-            title: "Mocao para caucus nao moderado, de 10 minutos",
-            proposer: "Brasil",
-            proposerCode: "br",
-            priority: 3,
-        },
-        {
-            id: "motion-3",
-            timestamp: "16:05",
-            title: "Mocao para extensao de tempo de debate",
-            proposer: "Espanha",
-            proposerCode: "es",
-            priority: 3,
-        },
-    ]
 
     const {loading, token } = useAuth()
     // id that matches the name given in the Route path, at App.tsx 

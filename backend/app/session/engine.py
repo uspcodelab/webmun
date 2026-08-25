@@ -20,10 +20,12 @@ from .models import (
     AgendaItem,
     DebateContext,
     DelegationContext,
+    DispatchOutcome,
     MotionContext,
     QuestionContext,
     RollCallContext,
     SessionActor,
+    SessionEffect,
     SessionLiveState,
     VotingContext,
 )
@@ -245,7 +247,7 @@ def require_chair(actor: SessionActor) -> None:
 # -------------- HANDLERS --------------
 def handle_delegate_submit_motion(
     state: SessionLiveState, event: schemas.SubmitMotionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     """Handles/Maps all possible states through a motion"""
     require_delegate(actor)
 
@@ -279,12 +281,12 @@ def handle_delegate_submit_motion(
     )
 
     state.submitted_motions.append(context)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_submit_question(
     state: SessionLiveState, event: schemas.SubmitQuestionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_delegate(actor)
 
     payload = event.payload
@@ -297,28 +299,28 @@ def handle_submit_question(
         details=payload.details,
     )
     state.submitted_questions.append(context)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_join_queue(
     state: SessionLiveState, event: schemas.JoinQueueEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     delegate = require_delegate(actor)
 
     if state.current_state != States.OPEN_GSL:
         raise InvalidProceduralMove("Cannot enter queue right now")
 
-    # if already in queue, return error, else remove from queue and return state
+    # if already in queue, return an error; otherwise add the delegate to the queue
     if delegate.id in state.gsl_queue:
         raise InvalidProceduralMove("Already in Queue")
 
     state.gsl_queue.append(delegate.id)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_leave_queue(
     state: SessionLiveState, event: schemas.LeaveQueueEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     delegate = require_delegate(actor)
 
     if state.current_state != States.OPEN_GSL:
@@ -328,12 +330,12 @@ def handle_leave_queue(
         raise InvalidProceduralMove("Not in Queue")
 
     state.gsl_queue.remove(delegate.id)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_cast_vote(
     state: SessionLiveState, event: schemas.CastVoteEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     delegate = require_delegate(actor)
 
     voting_context = state.voting
@@ -348,25 +350,25 @@ def handle_cast_vote(
     # register vote on voting context
     voting_context.voting_registry[delegate.id] = event.payload.vote
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_answer_roll_call(
     state: SessionLiveState, event: schemas.AnswerRollCallEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     delegate = require_delegate(actor)
 
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Roll call not available now")
 
     state.roll_call.registry[delegate.id] = event.payload.choice
-    return state
+    return DispatchOutcome(state=state)
 
 
 # Chair events
 def handle_open_session(
     state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
 
     require_chair(actor)
     if state.current_state != States.SETUP:
@@ -381,12 +383,12 @@ def handle_open_session(
     state.timer_expiration = None
     state.timer_remaining_seconds = 0
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_close_session(
     state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
 
     require_chair(actor)
 
@@ -404,13 +406,13 @@ def handle_close_session(
     state.timer_expiration = None
     state.timer_remaining_seconds = 0
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 # TODO: create helpers for timers -> stop_timer, set_timer, pause_timer, etc
 def handle_toggle_timer(
     state: SessionLiveState, event: schemas.ToggleTimerEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     # uses utc for now
@@ -433,12 +435,12 @@ def handle_toggle_timer(
         state.timer_is_running = True
         state.timer_expiration = now + timedelta(seconds=state.timer_remaining_seconds)
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_increase_timer(
     state: SessionLiveState, event: schemas.IncreaseTimerEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     now = datetime.now(UTC)
@@ -451,12 +453,12 @@ def handle_increase_timer(
     else:
         state.timer_remaining_seconds += event.payload.seconds
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_open_informal_voting(
     state: SessionLiveState, event: schemas.OpenInformalVotingEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.current_state == States.VOTING_EXECUTION:
@@ -473,14 +475,14 @@ def handle_open_informal_voting(
 
     state.current_state = States.VOTING_EXECUTION
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_close_informal_voting(
     state: SessionLiveState,
     event: schemas.CloseInformalVotingEvent,
     actor: SessionActor,
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.voting is None:
@@ -497,7 +499,7 @@ def handle_close_informal_voting(
 
     state.voting = None
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def apply_passed_motion(
@@ -611,7 +613,7 @@ def handle_close_procedural_voting(
     state: SessionLiveState,
     event: schemas.CloseProceduralVotingEvent,
     actor: SessionActor,
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.voting is None:
@@ -630,6 +632,17 @@ def handle_close_procedural_voting(
 
     present = count_present_delegations(state)
     passed = tally_votes(state.voting, present)
+    effect = SessionEffect(
+        type=enums.SessionEffectType.VOTE_CLOSED,
+        data={
+            "present": present,
+            "favour": sum(
+                vote == enums.VotingChoice.FAVOUR
+                for vote in state.voting.voting_registry.values()
+            ),
+            "passed": passed,
+        },
+    )
 
     if passed:
         apply_passed_motion(state, motion, return_state=state.voting.return_state)
@@ -639,12 +652,12 @@ def handle_close_procedural_voting(
 
     # clear state voting
     state.voting = None
-    return state
+    return DispatchOutcome(state=state, effect=effect)
 
 
 def handle_finish_caucus(
     state: SessionLiveState, event: schemas.FinishCaucusEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.debate is None or state.current_state not in {
@@ -659,13 +672,13 @@ def handle_finish_caucus(
     state.debate = None
     reset_timer(state)
     state.current_state = return_state
-    return state
+    return DispatchOutcome(state=state)
 
 
 # handles setting state into VOTING_EXECUTION or rejecting the motion
 def handle_resolve_motion(
     state: SessionLiveState, event: schemas.ResolveMotionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     # TODO: check how to resolve INTRODUCE_RESOLUTION_PROPOSAL and INTRODUCE_AMENDMENT_PROPOSAL motions separately from procedural motions
     require_chair(actor)
 
@@ -697,12 +710,12 @@ def handle_resolve_motion(
 
     state.submitted_motions.remove(motion)
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_chair_submit_motion(
     state: SessionLiveState, event: schemas.LogMotionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     payload = event.payload
@@ -738,17 +751,17 @@ def handle_chair_submit_motion(
     )
 
     state.current_state = States.VOTING_EXECUTION
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_set_agenda(
     state: SessionLiveState, event: schemas.SetAgendaEvent, actor: SessionActor
-) -> SessionLiveState: ...
+) -> DispatchOutcome: ...
 
 
 def handle_mark_agenda_item(
     state: SessionLiveState, event: schemas.MarkAgendaItemEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     if event.payload.discussed is not None:
         state.agenda_topics[
             event.payload.index
@@ -758,57 +771,57 @@ def handle_mark_agenda_item(
             state.active_topic_index = event.payload.index
         else:
             state.active_topic_index = None
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_set_agenda_item(
     state: SessionLiveState, event: schemas.SetAgendaItemEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     item = AgendaItem(
         index=event.payload.index, topic=event.payload.topic, already_discussed=False
     )
     state.agenda_topics[event.payload.index] = item
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_delete_agenda_item(
     state: SessionLiveState, event: schemas.DeleteAgendaItemEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
 
     state.agenda_topics.pop(event.payload.index)
 
     if state.active_topic_index == event.payload.index:
         state.active_topic_index = None
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_manual_phase_set(
     state: SessionLiveState, event: schemas.SetPhaseEvent, actor: SessionActor
-) -> SessionLiveState: ...
+) -> DispatchOutcome: ...
 
 
 def handle_next_speaker(
     state: SessionLiveState, event: schemas.NextSpeakerEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
         if not state.gsl_queue:
             state.current_speaker = None
             reset_timer(state)
-            return state
+            return DispatchOutcome(state=state)
         state.current_speaker = state.gsl_queue.pop(0)
         reset_timer(state, state.gsl_default_time_seconds)
-        return state
+        return DispatchOutcome(state=state)
 
     if state.current_state == States.TOUR_DE_TABLE:
         if not state.caucus_list:
             state.current_speaker = None
             reset_timer(state)
-            return state
+            return DispatchOutcome(state=state)
         state.current_speaker = state.caucus_list.pop(0)
         reset_timer(state, state.gsl_default_time_seconds)
-        return state
+        return DispatchOutcome(state=state)
 
     if state.current_state == States.MODERATED_CAUCUS:
         raise InvalidProceduralMove("Chair must grant floor during moderated caucus")
@@ -818,7 +831,7 @@ def handle_next_speaker(
 
 def handle_add_gsl_speaker(
     state: SessionLiveState, event: schemas.AddGslSpeakerEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.current_state not in {States.OPEN_GSL, States.CLOSED_GSL}:
@@ -831,12 +844,12 @@ def handle_add_gsl_speaker(
         raise InvalidProceduralMove("Representation already in GSL queue")
 
     state.gsl_queue.append(representation_id)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_grant_floor(
     state: SessionLiveState, event: schemas.GrantFloorEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     representation_id = event.payload.representation_id
@@ -863,15 +876,15 @@ def handle_grant_floor(
     state.current_speaker = representation_id
     reset_timer(state, seconds)
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_mark_roll_call(
     state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
-    #removed these lines so chair can freely change the roll call
-    #if state.current_state != States.ROLL_CALL or state.roll_call is None:
+    # removed these lines so chair can freely change the roll call
+    # if state.current_state != States.ROLL_CALL or state.roll_call is None:
     #   raise InvalidProceduralMove("Cannot mark roll call right now")
 
     if event.payload.delegation_id not in state.delegations:
@@ -879,12 +892,12 @@ def handle_mark_roll_call(
 
     state.roll_call.registry[event.payload.delegation_id] = event.payload.choice
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_mark_roll_call_bulk(
     state: SessionLiveState, event: schemas.MarkRollCallBulkEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot mark roll call right now")
@@ -895,12 +908,12 @@ def handle_mark_roll_call_bulk(
 
     state.roll_call.registry.update(event.payload.Rollcalls)
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_close_roll_call(
     state: SessionLiveState, event: schemas.CloseRollCallEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
         raise InvalidProceduralMove("Cannot close roll call right now")
@@ -919,13 +932,13 @@ def handle_close_roll_call(
         for delegation_id, choice in state.roll_call.registry.items()
         if choice in {RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING}
     }
-    return state
+    return DispatchOutcome(state=state)
 
 
 # Signature for events/handlers, uses legacy(ish) 3.11 TypeAlias
 EventHandler: TypeAlias = Callable[
     [SessionLiveState, Any, SessionActor],  # overall signature
-    SessionLiveState,  # Return type
+    DispatchOutcome,  # Return type
 ]
 
 EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
@@ -963,7 +976,7 @@ class SessionEngine:
     # function to calculate new state over old one
     def dispatch(
         self, state: SessionLiveState, event: schemas.SessionEvent, actor: SessionActor
-    ) -> SessionLiveState:
+    ) -> DispatchOutcome:
 
         handler = EVENT_HANDLERS.get(event.type)
         if handler is None:

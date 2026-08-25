@@ -13,6 +13,7 @@ from app.session.enums import (
 from app.session.manager import ConnectionManager
 from app.session.models import (
     DelegationContext,
+    DispatchOutcome,
     RollCallContext,
     SessionActor,
     SessionLiveState,
@@ -77,7 +78,7 @@ class FakeEngine:
             "actor": actor,
         }
         state.current_state = States.OPEN_GSL
-        return state
+        return DispatchOutcome(state=state, effect=None)
 
 
 @pytest.fixture
