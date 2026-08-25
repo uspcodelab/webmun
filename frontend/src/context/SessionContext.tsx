@@ -61,8 +61,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 					}
 					break;
 				}
-				case 'event_result': {
-					console.log(`Event result received: [${data.request_id}] - ok=${data.ok}`);
+				case 'event_rejected': {
+					console.log(`Event was rejected. Code: [${data.code}]\n Message: ${data.message}`);
 					break;
 				}
 				default: {
