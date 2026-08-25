@@ -1,5 +1,4 @@
 # Test suite for service layer
-import json
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
@@ -8,6 +7,7 @@ import pytest
 from app.access.enums import SessionRoles
 from app.access.models import CommitteeAssignment
 from app.session import enums
+from app.session.engine import EventRejectedError
 from app.session.enums import SessionRole
 from app.session.manager import ConnectionManager
 from app.session.models import SessionActor, SessionLiveState
@@ -176,7 +176,7 @@ async def test_cant_prepare_connect_storedlive_missing(
 
 
 @pytest.mark.anyio
-async def test_handle_client_messages_dispatches_and_broadcasts(
+async def test_handle_client_messages_returns_dispatch_outcome_and_updates_state(
     connection_manager: ConnectionManager,
     fake_engine,
     session_state: SessionLiveState,
@@ -185,27 +185,12 @@ async def test_handle_client_messages_dispatches_and_broadcasts(
     session_state.current_state = enums.States.OPEN_GSL
     connection_manager.room_states[session_state.session_id] = session_state
 
-    broadcasts = []
-
-    async def fake_broadcast_message(session_id: int, message):
-        broadcasts.append(session_id)
-
-    # replaces real broadcast state with this one
-    connection_manager.broadcast_message = fake_broadcast_message
-
-    # data sent by the websocket
-    data = json.dumps(
-        {
-            "type": enums.DelegateEvents.JOIN_QUEUE,
-            "payload": {},
-        }
-    )
-
     client_message = EventMessage(
-        request_id=uuid4(), event=JoinQueueEvent.model_validate_json(data)
+        request_id=uuid4(),
+        event=JoinQueueEvent(type=enums.DelegateEvents.JOIN_QUEUE, payload={}),
     )
 
-    await handle_client_messages(
+    result = await handle_client_messages(
         manager=connection_manager,
         engine=fake_engine,
         logger=__import__("logging").getLogger("test"),
@@ -219,4 +204,36 @@ async def test_handle_client_messages_dispatches_and_broadcasts(
     assert fake_engine.dispatched["state"] is session_state
     assert fake_engine.dispatched["event"].type == enums.DelegateEvents.JOIN_QUEUE
     assert fake_engine.dispatched["actor"] is delegate_actor
-    assert broadcasts == [session_state.session_id]
+    assert result.state is session_state
+    assert connection_manager.room_states[session_state.session_id] is session_state
+
+
+@pytest.mark.anyio
+async def test_handle_client_messages_returns_event_rejection_without_updating_state(
+    connection_manager: ConnectionManager,
+    session_state: SessionLiveState,
+    delegate_actor: SessionActor,
+) -> None:
+    connection_manager.room_states[session_state.session_id] = session_state
+    rejection = EventRejectedError(
+        enums.EventErrorCode.INVALID_STATE,
+        "Cannot enter queue right now",
+    )
+    rejecting_engine = MagicMock()
+    rejecting_engine.dispatch.side_effect = rejection
+    event = EventMessage(
+        request_id=uuid4(),
+        event=JoinQueueEvent(type=enums.DelegateEvents.JOIN_QUEUE, payload={}),
+    )
+
+    result = await handle_client_messages(
+        manager=connection_manager,
+        engine=rejecting_engine,
+        logger=__import__("logging").getLogger("test"),
+        session_id=session_state.session_id,
+        actor=delegate_actor,
+        data=event,
+    )
+
+    assert result is rejection
+    assert connection_manager.room_states[session_state.session_id] is session_state

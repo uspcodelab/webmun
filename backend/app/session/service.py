@@ -13,7 +13,7 @@ import app.session.enums as enums
 import app.session.repository as repository
 import app.session.schemas as schemas
 from app.access.models import CommitteeAssignment
-from app.session.engine import SessionEngine
+from app.session.engine import EventRejectedError, SessionEngine
 
 from .manager import ConnectionManager
 from .models import (
@@ -214,10 +214,9 @@ async def handle_client_messages(
 
     logger.info(event)  # Debugging
 
-    dispatch_outcome = engine.dispatch(state, event, actor)
-    message = schemas.DispatchResultMessage(
-        state=dispatch_outcome.state, effect=dispatch_outcome.effect
-    )
-    manager.room_states[session_id] = dispatch_outcome.state
-
-    await manager.broadcast_message(session_id, message)
+    try:
+        result = engine.dispatch(state, event, actor)
+        manager.room_states[session_id] = result.state
+        return result
+    except EventRejectedError as exc:
+        return exc

@@ -5,6 +5,17 @@ class SessionEffectType(StrEnum):
     VOTE_CLOSED = "Vote Closed"
 
 
+class EventErrorCode(StrEnum):
+    """Code errors for invalid events"""
+
+    INVALID_MESSAGE = "invalid_message"  # malformed JSON
+    FORBIDDEN = "forbidden"  # Actor cannot perform this event
+    INVALID_STATE = "invalid_state"  # Valid event, wrong state
+    NOT_FOUND = "not_found"  # Resource not found
+    CONFLICT = "conflict"  # State changed before event could finish
+    INTERNAL_ERROR = "internal_error"  # Internal server error
+
+
 # --- States ---
 class States(StrEnum):
     # Normal flow of states

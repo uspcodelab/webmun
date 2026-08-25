@@ -1047,21 +1047,43 @@ export type DispatchResultMessage = {
 };
 
 /**
- * EventResultMessage
+ * EventErrorCode
+ *
+ * Code errors for invalid events
  */
-export type EventResultMessage = {
+export const EventErrorCode = {
+    INVALID_MESSAGE: 'invalid_message',
+    FORBIDDEN: 'forbidden',
+    INVALID_STATE: 'invalid_state',
+    NOT_FOUND: 'not_found',
+    CONFLICT: 'conflict',
+    INTERNAL_ERROR: 'internal_error'
+} as const;
+
+/**
+ * EventErrorCode
+ *
+ * Code errors for invalid events
+ */
+export type EventErrorCode = typeof EventErrorCode[keyof typeof EventErrorCode];
+
+/**
+ * EventRejectedMessage
+ */
+export type EventRejectedMessage = {
     /**
      * Type
      */
-    type?: 'event_result';
+    type?: 'event_rejected';
     /**
      * Request Id
      */
-    request_id: string;
+    request_id?: string | null;
+    code: EventErrorCode;
     /**
-     * Ok
+     * Message
      */
-    ok: boolean;
+    message: string;
 };
 
 /**
@@ -1293,8 +1315,8 @@ export type VotingType = typeof VotingType[keyof typeof VotingType];
 export type ServerSessionMessage = ({
     type: 'state_snapshot';
 } & StateSnapshotMessage) | ({
-    type: 'event_result';
-} & EventResultMessage) | ({
+    type: 'event_rejected';
+} & EventRejectedMessage) | ({
     type: 'dispatch_result';
 } & DispatchResultMessage);
 
