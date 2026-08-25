@@ -313,11 +313,11 @@ class DispatchResultMessage(BaseModel):
     effect: models.SessionEffect | None = None
 
 
-class EventResultMessage(BaseModel):
-    type: Literal["event_result"] = "event_result"
-    request_id: UUID
-    ok: bool
-    # TODO: error: EventError | None = None
+class EventRejectedMessage(BaseModel):
+    type: Literal["event_rejected"] = "event_rejected"
+    request_id: UUID | None = None
+    code: enums.EventErrorCode
+    message: str
 
 
 ClientSessionMessage = Annotated[
@@ -325,6 +325,6 @@ ClientSessionMessage = Annotated[
 ]
 
 ServerSessionMessage = Annotated[
-    StateSnapshotMessage | EventResultMessage | DispatchResultMessage,
+    StateSnapshotMessage | EventRejectedMessage | DispatchResultMessage,
     Field(discriminator="type"),
 ]

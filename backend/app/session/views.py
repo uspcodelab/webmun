@@ -30,11 +30,15 @@ from app.auth.service import (
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.dep import get_connection_manager, get_logger, get_session_engine
-from app.session.engine import SessionEngine
+from app.session.engine import EventRejectedError, SessionEngine
+from app.session.enums import EventErrorCode
 from app.session.manager import ConnectionManager
+from app.session.models import DispatchOutcome
 from app.session.schemas import (
     AuthenticateMessage,
+    DispatchResultMessage,
     EventMessage,
+    EventRejectedMessage,
     SessionCreationSchema,
 )
 
@@ -170,9 +174,18 @@ async def websocket_endpoint(
         try:
             while True:
                 data = await websocket.receive_json()
-                validated_event = EventMessage.model_validate(data)
+                try:
+                    validated_event = EventMessage.model_validate(data)
+                except ValidationError as exc:
+                    message = EventRejectedMessage(
+                        code=EventErrorCode.INVALID_MESSAGE, message=str(exc)
+                    )
+                    await manager.send_message(
+                        session_id=session_id, message=message, websocket=websocket
+                    )
+                    continue
 
-                await service.handle_client_messages(
+                result = await service.handle_client_messages(
                     manager=manager,
                     engine=engine,
                     logger=logger,
@@ -180,6 +193,25 @@ async def websocket_endpoint(
                     actor=actor,
                     data=validated_event,
                 )
+                match result:
+                    # Either broadcast result outcome, or send error message back to socket
+                    case DispatchOutcome():
+                        await manager.broadcast_message(
+                            session_id=session_id,
+                            message=DispatchResultMessage(
+                                state=result.state, effect=result.effect
+                            ),
+                        )
+                    case EventRejectedError():
+                        await manager.send_message(
+                            session_id=session_id,
+                            message=EventRejectedMessage(
+                                request_id=validated_event.request_id,
+                                code=result.code,
+                                message=str(result),
+                            ),
+                            websocket=websocket,
+                        )
 
         except WebSocketDisconnect:
             manager.disconnect(websocket, session_id)
@@ -194,9 +226,7 @@ async def websocket_endpoint(
         service.SessionFetchError,
         ValidationError,
     ) as exc:
-        if isinstance(exc, WebSocketDisconnect):
-            reason = "websocket_disconnect"
-        elif isinstance(exc, TokenExpiredError):
+        if isinstance(exc, TokenExpiredError):
             reason = "token_expired"
         elif isinstance(exc, TokenInvalidError):
             reason = "token_invalid"
