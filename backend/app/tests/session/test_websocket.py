@@ -1,8 +1,13 @@
 import pytest
 
+from app.session import enums
 from app.session.manager import ConnectionManager, SessionLiveState
 from app.session.models import DispatchOutcome, SessionActor
-from app.session.schemas import DispatchResultMessage, StateSnapshotMessage
+from app.session.schemas import (
+    DispatchResultMessage,
+    EventRejectedMessage,
+    StateSnapshotMessage,
+)
 
 
 class FakeWebSocket:
@@ -103,6 +108,29 @@ async def test_broadcast_state_sends_snapshot_to_all_connections(
     expected = msg.model_dump(mode="json")
     assert chair_socket.sent_json == [expected]
     assert delegate_socket.sent_json == [expected]
+
+
+@pytest.mark.anyio
+async def test_send_message_sends_rejection_only_to_originating_connection(
+    connection_manager: ConnectionManager,
+    chair_actor: SessionActor,
+    delegate_actor: SessionActor,
+) -> None:
+    chair_socket = FakeWebSocket()
+    delegate_socket = FakeWebSocket()
+    await connection_manager.connect(chair_socket, session_id=1, actor=chair_actor)  # type: ignore[arg-type]
+    await connection_manager.connect(
+        delegate_socket, session_id=1, actor=delegate_actor
+    )  # type: ignore[arg-type]
+    message = EventRejectedMessage(
+        code=enums.EventErrorCode.INVALID_STATE,
+        message="Cannot enter queue right now",
+    )
+
+    await connection_manager.send_message(1, message, delegate_socket)  # type: ignore[arg-type]
+
+    assert chair_socket.sent_json == []
+    assert delegate_socket.sent_json == [message.model_dump(mode="json")]
 
 
 @pytest.mark.xfail(
