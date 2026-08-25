@@ -111,7 +111,8 @@ def validate_motion_payload(
 
     # can also raise error if there are missing fields
     if (
-        payload.type in {States.MODERATED_CAUCUS}
+        payload.type == Motions.CHANGE_DEBATE_TYPE
+        and payload.debate_type == DebateTypes.MODERATED_DEBATE
         and payload.per_speaker_seconds is None
     ):
         raise EventRejectedError(
@@ -455,6 +456,7 @@ def handle_toggle_timer(
 
             state.timer_is_running = False
             state.timer_remaining_seconds = 0
+            state.timer_expiration = None
 
         elif state.timer_expiration is not None:
             state.timer_is_running = False
@@ -528,7 +530,7 @@ def handle_close_informal_voting(
         or state.voting.target_type != enums.VotingType.INFORMAL
     ):
         raise EventRejectedError(
-            code=enums.EventErrorCode.INVALID_MESSAGE,
+            code=enums.EventErrorCode.INVALID_STATE,
             message="Cannot close voting",
         )
 
