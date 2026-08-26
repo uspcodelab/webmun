@@ -595,6 +595,8 @@ def apply_passed_motion(
                 reset_timer(state, state.gsl_default_time_seconds)
 
     match motion.type:
+        case Motions.CHANGE_DEBATE_TYPE:
+            pass
         case Motions.POSTPONE_SESSION:
             pass
         case Motions.REOPEN_SESSION:

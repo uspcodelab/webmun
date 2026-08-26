@@ -11,6 +11,7 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { MajorityTypes, VotingChoice, RollCallChoice } from "@/schemas/types.gen"
 import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 
 
@@ -42,7 +43,6 @@ export default function VotingResultsPopup() {
     const markerEndX = 100 - markerOuterRadius * Math.cos(requiredMajorityAngle)
     const markerEndY = 100 - markerOuterRadius * Math.sin(requiredMajorityAngle)
 
-
     const canBeVetoed = useCommitteeStore((state) => state.voting?.allow_veto_power ?? false)
     const delegations = useCommitteeStore((state) => state.delegations)
     const whoCanVeto = Object.values(delegations)
@@ -57,10 +57,11 @@ export default function VotingResultsPopup() {
                 && whoCanVeto.some((vetoId) => String(vetoId) === id))
     })
 
+    const [open, setOpen] = useState(true)
 
 
     return (
-        <Dialog open={true}>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Resultados da Votação</DialogTitle>

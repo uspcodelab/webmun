@@ -4,41 +4,36 @@ import { Separator } from "@/components/ui/separator"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { Badge } from "@/components/ui/badge"
 
-import { useSession } from "@/context/SessionContext"
-import { SessionRoles, RollCallChoice, VotingChoice, MajorityTypes } from "@/schemas/types.gen"
+import { sendMessage, useSession } from "@/context/SessionContext"
+import { SessionRoles, RollCallChoice, VotingChoice, MajorityTypes, type CloseInformalVotingEvent, VotingType, type CloseProceduralVotingEvent, ChairEvents } from "@/schemas/types.gen"
 
 //TODO implement rules of procedure to determine if abstentions count towards the majority or not. For now, we will assume they do not count towards the majority.
 
 export default function VotingMenu() {
 
-    const voteTitle = useCommitteeStore((state) => state.voting?.motion_in_vote?.type ?? "ERROR:VotingTitle not found")
-
+    const voteTitle = useCommitteeStore((state) => state.voting?.title ?? state.voting?.motion_in_vote?.type ?? "ERROR:VotingTitle not found")
+    const voting = useCommitteeStore((state) => state.voting ?? null)
 
     const expectedVotes = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
-    const yayVotes = useCommitteeStore((state) => Object.entries(state.voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.FAVOUR).length)
-    const nayVotes = useCommitteeStore((state) => Object.entries(state.voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.AGAINST).length)
-    const abstentions = useCommitteeStore((state) => Object.entries(state.voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.ABSTAIN).length)
-    const majorityType = useCommitteeStore((state) => state.voting?.majority ?? MajorityTypes.MAIORIA_SIMPLES)
+    const yayVotes = Object.entries(voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.FAVOUR).length
+    const nayVotes = Object.entries(voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.AGAINST).length
+    const abstentions = Object.entries(voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.ABSTAIN).length
+    const majorityType = voting?.majority ?? MajorityTypes.MAIORIA_SIMPLES
     const requiredMajority = majorityType === MajorityTypes.MAIORIA_QUALIFICADA
         ? Math.ceil(expectedVotes * 2 / 3)
         : majorityType === MajorityTypes.CONSENSO
             ? expectedVotes
             : Math.floor(expectedVotes / 2) + 1
 
-    const canBeVetoed = useCommitteeStore((state) => state.voting?.allow_veto_power ?? false)
+    const canBeVetoed = voting?.allow_veto_power ?? false
     const delegations = useCommitteeStore((state) => state.delegations)
     const whoCanVeto = Object.values(delegations)
         .filter((delegation) => ["fr", "us", "cn", "ru", "uk"].includes(delegation.code?.toLowerCase() ?? ""))
         .map((delegation) => delegation.id)
-    const isVetoed = useCommitteeStore((state) => {
-        const votingRegistry = state.voting?.voting_registry
-        if (!votingRegistry) return false
-
-        return Object.entries(votingRegistry)
+    const isVetoed = voting?.voting_registry ? Object.entries(voting?.voting_registry)
             .some(([id, choice]) => choice === VotingChoice.AGAINST
-                && whoCanVeto.some((vetoId) => String(vetoId) === id))
-    })
-    
+                && whoCanVeto.some((vetoId) => String(vetoId) === id)) : false
+
     const { role } = useSession()
     const isChair = role === SessionRoles.CHAIR
 
@@ -112,7 +107,13 @@ export default function VotingMenu() {
             ) : null}
             {isChair && (
                 <div className="ml-4 mr-4 mb-2   flex w-auto min-w-0 flex-row gap-2 overflow-hidden">
-                    <Button variant="destructive" className="flex-1 min-w-0">
+                    <Button variant="destructive" className="flex-1 min-w-0"
+                    onClick={() => {
+                        if(voting?.target_type === VotingType.INFORMAL)
+                            sendMessage({type: ChairEvents.CLOSE_INFORMAL_VOTING_EVENT, payload:{}} satisfies CloseInformalVotingEvent)
+                        else if(voting?.target_type === VotingType.PROCEDURAL)
+                            sendMessage({type: ChairEvents.CLOSE_PROCEDURAL_VOTING_EVENT, payload: {}} satisfies CloseProceduralVotingEvent)
+                    }}>
                         Encerrar votação
                     </Button>
 
