@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +7,7 @@ import app.conference.schemas as schemas
 import app.conference.service as service
 from app.auth.dep import get_current_user
 from app.auth.service import AuthUser
+from app.conference.models import ConferenceAssignment
 from app.core.database import get_db_session
 
 router = APIRouter()
@@ -17,7 +18,7 @@ async def create_conference(
     payload: schemas.ConferenceCreate,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-):
+) -> dict[str, Any]:
     """Endpoint to create a new conference"""
     conference_id = await service.create_conference(
         session=db_session, user_id=current_user.user_id, payload=payload
@@ -25,23 +26,23 @@ async def create_conference(
     return {"id": conference_id, "status": "Created"}
 
 
-@router.get("/", response_model=list[int])
+@router.get("/")
 async def get_user_conferences(
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-):
+) -> list[int]:
     """Endpoint to get list of conference ids for a user"""
     return await service.get_user_conferences(
         session=db_session, user_id=current_user.user_id
     )
 
 
-@router.get("/{id}", response_model=schemas.ConferenceDetail)
+@router.get("/{id}")
 async def get_conference_info(
     id: int,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-):
+) -> schemas.ConferenceDetail:
     """Endpoint to get detailed conference information and committees"""
     return await service.get_conference_info(
         session=db_session, user_id=current_user.user_id, conference_id=id
@@ -50,7 +51,6 @@ async def get_conference_info(
 
 @router.post(
     "/{id}/committees",
-    response_model=schemas.CommitteeResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_committee(
@@ -58,7 +58,7 @@ async def create_committee(
     committee: schemas.CommitteeCreate,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-):
+) -> schemas.CommitteeResponse:
     """Endpoint to create a new committee in a conference"""
     return await service.create_committee(
         session=db_session,
@@ -70,7 +70,6 @@ async def create_committee(
 
 @router.post(
     "/{conference_id}/members",
-    response_model=schemas.AssignmentResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def enroll_member(
@@ -78,7 +77,7 @@ async def enroll_member(
     member: schemas.EnrollMember,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-):
+) -> ConferenceAssignment:
     """Endpoint to enroll/assign a member to a conference"""
     return await service.enroll_member(
         session=db_session,
@@ -88,15 +87,12 @@ async def enroll_member(
     )
 
 
-@router.get(
-    "/{conference_id}/members",
-    response_model=list[schemas.AssignmentResponse],
-)
+@router.get("/{conference_id}/members")
 async def list_conference_members(
     conference_id: int,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-):
+) -> list[ConferenceAssignment]:
     """Endpoint to list all members assigned to a conference"""
     return await service.list_conference_members(
         session=db_session,
@@ -105,21 +101,16 @@ async def list_conference_members(
     )
 
 
-@router.get(
-    "/sessions/{session_id}/me",
-    response_model=schemas.SessionRepresentation,
-)
+@router.get("/sessions/{session_id}/me")
 async def get_my_session_access(
     session_id: int,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-):
-    """Return the authenticated user's actor context for a session."""
-    assignment = await service.resolve_session_assignment(
+) -> ConferenceAssignment:
+    """Return the authenticated user's assignment context for a session."""
+    return await service.resolve_assignment(
         session=db_session, user_id=current_user.user_id, session_id=session_id
     )
-    return schemas.SessionRepresentation(
-        role=assignment.role,
-        representation_id=assignment.representation_id,
-    )
+
+
 

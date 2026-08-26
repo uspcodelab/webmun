@@ -4,7 +4,7 @@ import pytest
 
 from app.conference.models import ConferenceAssignment
 from app.conference.service import (
-    resolve_conference_assignment,
+    resolve_assignment,
     verify_user_role,
 )
 from app.core.exceptions import AccessDeniedError
@@ -16,11 +16,11 @@ async def test_denies_user_without_assignment(monkeypatch):
         return None
 
     monkeypatch.setattr(
-        "app.conference.service.repository.get_conference_assignment", no_assignment
+        "app.conference.service.repository.get_assignment", no_assignment
     )
 
     with pytest.raises(AccessDeniedError, match="no assignment"):
-        await resolve_conference_assignment(object(), uuid4(), 1)
+        await resolve_assignment(object(), uuid4(), committee_id=1)
 
 
 @pytest.mark.anyio
@@ -34,11 +34,11 @@ async def test_denies_delegate_without_delegation(monkeypatch):
         )
 
     monkeypatch.setattr(
-        "app.conference.service.repository.get_conference_assignment", invalid_assignment
+        "app.conference.service.repository.get_assignment", invalid_assignment
     )
 
     with pytest.raises(AccessDeniedError, match="no delegation id"):
-        await resolve_conference_assignment(object(), uuid4(), 1)
+        await resolve_assignment(object(), uuid4(), committee_id=1)
 
 
 @pytest.mark.anyio
@@ -54,10 +54,10 @@ async def test_returns_valid_assignment(monkeypatch):
         return assignment
 
     monkeypatch.setattr(
-        "app.conference.service.repository.get_conference_assignment", valid_assignment
+        "app.conference.service.repository.get_assignment", valid_assignment
     )
 
-    result = await resolve_conference_assignment(object(), assignment.user_id, 1)
+    result = await resolve_assignment(object(), assignment.user_id, committee_id=1)
 
     assert result is assignment
 
@@ -75,7 +75,7 @@ async def test_role_check_denies_a_delegate_when_a_chair_is_required(monkeypatch
         return assignment
 
     monkeypatch.setattr(
-        "app.conference.service.repository.get_conference_assignment", delegate_assignment
+        "app.conference.service.repository.get_assignment", delegate_assignment
     )
 
     with pytest.raises(AccessDeniedError, match="requires the chair role"):
@@ -95,10 +95,11 @@ async def test_role_check_returns_matching_assignment(monkeypatch):
         return assignment
 
     monkeypatch.setattr(
-        "app.conference.service.repository.get_conference_assignment", chair_assignment
+        "app.conference.service.repository.get_assignment", chair_assignment
     )
 
     assert (
         await verify_user_role(object(), assignment.user_id, 1, "chair") is assignment
     )
+
 

@@ -35,11 +35,6 @@ async def get_conference_info(
         session=session, user_id=user_id, conference_id=conference_id
     )
     if user_role is None:
-        exists = await repository.check_conference_exists(
-            session=session, conference_id=conference_id
-        )
-        if exists:
-            raise AccessDeniedError("You do not have access to this conference")
         raise NotFoundError(f"Conference with id {conference_id} not found")
 
     # Query 2: Fetch Conference & Committees
@@ -68,14 +63,6 @@ async def create_committee(
     user_role = await repository.get_user_conference_role(
         session=session, user_id=user_id, conference_id=conference_id
     )
-    if user_role is None:
-        exists = await repository.check_conference_exists(
-            session=session, conference_id=conference_id
-        )
-        if not exists:
-            raise NotFoundError(f"Conference with id {conference_id} not found")
-        raise AccessDeniedError("You do not have access to this conference")
-
     if user_role not in ("owner", "admin"):
         raise AccessDeniedError(
             "Only conference owners and admins can create committees"
@@ -96,14 +83,6 @@ async def enroll_member(
     user_role = await repository.get_user_conference_role(
         session=session, user_id=user_id, conference_id=conference_id
     )
-    if user_role is None:
-        exists = await repository.check_conference_exists(
-            session=session, conference_id=conference_id
-        )
-        if not exists:
-            raise NotFoundError(f"Conference with id {conference_id} not found")
-        raise AccessDeniedError("You do not have access to this conference")
-
     if user_role not in ("owner", "admin"):
         raise AccessDeniedError(
             "Only conference owners and admins can enroll members"
@@ -124,47 +103,28 @@ async def list_conference_members(
         session=session, user_id=user_id, conference_id=conference_id
     )
     if user_role is None:
-        exists = await repository.check_conference_exists(
-            session=session, conference_id=conference_id
-        )
-        if not exists:
-            raise NotFoundError(f"Conference with id {conference_id} not found")
-        raise AccessDeniedError("You do not have access to this conference")
+        raise NotFoundError(f"Conference with id {conference_id} not found")
 
     return await repository.list_conference_members(
         session=session, conference_id=conference_id
     )
 
 
-async def resolve_conference_assignment(
+async def resolve_assignment(
     session: AsyncSession,
     user_id: UUID,
-    committee_id: int,
+    committee_id: int | None = None,
+    session_id: int | None = None,
 ) -> ConferenceAssignment:
-    """Resolve a user's assignment in a committee."""
-    assignment = await repository.get_conference_assignment(
-        session=session, user_id=user_id, committee_id=committee_id
+    """Resolve a user's assignment in a committee or session context."""
+    assignment = await repository.get_assignment(
+        session=session,
+        user_id=user_id,
+        committee_id=committee_id,
+        session_id=session_id,
     )
     if assignment is None:
-        raise AccessDeniedError("User has no assignment for this committee")
-
-    if assignment.role == "delegate" and assignment.representation_id is None:
-        raise AccessDeniedError("Delegate role has no delegation id")
-
-    return assignment
-
-
-async def resolve_session_assignment(
-    session: AsyncSession,
-    user_id: UUID,
-    session_id: int,
-) -> ConferenceAssignment:
-    """Resolve a user's assignment for a session."""
-    assignment = await repository.get_session_assignment(
-        session=session, user_id=user_id, session_id=session_id
-    )
-    if assignment is None:
-        raise AccessDeniedError("User has no assignment for this session")
+        raise AccessDeniedError("User has no assignment for this context")
 
     if assignment.role == "delegate" and assignment.representation_id is None:
         raise AccessDeniedError("Delegate role has no delegation id")
@@ -179,7 +139,7 @@ async def verify_user_role(
     required_role: Literal["chair", "delegate"],
 ) -> ConferenceAssignment:
     """Verify and require that a user has a specific role for a committee."""
-    assignment = await resolve_conference_assignment(
+    assignment = await resolve_assignment(
         session=session, user_id=user_id, committee_id=committee_id
     )
 
@@ -189,4 +149,6 @@ async def verify_user_role(
         )
 
     return assignment
+
+
 

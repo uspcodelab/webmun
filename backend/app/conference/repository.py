@@ -94,16 +94,6 @@ async def list_committees_for_conference(
     return [dict(r) for r in result.mappings().all()]
 
 
-async def check_conference_exists(
-    session: AsyncSession,
-    conference_id: int,
-) -> bool:
-    """Check if a conference exists by id."""
-    query = text("SELECT 1 FROM public.conferences WHERE id = :conference_id")
-    result = await session.execute(query, {"conference_id": conference_id})
-    return result.scalar() is not None
-
-
 async def get_user_conference_role(
     session: AsyncSession,
     user_id: UUID,
@@ -125,37 +115,6 @@ async def get_user_conference_role(
     """)
     result = await session.execute(
         query, {"conference_id": conference_id, "user_id": user_id}
-    )
-    row = result.mappings().one_or_none()
-    return row["role"] if row else None
-
-
-async def get_user_committee_role(
-    session: AsyncSession,
-    user_id: UUID,
-    committee_id: int,
-) -> str | None:
-    """Return the user's role for a specific committee (allowing conference owner/admin override)."""
-    query = text("""
-        SELECT 
-            CASE 
-                WHEN conf.owner_id = :user_id OR ca.role = 'admin' THEN 'chair'
-                WHEN ca.role = 'chair' THEN 'chair'
-                ELSE 'delegate'
-            END AS role
-        FROM public.committees c
-        JOIN public.conferences conf ON conf.id = c.conference_id
-        LEFT JOIN public.conference_assignments ca 
-            ON ca.conference_id = conf.id 
-           AND ca.user_id = :user_id 
-           AND (ca.committee_id = c.id OR ca.committee_id IS NULL)
-        WHERE c.id = :committee_id
-          AND (conf.owner_id = :user_id OR ca.user_id = :user_id)
-        ORDER BY (ca.committee_id = c.id) DESC, (ca.role = 'admin') DESC
-        LIMIT 1
-    """)
-    result = await session.execute(
-        query, {"committee_id": committee_id, "user_id": user_id}
     )
     row = result.mappings().one_or_none()
     return row["role"] if row else None
@@ -243,10 +202,13 @@ async def list_conference_members(
     return [dict(r) for r in result.mappings().all()]
 
 
-async def get_conference_assignment(
-    session: AsyncSession, user_id: UUID, committee_id: int
+async def get_assignment(
+    session: AsyncSession,
+    user_id: UUID,
+    committee_id: int | None = None,
+    session_id: int | None = None,
 ) -> ConferenceAssignment | None:
-    """Fetch assignment for a user in a committee (allows conference owner/admin chair override)."""
+    """Fetch assignment for a user in a committee or session context."""
     query = text("""
         SELECT
             :user_id AS user_id,
@@ -260,18 +222,24 @@ async def get_conference_assignment(
             ca.representation_id
         FROM public.committees c
         JOIN public.conferences conf ON conf.id = c.conference_id
+        LEFT JOIN public.sessions s ON s.committee_id = c.id
         LEFT JOIN public.conference_assignments ca 
             ON ca.conference_id = conf.id 
            AND ca.user_id = :user_id 
            AND (ca.committee_id = c.id OR ca.committee_id IS NULL)
-        WHERE c.id = :committee_id
-          AND (conf.owner_id = :user_id OR ca.user_id = :user_id)
+        WHERE (:committee_id IS NOT NULL AND c.id = :committee_id)
+           OR (:session_id IS NOT NULL AND s.id = :session_id)
         ORDER BY (ca.committee_id = c.id) DESC, (ca.role = 'admin') DESC
         LIMIT 1
     """)
 
     result = await session.execute(
-        query, {"committee_id": committee_id, "user_id": user_id}
+        query,
+        {
+            "committee_id": committee_id,
+            "session_id": session_id,
+            "user_id": user_id,
+        },
     )
     row = result.mappings().one_or_none()
     if row is None:
@@ -286,46 +254,4 @@ async def get_conference_assignment(
     )
 
 
-async def get_session_assignment(
-    session: AsyncSession, user_id: UUID, session_id: int
-) -> ConferenceAssignment | None:
-    """Fetch assignment for a user in the committee that owns a session."""
-    query = text("""
-        SELECT
-            :user_id AS user_id,
-            s.committee_id,
-            conf.id AS conference_id,
-            CASE 
-                WHEN conf.owner_id = :user_id OR ca.role = 'admin' THEN 'chair'
-                WHEN ca.role = 'chair' THEN 'chair'
-                ELSE 'delegate'
-            END AS role,
-            ca.representation_id
-        FROM public.sessions s
-        JOIN public.committees c ON c.id = s.committee_id
-        JOIN public.conferences conf ON conf.id = c.conference_id
-        LEFT JOIN public.conference_assignments ca 
-            ON ca.conference_id = conf.id 
-           AND ca.user_id = :user_id 
-           AND (ca.committee_id = c.id OR ca.committee_id IS NULL)
-        WHERE s.id = :session_id
-          AND (conf.owner_id = :user_id OR ca.user_id = :user_id)
-        ORDER BY (ca.committee_id = c.id) DESC, (ca.role = 'admin') DESC
-        LIMIT 1
-    """)
-
-    result = await session.execute(
-        query, {"session_id": session_id, "user_id": user_id}
-    )
-    row = result.mappings().one_or_none()
-    if row is None:
-        return None
-
-    return ConferenceAssignment(
-        user_id=row["user_id"],
-        conference_id=row["conference_id"],
-        committee_id=row["committee_id"],
-        role=row["role"],
-        representation_id=row["representation_id"],
-    )
 
