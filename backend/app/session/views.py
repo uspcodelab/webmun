@@ -29,6 +29,7 @@ from app.auth.service import (
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.dep import get_connection_manager, get_logger, get_session_engine
+from app.core.exceptions import AccessDeniedError
 from app.session.engine import EventRejectedError, SessionEngine
 from app.session.enums import EventErrorCode
 from app.session.manager import ConnectionManager
@@ -97,7 +98,7 @@ async def activate_session_endpoint(
                 detail="Session not found",
             )
 
-        await access.verify_user_role(
+        await conference_service.verify_user_role(
             session=db_session,
             user_id=current_user.user_id,
             committee_id=stored.committee_id,
@@ -107,7 +108,7 @@ async def activate_session_endpoint(
         await service.activate_session(
             session=db_session, manager=manager, committee_session_id=session_id
         )
-    except AccessDenied as exc:
+    except AccessDeniedError as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(exc),
@@ -169,9 +170,10 @@ async def websocket_endpoint(
                 data = await websocket.receive_json()
                 try:
                     validated_event = EventMessage.model_validate(data)
-                except ValidationError as exc:
+                except ValidationError:
                     message = EventRejectedMessage(
-                        code=EventErrorCode.INVALID_MESSAGE, message=str(exc)
+                        code=EventErrorCode.INVALID_MESSAGE,
+                        message="Invalid event message",
                     )
                     await manager.send_message(
                         session_id=session_id, message=message, websocket=websocket
@@ -214,7 +216,7 @@ async def websocket_endpoint(
     except (
         TokenExpiredError,
         TokenInvalidError,
-        AccessDenied,
+        AccessDeniedError,
         service.ActorResolutionError,
         service.SessionFetchError,
         ValidationError,
@@ -223,7 +225,7 @@ async def websocket_endpoint(
             reason = "token_expired"
         elif isinstance(exc, TokenInvalidError):
             reason = "token_invalid"
-        elif isinstance(exc, AccessDenied):
+        elif isinstance(exc, AccessDeniedError):
             reason = "access_denied"
         elif isinstance(exc, service.SessionFetchError):
             reason = "session_unavailable"

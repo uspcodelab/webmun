@@ -67,8 +67,8 @@ def authenticated_websocket_dependencies(monkeypatch, chair_actor: SessionActor)
         ),
     )
     monkeypatch.setattr(
-        views.access,
-        "resolve_session_assignment",
+        views.conference_service,
+        "resolve_assignment",
         AsyncMock(return_value=MagicMock()),
     )
     prepare_connect = AsyncMock(return_value=chair_actor)
