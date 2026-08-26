@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status,
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
@@ -11,6 +11,7 @@ from app.core.openapi import add_websocket_message_schemas
 from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
 from app.session.views import router as session_router
+import app.core.exceptions as exceptions
 
 
 # Startup and shutdown logic for shared variables, such as
@@ -37,7 +38,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS config for Vite
+# --- Exception Handlers
+
+@app.exception_handler(exceptions.NotFoundError)
+async def not_found_handler(request: Request, exc: exceptions.NotFoundError):
+    return {
+        "status_code": status.HTTP_404_NOT_FOUND,
+        "message": exc.message
+    }
+
+# --- Middlewares
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -45,7 +56,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# include commitees here?
+# --- Routes
+
 app.include_router(session_router, prefix="/committees", tags=["committees"])
 app.include_router(access_router, prefix="/access", tags=["access"])
 
