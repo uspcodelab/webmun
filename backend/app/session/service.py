@@ -96,9 +96,7 @@ async def create_session_service(
     return session_id
 
 
-async def get_session_for_activation(
-    session: AsyncSession, committee_session_id: int
-):
+async def get_session_for_activation(session: AsyncSession, committee_session_id: int):
     stored = await repository.get_session_info(
         session=session, committee_session_id=committee_session_id
     )
