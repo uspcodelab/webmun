@@ -103,3 +103,23 @@ async def list_conference_members(
         user_id=current_user.user_id,
         conference_id=conference_id,
     )
+
+
+@router.get(
+    "/sessions/{session_id}/me",
+    response_model=schemas.SessionRepresentation,
+)
+async def get_my_session_access(
+    session_id: int,
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+    current_user: Annotated[AuthUser, Depends(get_current_user)],
+):
+    """Return the authenticated user's actor context for a session."""
+    assignment = await service.resolve_session_assignment(
+        session=db_session, user_id=current_user.user_id, session_id=session_id
+    )
+    return schemas.SessionRepresentation(
+        role=assignment.role,
+        representation_id=assignment.representation_id,
+    )
+

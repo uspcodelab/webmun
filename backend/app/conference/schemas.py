@@ -105,3 +105,13 @@ class AssignmentResponse(BaseModel):
     committee_id: int | None = None
     representation_id: int | None = None
     created_at: datetime | None = None
+
+
+class SessionRepresentation(BaseModel):
+    """Schema for returning user's role and representation for a session"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    role: str
+    representation_id: int | None = None
+

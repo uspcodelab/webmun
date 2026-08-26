@@ -16,10 +16,9 @@ from fastapi.exceptions import HTTPException
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import app.access.service as access
+import app.conference.service as conference_service
 import app.session.repository as repository
 import app.session.service as service
-from app.access.service import AccessDenied
 from app.auth.dep import get_current_user
 from app.auth.service import (
     AuthUser,
@@ -55,7 +54,7 @@ async def create_session_endpoint(
 ):
     """POST endpoint to create a new session"""
     try:
-        await access.verify_user_role(
+        await conference_service.verify_user_role(
             session=session,
             user_id=current_user.user_id,
             committee_id=session_schema.committee_id,
@@ -68,11 +67,6 @@ async def create_session_endpoint(
         )
         return {"id": res, "status": "Created"}
 
-    except AccessDenied as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc),
-        ) from exc
     except service.SessionCreationError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -155,7 +149,7 @@ async def websocket_endpoint(
         # The session determines its committee; never accept it from the client.
         session_factory = websocket.app.state.db_session_factory
         async with session_factory() as db:
-            assignment = await access.resolve_session_assignment(
+            assignment = await conference_service.resolve_session_assignment(
                 session=db, user_id=auth_user.user_id, session_id=session_id
             )
 

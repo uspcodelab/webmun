@@ -7,7 +7,6 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 import app.core.exceptions as exceptions
-from app.access.views import router as access_router
 from app.conference.views import router as conference_router
 from app.core.config import get_settings
 from app.core.database import create_db
@@ -81,7 +80,6 @@ app.add_middleware(
 
 app.include_router(conference_router, prefix="/conferences", tags=["conferences"])
 app.include_router(session_router, prefix="/committees", tags=["committees"])
-app.include_router(access_router, prefix="/access", tags=["access"])
 
 
 def custom_openapi():
