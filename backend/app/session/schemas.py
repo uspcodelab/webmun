@@ -1,12 +1,13 @@
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 import app.session.enums as enums
+import app.session.models as models
+
 
 # --- General Schemas ---
-
-
 class SessionCreationSchema(BaseModel):
     """Schema to create a session. Follows a DB schema + extra configs format"""
 
@@ -284,5 +285,46 @@ SessionEvent = Annotated[
     | MarkRollCallEvent
     | CloseRollCallEvent
     | MarkRollCallBulkEvent,
+    Field(discriminator="type"),
+]
+
+
+# --- Messages ---
+class AuthenticateMessage(BaseModel):
+    type: Literal["authenticate"] = "authenticate"
+    access_token: str
+
+
+class EventMessage(BaseModel):
+    type: Literal["event"] = "event"
+    request_id: UUID
+    event: SessionEvent
+
+
+# Server sent messages
+class StateSnapshotMessage(BaseModel):
+    type: Literal["state_snapshot"] = "state_snapshot"
+    state: models.SessionLiveState
+
+
+class DispatchResultMessage(BaseModel):
+    type: Literal["dispatch_result"] = "dispatch_result"
+    state: models.SessionLiveState
+    effect: models.SessionEffect | None = None
+
+
+class EventRejectedMessage(BaseModel):
+    type: Literal["event_rejected"] = "event_rejected"
+    request_id: UUID | None = None
+    code: enums.EventErrorCode
+    message: str
+
+
+ClientSessionMessage = Annotated[
+    AuthenticateMessage | EventMessage, Field(discriminator="type")
+]
+
+ServerSessionMessage = Annotated[
+    StateSnapshotMessage | EventRejectedMessage | DispatchResultMessage,
     Field(discriminator="type"),
 ]

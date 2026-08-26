@@ -13,6 +13,7 @@ from fastapi import (
     status,
 )
 from fastapi.exceptions import HTTPException
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.access.service as access
@@ -29,24 +30,19 @@ from app.auth.service import (
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.dep import get_connection_manager, get_logger, get_session_engine
-from app.session.engine import SessionEngine
-from app.session.enums import ChairEvents, DelegateEvents
+from app.session.engine import EventRejectedError, SessionEngine
+from app.session.enums import EventErrorCode
 from app.session.manager import ConnectionManager
-from app.session.models import SessionLiveState
-from app.session.schemas import SessionCreationSchema, SessionEvent
+from app.session.models import DispatchOutcome
+from app.session.schemas import (
+    AuthenticateMessage,
+    DispatchResultMessage,
+    EventMessage,
+    EventRejectedMessage,
+    SessionCreationSchema,
+)
 
 router = APIRouter()
-
-
-@router.get("/dummy", status_code=status.HTTP_404_NOT_FOUND)
-async def dummy(
-    types: SessionEvent,
-    schemas: SessionLiveState,
-    enum1: DelegateEvents,
-    enum2: ChairEvents,
-):
-    """Dummy workaround to make FastAPI add all schemas to the OpenAPI file"""
-    return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
 @router.get("/health", status_code=status.HTTP_200_OK)
@@ -153,9 +149,11 @@ async def websocket_endpoint(
     await websocket.accept()
     try:
         auth_message = await websocket.receive_json()
+        validated_auth_data = AuthenticateMessage.model_validate(auth_message)
+
         # we use pure verify_jwt_token due to websocket not handling bearer-header support
         auth_user = verify_jwt_token(
-            settings=settings, token=auth_message["access_token"]
+            settings=settings, token=validated_auth_data.access_token
         )
 
         # The session determines its committee; never accept it from the client.
@@ -175,15 +173,45 @@ async def websocket_endpoint(
         await manager.connect(websocket, session_id, actor)
         try:
             while True:
-                data = await websocket.receive_text()
-                await service.handle_client_messages(
+                data = await websocket.receive_json()
+                try:
+                    validated_event = EventMessage.model_validate(data)
+                except ValidationError as exc:
+                    message = EventRejectedMessage(
+                        code=EventErrorCode.INVALID_MESSAGE, message=str(exc)
+                    )
+                    await manager.send_message(
+                        session_id=session_id, message=message, websocket=websocket
+                    )
+                    continue
+
+                result = await service.handle_client_messages(
                     manager=manager,
                     engine=engine,
                     logger=logger,
                     session_id=session_id,
                     actor=actor,
-                    data=data,
+                    data=validated_event,
                 )
+                match result:
+                    # Either broadcast result outcome, or send error message back to socket
+                    case DispatchOutcome():
+                        await manager.broadcast_message(
+                            session_id=session_id,
+                            message=DispatchResultMessage(
+                                state=result.state, effect=result.effect
+                            ),
+                        )
+                    case EventRejectedError():
+                        await manager.send_message(
+                            session_id=session_id,
+                            message=EventRejectedMessage(
+                                request_id=validated_event.request_id,
+                                code=result.code,
+                                message=str(result),
+                            ),
+                            websocket=websocket,
+                        )
 
         except WebSocketDisconnect:
             manager.disconnect(websocket, session_id)
@@ -196,10 +224,9 @@ async def websocket_endpoint(
         AccessDenied,
         service.ActorResolutionError,
         service.SessionFetchError,
+        ValidationError,
     ) as exc:
-        if isinstance(exc, WebSocketDisconnect):
-            reason = "websocket_disconnect"
-        elif isinstance(exc, TokenExpiredError):
+        if isinstance(exc, TokenExpiredError):
             reason = "token_expired"
         elif isinstance(exc, TokenInvalidError):
             reason = "token_invalid"
@@ -207,6 +234,8 @@ async def websocket_endpoint(
             reason = "access_denied"
         elif isinstance(exc, service.SessionFetchError):
             reason = "session_unavailable"
+        elif isinstance(exc, ValidationError):
+            reason = "invalid_json"
         else:
             reason = "actor_resolution_error"
 

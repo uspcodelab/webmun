@@ -20,18 +20,24 @@ from .models import (
     AgendaItem,
     DebateContext,
     DelegationContext,
+    DispatchOutcome,
     MotionContext,
     QuestionContext,
     RollCallContext,
     SessionActor,
+    SessionEffect,
     SessionLiveState,
     VotingContext,
 )
 
 
-# TODO: add better error handling here
-class InvalidProceduralMove(Exception):
-    pass
+class EventRejectedError(Exception):
+    """Base Session Exception for rejected events
+    Uses EventErrorCode from enums to map out errors"""
+
+    def __init__(self, code: enums.EventErrorCode, message: str) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 # Dispatch tables: alternative to if else chains
@@ -105,10 +111,14 @@ def validate_motion_payload(
 
     # can also raise error if there are missing fields
     if (
-        payload.type in {States.MODERATED_CAUCUS}
+        payload.type == Motions.CHANGE_DEBATE_TYPE
+        and payload.debate_type == DebateTypes.MODERATED_DEBATE
         and payload.per_speaker_seconds is None
     ):
-        raise InvalidProceduralMove("Cannot submit motion without speaking time")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_MESSAGE,
+            message="Cannot submit motion without speaking time",
+        )
 
 
 def count_present_delegations(state: SessionLiveState) -> int:
@@ -230,22 +240,29 @@ def reset_timer(state: SessionLiveState, seconds: int = 0) -> None:
 
 
 def require_delegate(actor: SessionActor) -> DelegationContext:
-    # helper that returns the delegation context (old Delegation model) while validating
+    """Verify if actor is a delegate"""
     if actor.role != enums.SessionRole.DELEGATE or actor.delegation is None:
-        raise InvalidProceduralMove("Delegate role required")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.FORBIDDEN,
+            message="Delegate role required",
+        )
+
     return actor.delegation
 
 
 def require_chair(actor: SessionActor) -> None:
-    """Returns"""
+    """Verify if actor is a chair"""
     if actor.role != enums.SessionRole.CHAIR:
-        raise InvalidProceduralMove("Chair role required")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_MESSAGE,
+            message="Chair role required",
+        )
 
 
 # -------------- HANDLERS --------------
 def handle_delegate_submit_motion(
     state: SessionLiveState, event: schemas.SubmitMotionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     """Handles/Maps all possible states through a motion"""
     require_delegate(actor)
 
@@ -255,13 +272,19 @@ def handle_delegate_submit_motion(
 
     # check if motion can be made for this state
     if payload.type not in MOTIONS_ALLOWED.get(current_state, set()):
-        raise InvalidProceduralMove("Cannot submit this motion at this phase")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot submit motion at current state",
+        )
 
     if (
         current_state in {States.MODERATED_CAUCUS, States.UNMODERATED_CAUCUS}
         and not state.can_set_motion
     ):
-        raise InvalidProceduralMove("Submitting motions during caucuses is disabled")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Submitting motions during caucuses is disabled",
+        )
 
     validate_motion_payload(payload, state)
 
@@ -279,12 +302,12 @@ def handle_delegate_submit_motion(
     )
 
     state.submitted_motions.append(context)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_submit_question(
     state: SessionLiveState, event: schemas.SubmitQuestionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_delegate(actor)
 
     payload = event.payload
@@ -297,80 +320,90 @@ def handle_submit_question(
         details=payload.details,
     )
     state.submitted_questions.append(context)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_join_queue(
     state: SessionLiveState, event: schemas.JoinQueueEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     delegate = require_delegate(actor)
 
     if state.current_state != States.OPEN_GSL:
-        raise InvalidProceduralMove("Cannot enter queue right now")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot enter queue right now",
+        )
 
-    # if already in queue, return error, else remove from queue and return state
+    # if already in queue, return an error; otherwise add the delegate to the queue
     if delegate.id in state.gsl_queue:
-        raise InvalidProceduralMove("Already in Queue")
+        return DispatchOutcome(state=state)
 
     state.gsl_queue.append(delegate.id)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_leave_queue(
     state: SessionLiveState, event: schemas.LeaveQueueEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     delegate = require_delegate(actor)
 
     if state.current_state != States.OPEN_GSL:
-        raise InvalidProceduralMove("Cannot enter queue right now")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot enter queue right now",
+        )
 
     if delegate.id not in state.gsl_queue:
-        raise InvalidProceduralMove("Not in Queue")
+        return DispatchOutcome(state=state)
 
     state.gsl_queue.remove(delegate.id)
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_cast_vote(
     state: SessionLiveState, event: schemas.CastVoteEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     delegate = require_delegate(actor)
 
     voting_context = state.voting
     if voting_context is None:
-        raise InvalidProceduralMove("Cannot vote during this stage")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot submit vote right now",
+        )
 
-    # initial voting workflow, may be reviewed later
-    # TODO: perhaps allow casting another vote if first one fails
-    if delegate.id in voting_context.voting_registry:
-        raise InvalidProceduralMove("Already cast vote")
-
-    # register vote on voting context
+    # register vote on voting context. may also re-register votes if needed
     voting_context.voting_registry[delegate.id] = event.payload.vote
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_answer_roll_call(
     state: SessionLiveState, event: schemas.AnswerRollCallEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     delegate = require_delegate(actor)
 
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
-        raise InvalidProceduralMove("Roll call not available now")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Roll call not available",
+        )
 
     state.roll_call.registry[delegate.id] = event.payload.choice
-    return state
+    return DispatchOutcome(state=state)
 
 
 # Chair events
 def handle_open_session(
     state: SessionLiveState, event: schemas.OpenSessionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
 
     require_chair(actor)
     if state.current_state != States.SETUP:
-        raise InvalidProceduralMove("Session can only be opened from setup")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot open session out of setup",
+        )
 
     state.current_state = States.ROLL_CALL
     state.roll_call = RollCallContext(registry={})
@@ -381,39 +414,40 @@ def handle_open_session(
     state.timer_expiration = None
     state.timer_remaining_seconds = 0
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_close_session(
     state: SessionLiveState, event: schemas.CloseSessionEvent, actor: SessionActor
-) -> SessionLiveState:
-
+) -> DispatchOutcome:
     require_chair(actor)
 
-    if (
-        state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED)
-    ):  # idk what state is best to allow closing session, but for now i'll allow closing from any state other than SETUP, ROLl_CALL and FINISHED itself
-        raise InvalidProceduralMove("Session can only be opened from setup")
+    if state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED):
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Session may only be closed from setup, roll_call or finished",
+        )
 
     state.current_state = States.FINISHED
     state.current_speaker = None
-    state.gsl_queue = []  # I'm supposing this queue has the first element popped when someone speaks, so it should be empty when session is closed. In case this list is to be kept, we can remove this line.
+    state.gsl_queue = []  # I'm supposing this queue has the first element popped when someone speaks,
+    # so it should be empty when session is closed. In case this list is to be kept,
+    # we can remove this line.
     state.can_set_motion = False
     state.debate = None  # Same as queue
     state.timer_is_running = False
     state.timer_expiration = None
     state.timer_remaining_seconds = 0
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 # TODO: create helpers for timers -> stop_timer, set_timer, pause_timer, etc
 def handle_toggle_timer(
     state: SessionLiveState, event: schemas.ToggleTimerEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
-    # uses utc for now
     now = datetime.now(UTC)
     if state.timer_is_running:
         # timer currently running
@@ -422,6 +456,7 @@ def handle_toggle_timer(
 
             state.timer_is_running = False
             state.timer_remaining_seconds = 0
+            state.timer_expiration = None
 
         elif state.timer_expiration is not None:
             state.timer_is_running = False
@@ -433,12 +468,12 @@ def handle_toggle_timer(
         state.timer_is_running = True
         state.timer_expiration = now + timedelta(seconds=state.timer_remaining_seconds)
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_increase_timer(
     state: SessionLiveState, event: schemas.IncreaseTimerEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     now = datetime.now(UTC)
@@ -451,17 +486,18 @@ def handle_increase_timer(
     else:
         state.timer_remaining_seconds += event.payload.seconds
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_open_informal_voting(
     state: SessionLiveState, event: schemas.OpenInformalVotingEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.current_state == States.VOTING_EXECUTION:
-        raise InvalidProceduralMove(
-            "Can't open voting while another voting is in course"
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot open voting with voting in course",
         )
 
     state.voting = VotingContext(
@@ -473,31 +509,37 @@ def handle_open_informal_voting(
 
     state.current_state = States.VOTING_EXECUTION
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_close_informal_voting(
     state: SessionLiveState,
     event: schemas.CloseInformalVotingEvent,
     actor: SessionActor,
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.voting is None:
-        raise InvalidProceduralMove("No voting present")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="No voting context found",
+        )
 
     if (
         state.current_state != States.VOTING_EXECUTION
         or state.voting.target_type != enums.VotingType.INFORMAL
     ):
-        raise InvalidProceduralMove("Can't close voting")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot close voting",
+        )
 
     # extract last state
     state.current_state = state.voting.return_state
 
     state.voting = None
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def apply_passed_motion(
@@ -552,9 +594,6 @@ def apply_passed_motion(
                 state.debate = None
                 reset_timer(state, state.gsl_default_time_seconds)
 
-            case _:
-                raise InvalidProceduralMove("Undefined debate type")
-
     match motion.type:
         case Motions.POSTPONE_SESSION:
             pass
@@ -601,7 +640,10 @@ def apply_passed_motion(
             state.roll_call = RollCallContext(registry={}, return_state=return_state)
             next_state = States.ROLL_CALL
         case _:
-            raise InvalidProceduralMove("Undefined motion type")
+            raise EventRejectedError(
+                code=enums.EventErrorCode.INVALID_MESSAGE,
+                message="Undefined motion type",
+            )
 
     # additional case: if we went from GSL to something, save gsl structures
     state.current_state = next_state
@@ -611,25 +653,45 @@ def handle_close_procedural_voting(
     state: SessionLiveState,
     event: schemas.CloseProceduralVotingEvent,
     actor: SessionActor,
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.voting is None:
-        raise InvalidProceduralMove("No voting present")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="No voting context found",
+        )
 
     if (
         state.current_state != States.VOTING_EXECUTION
         or state.voting.target_type != enums.VotingType.PROCEDURAL
     ):
-        raise InvalidProceduralMove("Can't close voting")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot close voting",
+        )
 
     motion = state.voting.motion_in_vote
 
     if motion is None:
-        raise InvalidProceduralMove("Can't close voting if motion is None")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="Motion in vote not found",
+        )
 
     present = count_present_delegations(state)
     passed = tally_votes(state.voting, present)
+    effect = SessionEffect(
+        type=enums.SessionEffectType.VOTE_CLOSED,
+        data={
+            "present": present,
+            "favour": sum(
+                vote == enums.VotingChoice.FAVOUR
+                for vote in state.voting.voting_registry.values()
+            ),
+            "passed": passed,
+        },
+    )
 
     if passed:
         apply_passed_motion(state, motion, return_state=state.voting.return_state)
@@ -639,19 +701,22 @@ def handle_close_procedural_voting(
 
     # clear state voting
     state.voting = None
-    return state
+    return DispatchOutcome(state=state, effect=effect)
 
 
 def handle_finish_caucus(
     state: SessionLiveState, event: schemas.FinishCaucusEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.debate is None or state.current_state not in {
         States.MODERATED_CAUCUS,
         States.UNMODERATED_CAUCUS,
     }:
-        raise InvalidProceduralMove("No active caucus")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="No active caucus",
+        )
 
     return_state = state.debate.return_state
     state.current_speaker = None
@@ -659,13 +724,13 @@ def handle_finish_caucus(
     state.debate = None
     reset_timer(state)
     state.current_state = return_state
-    return state
+    return DispatchOutcome(state=state)
 
 
 # handles setting state into VOTING_EXECUTION or rejecting the motion
 def handle_resolve_motion(
     state: SessionLiveState, event: schemas.ResolveMotionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     # TODO: check how to resolve INTRODUCE_RESOLUTION_PROPOSAL and INTRODUCE_AMENDMENT_PROPOSAL motions separately from procedural motions
     require_chair(actor)
 
@@ -676,7 +741,10 @@ def handle_resolve_motion(
     )
 
     if motion is None:
-        raise InvalidProceduralMove("Motion not found")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="Motion not found",
+        )
 
     majority_type = (
         enums.MajorityTypes.SIMPLE
@@ -697,12 +765,12 @@ def handle_resolve_motion(
 
     state.submitted_motions.remove(motion)
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_chair_submit_motion(
     state: SessionLiveState, event: schemas.LogMotionEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     payload = event.payload
@@ -738,17 +806,17 @@ def handle_chair_submit_motion(
     )
 
     state.current_state = States.VOTING_EXECUTION
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_set_agenda(
     state: SessionLiveState, event: schemas.SetAgendaEvent, actor: SessionActor
-) -> SessionLiveState: ...
+) -> DispatchOutcome: ...
 
 
 def handle_mark_agenda_item(
     state: SessionLiveState, event: schemas.MarkAgendaItemEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     if event.payload.discussed is not None:
         state.agenda_topics[
             event.payload.index
@@ -758,90 +826,106 @@ def handle_mark_agenda_item(
             state.active_topic_index = event.payload.index
         else:
             state.active_topic_index = None
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_set_agenda_item(
     state: SessionLiveState, event: schemas.SetAgendaItemEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     item = AgendaItem(
         index=event.payload.index, topic=event.payload.topic, already_discussed=False
     )
     state.agenda_topics[event.payload.index] = item
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_delete_agenda_item(
     state: SessionLiveState, event: schemas.DeleteAgendaItemEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
 
     state.agenda_topics.pop(event.payload.index)
 
     if state.active_topic_index == event.payload.index:
         state.active_topic_index = None
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_manual_phase_set(
     state: SessionLiveState, event: schemas.SetPhaseEvent, actor: SessionActor
-) -> SessionLiveState: ...
+) -> DispatchOutcome: ...
 
 
 def handle_next_speaker(
     state: SessionLiveState, event: schemas.NextSpeakerEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
         if not state.gsl_queue:
             state.current_speaker = None
             reset_timer(state)
-            return state
+            return DispatchOutcome(state=state)
         state.current_speaker = state.gsl_queue.pop(0)
         reset_timer(state, state.gsl_default_time_seconds)
-        return state
+        return DispatchOutcome(state=state)
 
     if state.current_state == States.TOUR_DE_TABLE:
         if not state.caucus_list:
             state.current_speaker = None
             reset_timer(state)
-            return state
+            return DispatchOutcome(state=state)
         state.current_speaker = state.caucus_list.pop(0)
         reset_timer(state, state.gsl_default_time_seconds)
-        return state
+        return DispatchOutcome(state=state)
 
     if state.current_state == States.MODERATED_CAUCUS:
-        raise InvalidProceduralMove("Chair must grant floor during moderated caucus")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Chair must grant floor during moderated caucus",
+        )
 
-    raise InvalidProceduralMove("Cannot advance speaker right now")
+    raise EventRejectedError(
+        code=enums.EventErrorCode.INVALID_STATE,
+        message="Cannot advance speaker right now",
+    )
 
 
 def handle_add_gsl_speaker(
     state: SessionLiveState, event: schemas.AddGslSpeakerEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     if state.current_state not in {States.OPEN_GSL, States.CLOSED_GSL}:
-        raise InvalidProceduralMove("Can only add speakers to the GSL")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Can only add speakers during GSL",
+        )
 
     representation_id = event.payload.representation_id
     if representation_id not in state.delegations:
-        raise InvalidProceduralMove("Representation not found")
-    if representation_id in state.gsl_queue:
-        raise InvalidProceduralMove("Representation already in GSL queue")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="Representation not found",
+        )
 
-    state.gsl_queue.append(representation_id)
-    return state
+    if representation_id not in state.gsl_queue:
+        # This guarantees idempotency
+        state.gsl_queue.append(representation_id)
+
+    return DispatchOutcome(state=state)
 
 
 def handle_grant_floor(
     state: SessionLiveState, event: schemas.GrantFloorEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
 
     representation_id = event.payload.representation_id
     if representation_id not in state.delegations:
-        raise InvalidProceduralMove("Representation not found")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="Representation not found",
+        )
 
     if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
         if representation_id in state.gsl_queue:
@@ -849,61 +933,80 @@ def handle_grant_floor(
         seconds = event.payload.seconds or state.gsl_default_time_seconds
     elif state.current_state == States.MODERATED_CAUCUS:
         if state.debate is None:
-            raise InvalidProceduralMove("No active moderated caucus")
+            raise EventRejectedError(
+                code=enums.EventErrorCode.INVALID_STATE,
+                message="No active moderated caucus",
+            )
+
         seconds = event.payload.seconds or state.debate.per_speaker_seconds or 60
     elif state.current_state == States.TOUR_DE_TABLE:
         if representation_id in state.caucus_list:
             state.caucus_list.remove(representation_id)
         seconds = event.payload.seconds or state.gsl_default_time_seconds
     elif state.current_state == States.UNMODERATED_CAUCUS:
-        raise InvalidProceduralMove("Cannot grant floor during unmoderated caucus")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot grant floor during unmoderated caucus",
+        )
     else:
-        raise InvalidProceduralMove("Cannot grant floor right now")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot grant floor right now",
+        )
 
     state.current_speaker = representation_id
     reset_timer(state, seconds)
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_mark_roll_call(
     state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
-    #removed these lines so chair can freely change the roll call
-    #if state.current_state != States.ROLL_CALL or state.roll_call is None:
-    #   raise InvalidProceduralMove("Cannot mark roll call right now")
 
     if event.payload.delegation_id not in state.delegations:
-        raise InvalidProceduralMove("Delegation does not exist")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="Delegation not found",
+        )
 
     state.roll_call.registry[event.payload.delegation_id] = event.payload.choice
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_mark_roll_call_bulk(
     state: SessionLiveState, event: schemas.MarkRollCallBulkEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
-        raise InvalidProceduralMove("Cannot mark roll call right now")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot mark roll call right now",
+        )
 
     for delegation_id in event.payload.Rollcalls.keys():
         if delegation_id not in state.delegations:
-            raise InvalidProceduralMove("One delegation does not exist")
+            raise EventRejectedError(
+                code=enums.EventErrorCode.NOT_FOUND,
+                message="One of the delegations does not exist",
+            )
 
     state.roll_call.registry.update(event.payload.Rollcalls)
 
-    return state
+    return DispatchOutcome(state=state)
 
 
 def handle_close_roll_call(
     state: SessionLiveState, event: schemas.CloseRollCallEvent, actor: SessionActor
-) -> SessionLiveState:
+) -> DispatchOutcome:
     require_chair(actor)
     if state.current_state != States.ROLL_CALL or state.roll_call is None:
-        raise InvalidProceduralMove("Cannot close roll call right now")
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot close roll call right now",
+        )
 
     # mark all delegations as absent in the first case. This will enable us to use
     # RollCallContext to tally votes
@@ -919,13 +1022,13 @@ def handle_close_roll_call(
         for delegation_id, choice in state.roll_call.registry.items()
         if choice in {RollCallChoice.PRESENT, RollCallChoice.PRESENT_AND_VOTING}
     }
-    return state
+    return DispatchOutcome(state=state)
 
 
 # Signature for events/handlers, uses legacy(ish) 3.11 TypeAlias
 EventHandler: TypeAlias = Callable[
     [SessionLiveState, Any, SessionActor],  # overall signature
-    SessionLiveState,  # Return type
+    DispatchOutcome,  # Return type
 ]
 
 EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
@@ -963,10 +1066,13 @@ class SessionEngine:
     # function to calculate new state over old one
     def dispatch(
         self, state: SessionLiveState, event: schemas.SessionEvent, actor: SessionActor
-    ) -> SessionLiveState:
+    ) -> DispatchOutcome:
 
         handler = EVENT_HANDLERS.get(event.type)
         if handler is None:
-            raise InvalidProceduralMove(f"Unsupported Type: {event.type}")
+            raise EventRejectedError(
+                code=enums.EventErrorCode.INVALID_MESSAGE,
+                message=f"Unsupported event type: {event.type}",
+            )
 
         return handler(state, event, actor)

@@ -7,14 +7,13 @@ from dataclasses import replace
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.session.enums as enums
 import app.session.repository as repository
 import app.session.schemas as schemas
 from app.access.models import CommitteeAssignment
-from app.session.engine import SessionEngine
+from app.session.engine import EventRejectedError, SessionEngine
 
 from .manager import ConnectionManager
 from .models import (
@@ -128,7 +127,6 @@ async def activate_session(
         current_state=enums.States.SETUP,
         gsl_default_time_seconds=60,
         roll_call=RollCallContext(registry={}),
-        voting_choice={},
     )
 
     updated = replace(
@@ -209,19 +207,16 @@ async def handle_client_messages(
     logger: logging.Logger,
     session_id: int,
     actor: SessionActor,
-    data,
+    data: schemas.EventMessage,
 ):
-    adapter = TypeAdapter(schemas.SessionEvent)
-
-    # if schema is None:
-    # raise ValueError("Unsupported event type")
-
-    event = adapter.validate_json(data)
+    event = data.event
     state = manager.room_states[session_id]
 
     logger.info(event)  # Debugging
 
-    new_state = engine.dispatch(state, event, actor)
-    manager.room_states[session_id] = new_state
-
-    await manager.broadcast_state(session_id)
+    try:
+        result = engine.dispatch(state, event, actor)
+        manager.room_states[session_id] = result.state
+        return result
+    except EventRejectedError as exc:
+        return exc

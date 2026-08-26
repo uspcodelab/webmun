@@ -5,85 +5,78 @@ export type ClientOptions = {
 };
 
 /**
- * AddGslSpeakerEvent
+ * HTTPValidationError
  */
-export type AddGslSpeakerEvent = {
+export type HttpValidationError = {
     /**
-     * Type
+     * Detail
      */
-    type: 'AddGslSpeakerEvent';
-    payload: AddGslSpeakerPayload;
+    detail?: Array<ValidationError>;
 };
 
 /**
- * AddGslSpeakerPayload
+ * SessionCreationSchema
+ *
+ * Schema to create a session. Follows a DB schema + extra configs format
  */
-export type AddGslSpeakerPayload = {
+export type SessionCreationSchema = {
+    /**
+     * Committee Id
+     */
+    committee_id: number;
+    /**
+     * Name
+     */
+    name?: string | null;
+};
+
+/**
+ * SessionRepresentation
+ */
+export type SessionRepresentation = {
+    role: SessionRoles;
     /**
      * Representation Id
      */
-    representation_id: number;
+    representation_id: number | null;
 };
 
 /**
- * AgendaItem
+ * SessionRoles
  */
-export type AgendaItem = {
-    /**
-     * Index
-     */
-    index: string;
-    /**
-     * Topic
-     */
-    topic: string;
-    /**
-     * Already Discussed
-     */
-    already_discussed: boolean;
-};
+export const SessionRoles = { CHAIR: 'chair', DELEGATE: 'delegate' } as const;
 
 /**
- * AnswerRollCallEvent
+ * SessionRoles
  */
-export type AnswerRollCallEvent = {
-    /**
-     * Type
-     */
-    type: 'AnswerRollCallEvent';
-    payload: AnswerRollCallPayload;
-};
+export type SessionRoles = typeof SessionRoles[keyof typeof SessionRoles];
 
 /**
- * AnswerRollCallPayload
+ * ValidationError
  */
-export type AnswerRollCallPayload = {
+export type ValidationError = {
     /**
-     * Choice
+     * Location
      */
-    choice: 'Present' | 'Present and Voting';
-};
-
-/**
- * Body_dummy_committees_dummy_get
- */
-export type BodyDummyCommitteesDummyGet = {
+    loc: Array<string | number>;
     /**
-     * Types
+     * Message
      */
-    types: SubmitMotionEvent | SubmitQuestionEvent | CastVoteEvent | AnswerRollCallEvent | JoinQueueEvent | LeaveQueueEvent | LogMotionEvent | OpenSessionEvent | CloseSessionEvent | IncreaseTimerEvent | ToggleTimerEvent | OpenInformalVotingEvent | CloseProceduralVotingEvent | CloseInformalVotingEvent | FinishCaucusEvent | ResolveMotionEvent | NextSpeakerEvent | AddGslSpeakerEvent | GrantFloorEvent | SetAgendaEvent | SetAgendaItemEvent | MarkAgendaItemEvent | DeleteAgendaItemEvent | SetPhaseEvent | MarkRollCallEvent | CloseRollCallEvent | MarkRollCallBulkEvent;
-    schemas: SessionLiveState;
-};
-
-/**
- * CastVoteEvent
- */
-export type CastVoteEvent = {
+    msg: string;
     /**
-     * Type
+     * Error Type
      */
-    type: 'CastVoteEvent';
-    payload: DelegateVotingPayload;
+    type: string;
+    /**
+     * Input
+     */
+    input?: unknown;
+    /**
+     * Context
+     */
+    ctx?: {
+        [key: string]: unknown;
+    };
 };
 
 /**
@@ -117,6 +110,77 @@ export const ChairEvents = {
  * ChairEvents
  */
 export type ChairEvents = typeof ChairEvents[keyof typeof ChairEvents];
+
+/**
+ * DelegateEvents
+ */
+export const DelegateEvents = {
+    SUBMIT_MOTION_EVENT: 'SubmitMotionEvent',
+    SUBMIT_QUESTION_EVENT: 'SubmitQuestionEvent',
+    JOIN_QUEUE_EVENT: 'JoinQueueEvent',
+    LEAVE_QUEUE_EVENT: 'LeaveQueueEvent',
+    CAST_VOTE_EVENT: 'CastVoteEvent',
+    YIELD_EVENT: 'YieldEvent',
+    ANSWER_ROLL_CALL_EVENT: 'AnswerRollCallEvent'
+} as const;
+
+/**
+ * DelegateEvents
+ */
+export type DelegateEvents = typeof DelegateEvents[keyof typeof DelegateEvents];
+
+/**
+ * AddGslSpeakerEvent
+ */
+export type AddGslSpeakerEvent = {
+    /**
+     * Type
+     */
+    type: 'AddGslSpeakerEvent';
+    payload: AddGslSpeakerPayload;
+};
+
+/**
+ * AddGslSpeakerPayload
+ */
+export type AddGslSpeakerPayload = {
+    /**
+     * Representation Id
+     */
+    representation_id: number;
+};
+
+/**
+ * AnswerRollCallEvent
+ */
+export type AnswerRollCallEvent = {
+    /**
+     * Type
+     */
+    type: 'AnswerRollCallEvent';
+    payload: AnswerRollCallPayload;
+};
+
+/**
+ * AnswerRollCallPayload
+ */
+export type AnswerRollCallPayload = {
+    /**
+     * Choice
+     */
+    choice: 'Present' | 'Present and Voting';
+};
+
+/**
+ * CastVoteEvent
+ */
+export type CastVoteEvent = {
+    /**
+     * Type
+     */
+    type: 'CastVoteEvent';
+    payload: DelegateVotingPayload;
+};
 
 /**
  * ChairIncreaseTimerPayload
@@ -260,34 +324,6 @@ export type CloseSessionEvent = {
 };
 
 /**
- * DebateContext
- */
-export type DebateContext = {
-    debate_type: DebateTypes;
-    return_state: States;
-    /**
-     * Total Duration Seconds
-     */
-    total_duration_seconds?: number | null;
-    /**
-     * Total Speeches
-     */
-    total_speeches?: number | null;
-    /**
-     * Per Speaker Seconds
-     */
-    per_speaker_seconds?: number | null;
-    /**
-     * Expires At
-     */
-    expires_at?: string | null;
-    /**
-     * Topic
-     */
-    topic?: string | null;
-};
-
-/**
  * DebateTypes
  */
 export const DebateTypes = {
@@ -300,24 +336,6 @@ export const DebateTypes = {
  * DebateTypes
  */
 export type DebateTypes = typeof DebateTypes[keyof typeof DebateTypes];
-
-/**
- * DelegateEvents
- */
-export const DelegateEvents = {
-    SUBMIT_MOTION_EVENT: 'SubmitMotionEvent',
-    SUBMIT_QUESTION_EVENT: 'SubmitQuestionEvent',
-    JOIN_QUEUE_EVENT: 'JoinQueueEvent',
-    LEAVE_QUEUE_EVENT: 'LeaveQueueEvent',
-    CAST_VOTE_EVENT: 'CastVoteEvent',
-    YIELD_EVENT: 'YieldEvent',
-    ANSWER_ROLL_CALL_EVENT: 'AnswerRollCallEvent'
-} as const;
-
-/**
- * DelegateEvents
- */
-export type DelegateEvents = typeof DelegateEvents[keyof typeof DelegateEvents];
 
 /**
  * DelegateMotionPayload
@@ -359,28 +377,6 @@ export type DelegateQuestionPayload = {
  */
 export type DelegateVotingPayload = {
     vote: VotingChoice;
-};
-
-/**
- * DelegationContext
- */
-export type DelegationContext = {
-    /**
-     * Id
-     */
-    id: number;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Seat
-     */
-    seat: string;
-    /**
-     * Code
-     */
-    code: string;
 };
 
 /**
@@ -445,16 +441,6 @@ export type GrantFloorPayload = {
      * Seconds
      */
     seconds?: number | null;
-};
-
-/**
- * HTTPValidationError
- */
-export type HttpValidationError = {
-    /**
-     * Detail
-     */
-    detail?: Array<ValidationError>;
 };
 
 /**
@@ -600,46 +586,6 @@ export type MarkRollCallPayload = {
 };
 
 /**
- * MotionContext
- */
-export type MotionContext = {
-    /**
-     * Id
-     */
-    id?: number | null;
-    /**
-     * Priority
-     */
-    priority?: number;
-    type: Motions;
-    /**
-     * Delegate Id
-     */
-    delegate_id?: number | null;
-    /**
-     * Timestamp
-     */
-    timestamp: string;
-    debate_type?: DebateTypes | null;
-    /**
-     * Total Duration Minutes
-     */
-    total_duration_minutes?: number | null;
-    /**
-     * Per Speaker Seconds
-     */
-    per_speaker_seconds?: number | null;
-    /**
-     * Target Topic
-     */
-    target_topic?: string | null;
-    /**
-     * Details
-     */
-    details?: string | null;
-};
-
-/**
  * MotionDecision
  *
  * Tracks decision for LogMotionEvent for chair
@@ -713,29 +659,6 @@ export type OpenSessionEvent = {
 };
 
 /**
- * QuestionContext
- */
-export type QuestionContext = {
-    /**
-     * Id
-     */
-    id?: number | null;
-    /**
-     * Priority
-     */
-    priority?: number;
-    type: Questions;
-    /**
-     * Delegate Id
-     */
-    delegate_id?: number | null;
-    /**
-     * Details
-     */
-    details?: string | null;
-};
-
-/**
  * Questions
  */
 export const Questions = {
@@ -773,134 +696,6 @@ export const RollCallChoice = {
  * RollCallChoice
  */
 export type RollCallChoice = typeof RollCallChoice[keyof typeof RollCallChoice];
-
-/**
- * RollCallContext
- */
-export type RollCallContext = {
-    /**
-     * Registry
-     */
-    registry?: {
-        [key: string]: RollCallChoice;
-    };
-    return_state?: States | null;
-};
-
-/**
- * SessionCreationSchema
- *
- * Schema to create a session. Follows a DB schema + extra configs format
- */
-export type SessionCreationSchema = {
-    /**
-     * Committee Id
-     */
-    committee_id: number;
-    /**
-     * Name
-     */
-    name?: string | null;
-};
-
-/**
- * SessionLiveState
- */
-export type SessionLiveState = {
-    /**
-     * Session Id
-     */
-    session_id: number;
-    /**
-     * Start Time
-     */
-    start_time: string;
-    /**
-     * Delegations
-     */
-    delegations: {
-        [key: string]: DelegationContext;
-    };
-    current_state?: States;
-    /**
-     * Timer Is Running
-     */
-    timer_is_running?: boolean;
-    /**
-     * Timer Expiration
-     */
-    timer_expiration?: string | null;
-    /**
-     * Timer Remaining Seconds
-     */
-    timer_remaining_seconds?: number;
-    /**
-     * Current Speaker
-     */
-    current_speaker?: number | null;
-    /**
-     * Gsl Queue
-     */
-    gsl_queue?: Array<number>;
-    /**
-     * Can Set Motion
-     */
-    can_set_motion?: boolean;
-    /**
-     * Gsl Default Time Seconds
-     */
-    gsl_default_time_seconds?: number;
-    /**
-     * Caucus List
-     */
-    caucus_list?: Array<number>;
-    debate?: DebateContext | null;
-    /**
-     * Submitted Motions
-     */
-    submitted_motions?: Array<MotionContext>;
-    /**
-     * Submitted Questions
-     */
-    submitted_questions?: Array<QuestionContext>;
-    /**
-     * Agenda Topics
-     */
-    agenda_topics?: {
-        [key: string]: AgendaItem;
-    };
-    /**
-     * Active Topic Index
-     */
-    active_topic_index?: string | null;
-    voting?: VotingContext | null;
-    roll_call: RollCallContext;
-    /**
-     * Has Veto Power
-     */
-    has_veto_power?: boolean;
-};
-
-/**
- * SessionRepresentation
- */
-export type SessionRepresentation = {
-    role: SessionRoles;
-    /**
-     * Representation Id
-     */
-    representation_id: number | null;
-};
-
-/**
- * SessionRoles
- */
-export const SessionRoles = { CHAIR: 'chair', DELEGATE: 'delegate' } as const;
-
-/**
- * SessionRoles
- */
-export type SessionRoles = typeof SessionRoles[keyof typeof SessionRoles];
 
 /**
  * SetAgendaEvent
@@ -1007,34 +802,6 @@ export type ToggleTimerEvent = {
 };
 
 /**
- * ValidationError
- */
-export type ValidationError = {
-    /**
-     * Location
-     */
-    loc: Array<string | number>;
-    /**
-     * Message
-     */
-    msg: string;
-    /**
-     * Error Type
-     */
-    type: string;
-    /**
-     * Input
-     */
-    input?: unknown;
-    /**
-     * Context
-     */
-    ctx?: {
-        [key: string]: unknown;
-    };
-};
-
-/**
  * VotingChoice
  */
 export const VotingChoice = {
@@ -1050,6 +817,462 @@ export const VotingChoice = {
  * VotingChoice
  */
 export type VotingChoice = typeof VotingChoice[keyof typeof VotingChoice];
+
+export type SessionEvent = ({
+    type: 'SubmitMotionEvent';
+} & SubmitMotionEvent) | ({
+    type: 'SubmitQuestionEvent';
+} & SubmitQuestionEvent) | ({
+    type: 'CastVoteEvent';
+} & CastVoteEvent) | ({
+    type: 'AnswerRollCallEvent';
+} & AnswerRollCallEvent) | ({
+    type: 'JoinQueueEvent';
+} & JoinQueueEvent) | ({
+    type: 'LeaveQueueEvent';
+} & LeaveQueueEvent) | ({
+    type: 'LogMotionEvent';
+} & LogMotionEvent) | ({
+    type: 'OpenSessionEvent';
+} & OpenSessionEvent) | ({
+    type: 'CloseSessionEvent';
+} & CloseSessionEvent) | ({
+    type: 'IncreaseTimerEvent';
+} & IncreaseTimerEvent) | ({
+    type: 'ToggleTimerEvent';
+} & ToggleTimerEvent) | ({
+    type: 'OpenInformalVotingEvent';
+} & OpenInformalVotingEvent) | ({
+    type: 'CloseProceduralVotingEvent';
+} & CloseProceduralVotingEvent) | ({
+    type: 'CloseInformalVotingEvent';
+} & CloseInformalVotingEvent) | ({
+    type: 'FinishCaucusEvent';
+} & FinishCaucusEvent) | ({
+    type: 'ResolveMotionEvent';
+} & ResolveMotionEvent) | ({
+    type: 'NextSpeakerEvent';
+} & NextSpeakerEvent) | ({
+    type: 'AddGslSpeakerEvent';
+} & AddGslSpeakerEvent) | ({
+    type: 'GrantFloorEvent';
+} & GrantFloorEvent) | ({
+    type: 'SetAgenda';
+} & SetAgendaEvent) | ({
+    type: 'SetAgendaItemEvent';
+} & SetAgendaItemEvent) | ({
+    type: 'MarkAgendaItemEvent';
+} & MarkAgendaItemEvent) | ({
+    type: 'DeleteAgendaItemEvent';
+} & DeleteAgendaItemEvent) | ({
+    type: 'SetPhaseEvent';
+} & SetPhaseEvent) | ({
+    type: 'MarkRollCallEvent';
+} & MarkRollCallEvent) | ({
+    type: 'CloseRollCallEvent';
+} & CloseRollCallEvent) | ({
+    type: 'MarkRollCallBulkEvent';
+} & MarkRollCallBulkEvent);
+
+/**
+ * AuthenticateMessage
+ */
+export type AuthenticateMessage = {
+    /**
+     * Type
+     */
+    type?: 'authenticate';
+    /**
+     * Access Token
+     */
+    access_token: string;
+};
+
+/**
+ * EventMessage
+ */
+export type EventMessage = {
+    /**
+     * Type
+     */
+    type?: 'event';
+    /**
+     * Request Id
+     */
+    request_id: string;
+    /**
+     * Event
+     */
+    event: ({
+        type: 'SubmitMotionEvent';
+    } & SubmitMotionEvent) | ({
+        type: 'SubmitQuestionEvent';
+    } & SubmitQuestionEvent) | ({
+        type: 'CastVoteEvent';
+    } & CastVoteEvent) | ({
+        type: 'AnswerRollCallEvent';
+    } & AnswerRollCallEvent) | ({
+        type: 'JoinQueueEvent';
+    } & JoinQueueEvent) | ({
+        type: 'LeaveQueueEvent';
+    } & LeaveQueueEvent) | ({
+        type: 'LogMotionEvent';
+    } & LogMotionEvent) | ({
+        type: 'OpenSessionEvent';
+    } & OpenSessionEvent) | ({
+        type: 'CloseSessionEvent';
+    } & CloseSessionEvent) | ({
+        type: 'IncreaseTimerEvent';
+    } & IncreaseTimerEvent) | ({
+        type: 'ToggleTimerEvent';
+    } & ToggleTimerEvent) | ({
+        type: 'OpenInformalVotingEvent';
+    } & OpenInformalVotingEvent) | ({
+        type: 'CloseProceduralVotingEvent';
+    } & CloseProceduralVotingEvent) | ({
+        type: 'CloseInformalVotingEvent';
+    } & CloseInformalVotingEvent) | ({
+        type: 'FinishCaucusEvent';
+    } & FinishCaucusEvent) | ({
+        type: 'ResolveMotionEvent';
+    } & ResolveMotionEvent) | ({
+        type: 'NextSpeakerEvent';
+    } & NextSpeakerEvent) | ({
+        type: 'AddGslSpeakerEvent';
+    } & AddGslSpeakerEvent) | ({
+        type: 'GrantFloorEvent';
+    } & GrantFloorEvent) | ({
+        type: 'SetAgenda';
+    } & SetAgendaEvent) | ({
+        type: 'SetAgendaItemEvent';
+    } & SetAgendaItemEvent) | ({
+        type: 'MarkAgendaItemEvent';
+    } & MarkAgendaItemEvent) | ({
+        type: 'DeleteAgendaItemEvent';
+    } & DeleteAgendaItemEvent) | ({
+        type: 'SetPhaseEvent';
+    } & SetPhaseEvent) | ({
+        type: 'MarkRollCallEvent';
+    } & MarkRollCallEvent) | ({
+        type: 'CloseRollCallEvent';
+    } & CloseRollCallEvent) | ({
+        type: 'MarkRollCallBulkEvent';
+    } & MarkRollCallBulkEvent);
+};
+
+export type ClientSessionMessage = ({
+    type: 'authenticate';
+} & AuthenticateMessage) | ({
+    type: 'event';
+} & EventMessage);
+
+/**
+ * AgendaItem
+ */
+export type AgendaItem = {
+    /**
+     * Index
+     */
+    index: string;
+    /**
+     * Topic
+     */
+    topic: string;
+    /**
+     * Already Discussed
+     */
+    already_discussed: boolean;
+};
+
+/**
+ * DebateContext
+ */
+export type DebateContext = {
+    debate_type: DebateTypes;
+    return_state: States;
+    /**
+     * Total Duration Seconds
+     */
+    total_duration_seconds?: number | null;
+    /**
+     * Total Speeches
+     */
+    total_speeches?: number | null;
+    /**
+     * Per Speaker Seconds
+     */
+    per_speaker_seconds?: number | null;
+    /**
+     * Expires At
+     */
+    expires_at?: string | null;
+    /**
+     * Topic
+     */
+    topic?: string | null;
+};
+
+/**
+ * DelegationContext
+ */
+export type DelegationContext = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Seat
+     */
+    seat: string;
+    /**
+     * Code
+     */
+    code: string;
+};
+
+/**
+ * DispatchResultMessage
+ */
+export type DispatchResultMessage = {
+    /**
+     * Type
+     */
+    type?: 'dispatch_result';
+    state: SessionLiveState;
+    effect?: SessionEffect | null;
+};
+
+/**
+ * EventErrorCode
+ *
+ * Code errors for invalid events
+ */
+export const EventErrorCode = {
+    INVALID_MESSAGE: 'invalid_message',
+    FORBIDDEN: 'forbidden',
+    INVALID_STATE: 'invalid_state',
+    NOT_FOUND: 'not_found',
+    CONFLICT: 'conflict',
+    INTERNAL_ERROR: 'internal_error'
+} as const;
+
+/**
+ * EventErrorCode
+ *
+ * Code errors for invalid events
+ */
+export type EventErrorCode = typeof EventErrorCode[keyof typeof EventErrorCode];
+
+/**
+ * EventRejectedMessage
+ */
+export type EventRejectedMessage = {
+    /**
+     * Type
+     */
+    type?: 'event_rejected';
+    /**
+     * Request Id
+     */
+    request_id?: string | null;
+    code: EventErrorCode;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * MotionContext
+ */
+export type MotionContext = {
+    /**
+     * Id
+     */
+    id?: number | null;
+    /**
+     * Priority
+     */
+    priority?: number;
+    type: Motions;
+    /**
+     * Delegate Id
+     */
+    delegate_id?: number | null;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
+    debate_type?: DebateTypes | null;
+    /**
+     * Total Duration Minutes
+     */
+    total_duration_minutes?: number | null;
+    /**
+     * Per Speaker Seconds
+     */
+    per_speaker_seconds?: number | null;
+    /**
+     * Target Topic
+     */
+    target_topic?: string | null;
+    /**
+     * Details
+     */
+    details?: string | null;
+};
+
+/**
+ * QuestionContext
+ */
+export type QuestionContext = {
+    /**
+     * Id
+     */
+    id?: number | null;
+    /**
+     * Priority
+     */
+    priority?: number;
+    type: Questions;
+    /**
+     * Delegate Id
+     */
+    delegate_id?: number | null;
+    /**
+     * Details
+     */
+    details?: string | null;
+};
+
+/**
+ * RollCallContext
+ */
+export type RollCallContext = {
+    /**
+     * Registry
+     */
+    registry?: {
+        [key: string]: RollCallChoice;
+    };
+    return_state?: States | null;
+};
+
+/**
+ * SessionEffect
+ */
+export type SessionEffect = {
+    type: SessionEffectType;
+    /**
+     * Data
+     */
+    data?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * SessionEffectType
+ */
+export const SessionEffectType = { VOTE_CLOSED: 'Vote Closed' } as const;
+
+/**
+ * SessionEffectType
+ */
+export type SessionEffectType = typeof SessionEffectType[keyof typeof SessionEffectType];
+
+/**
+ * SessionLiveState
+ */
+export type SessionLiveState = {
+    /**
+     * Session Id
+     */
+    session_id: number;
+    /**
+     * Start Time
+     */
+    start_time: string;
+    /**
+     * Delegations
+     */
+    delegations: {
+        [key: string]: DelegationContext;
+    };
+    current_state?: States;
+    /**
+     * Timer Is Running
+     */
+    timer_is_running?: boolean;
+    /**
+     * Timer Expiration
+     */
+    timer_expiration?: string | null;
+    /**
+     * Timer Remaining Seconds
+     */
+    timer_remaining_seconds?: number;
+    /**
+     * Current Speaker
+     */
+    current_speaker?: number | null;
+    /**
+     * Gsl Queue
+     */
+    gsl_queue?: Array<number>;
+    /**
+     * Can Set Motion
+     */
+    can_set_motion?: boolean;
+    /**
+     * Gsl Default Time Seconds
+     */
+    gsl_default_time_seconds?: number;
+    /**
+     * Caucus List
+     */
+    caucus_list?: Array<number>;
+    debate?: DebateContext | null;
+    /**
+     * Submitted Motions
+     */
+    submitted_motions?: Array<MotionContext>;
+    /**
+     * Submitted Questions
+     */
+    submitted_questions?: Array<QuestionContext>;
+    /**
+     * Agenda Topics
+     */
+    agenda_topics?: {
+        [key: string]: AgendaItem;
+    };
+    /**
+     * Active Topic Index
+     */
+    active_topic_index?: string | null;
+    voting?: VotingContext | null;
+    roll_call: RollCallContext;
+    /**
+     * Has Veto Power
+     */
+    has_veto_power?: boolean;
+};
+
+/**
+ * StateSnapshotMessage
+ */
+export type StateSnapshotMessage = {
+    /**
+     * Type
+     */
+    type?: 'state_snapshot';
+    state: SessionLiveState;
+};
 
 /**
  * VotingContext
@@ -1089,28 +1312,13 @@ export const VotingType = {
  */
 export type VotingType = typeof VotingType[keyof typeof VotingType];
 
-export type DummyCommitteesDummyGetData = {
-    body: BodyDummyCommitteesDummyGet;
-    path?: never;
-    query: {
-        enum1: DelegateEvents;
-        enum2: ChairEvents;
-    };
-    url: '/committees/dummy';
-};
-
-export type DummyCommitteesDummyGetErrors = {
-    /**
-     * Successful Response
-     */
-    404: unknown;
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DummyCommitteesDummyGetError = DummyCommitteesDummyGetErrors[keyof DummyCommitteesDummyGetErrors];
+export type ServerSessionMessage = ({
+    type: 'state_snapshot';
+} & StateSnapshotMessage) | ({
+    type: 'event_rejected';
+} & EventRejectedMessage) | ({
+    type: 'dispatch_result';
+} & DispatchResultMessage);
 
 export type HealthCommitteesHealthGetData = {
     body?: never;

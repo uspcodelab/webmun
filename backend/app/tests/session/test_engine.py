@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -257,6 +257,14 @@ def open_session_event() -> sch.OpenSessionEvent:
 
 
 @pytest.fixture
+def close_session_event() -> sch.CloseSessionEvent:
+    return sch.CloseSessionEvent(
+        type=enums.ChairEvents.CLOSE_SESSION,
+        payload=sch.EmptyPayload(),
+    )
+
+
+@pytest.fixture
 def set_agenda_event() -> sch.SetAgendaEvent:
     return sch.SetAgendaEvent(
         type=enums.ChairEvents.SET_AGENDA,
@@ -282,13 +290,72 @@ def test_get_question_priority() -> None:
     assert eng.get_question_priority(question) == 3
 
 
+def test_generates_independent_sequential_motion_and_question_ids(
+    session_state: md.SessionLiveState,
+) -> None:
+    assert eng.generate_next_motion_id(session_state) == 1
+    assert eng.generate_next_motion_id(session_state) == 2
+    assert eng.generate_next_question_id(session_state) == 1
+    assert eng.generate_next_question_id(session_state) == 2
+
+
+def test_validate_motion_payload_rejects_moderated_debate_without_speaking_time(
+    session_state: md.SessionLiveState,
+) -> None:
+    payload = sch.DelegateMotionPayload(
+        type=enums.Motions.CHANGE_DEBATE_TYPE,
+        debate_type=enums.DebateTypes.MODERATED_DEBATE,
+        total_duration_minutes=10,
+    )
+
+    with pytest.raises(eng.EventRejectedError) as exc_info:
+        eng.validate_motion_payload(payload, session_state)
+
+    assert exc_info.value.code is enums.EventErrorCode.INVALID_MESSAGE
+
+
+def test_count_present_delegations_handles_empty_and_populated_registry(
+    session_state: md.SessionLiveState,
+) -> None:
+    assert eng.count_present_delegations(session_state) == 0
+
+    session_state.roll_call.registry = {
+        0: enums.RollCallChoice.PRESENT,
+        1: enums.RollCallChoice.PRESENT_AND_VOTING,
+        2: enums.RollCallChoice.ABSENT,
+    }
+
+    assert eng.count_present_delegations(session_state) == 2
+
+
+def test_get_default_speaker_seconds_for_debate_gsl_and_other_state(
+    session_state: md.SessionLiveState,
+) -> None:
+    session_state.current_state = enums.States.MODERATED_CAUCUS
+    session_state.debate = md.DebateContext(
+        debate_type=enums.DebateTypes.MODERATED_DEBATE,
+        return_state=enums.States.OPEN_GSL,
+        per_speaker_seconds=45,
+    )
+    assert eng.get_default_speaker_seconds(session_state) == 45
+
+    session_state.current_state = enums.States.OPEN_GSL
+    session_state.gsl_default_time_seconds = 60
+    assert eng.get_default_speaker_seconds(session_state) == 60
+
+    session_state.current_state = enums.States.SETUP
+    assert eng.get_default_speaker_seconds(session_state) is None
+
+
 def test_delegate_can_submit_motion_in_open_gsl(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
     submit_debate_motion_event: sch.SubmitMotionEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, submit_debate_motion_event, delegate_actor)
+    state = engine.dispatch(
+        open_gsl_state, submit_debate_motion_event, delegate_actor
+    ).state
 
     assert len(state.submitted_motions) == 1
     assert state.submitted_motions[0].id == 1
@@ -302,8 +369,33 @@ def test_delegate_cannot_submit_motion_outside_allowed_phase(
     submit_debate_motion_event: sch.SubmitMotionEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Cannot submit this motion"):
+    with pytest.raises(eng.EventRejectedError) as exc_info:
         engine.dispatch(session_state, submit_debate_motion_event, delegate_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.INVALID_STATE
+
+
+@pytest.mark.parametrize(
+    "caucus_state",
+    [enums.States.MODERATED_CAUCUS, enums.States.UNMODERATED_CAUCUS],
+)
+def test_delegate_cannot_submit_motion_when_caucus_disables_motions(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    delegate_actor: md.SessionActor,
+    caucus_state: enums.States,
+) -> None:
+    session_state.current_state = caucus_state
+    session_state.can_set_motion = False
+    event = sch.SubmitMotionEvent(
+        type=enums.DelegateEvents.SUBMIT_MOTION,
+        payload=sch.DelegateMotionPayload(type=enums.Motions.POSTPONE_SESSION),
+    )
+
+    with pytest.raises(eng.EventRejectedError) as exc_info:
+        engine.dispatch(session_state, event, delegate_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.INVALID_STATE
 
 
 def test_delegate_cannot_submit_chair_motion(
@@ -312,7 +404,7 @@ def test_delegate_cannot_submit_chair_motion(
     log_motion_event: sch.LogMotionEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(session_state, log_motion_event, delegate_actor)
 
 
@@ -322,7 +414,7 @@ def test_chair_can_log_motion(
     log_motion_event: sch.LogMotionEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, log_motion_event, chair_actor)
+    state = engine.dispatch(session_state, log_motion_event, chair_actor).state
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None and state.voting.motion_in_vote is not None
     assert state.voting.motion_in_vote.type == log_motion_event.payload.type
@@ -334,7 +426,7 @@ def test_chair_cannot_submit_delegate_motion(
     submit_debate_motion_event: sch.SubmitMotionEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Delegate role required"):
+    with pytest.raises(eng.EventRejectedError, match="Delegate role required"):
         engine.dispatch(open_gsl_state, submit_debate_motion_event, chair_actor)
 
 
@@ -344,7 +436,7 @@ def test_delegate_can_submit_question(
     submit_question_event: sch.SubmitQuestionEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, submit_question_event, delegate_actor)
+    state = engine.dispatch(session_state, submit_question_event, delegate_actor).state
 
     assert len(state.submitted_questions) == 1
     assert state.submitted_questions[0].id == 1
@@ -358,12 +450,12 @@ def test_delegate_can_join_queue(
     join_queue_event: sch.JoinQueueEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, join_queue_event, delegate_actor)
+    state = engine.dispatch(open_gsl_state, join_queue_event, delegate_actor).state
 
     assert state.gsl_queue == [0]
 
 
-def test_delegate_cannot_join_queue_twice(
+def test_delegate_join_queue_is_idempotent(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
     join_queue_event: sch.JoinQueueEvent,
@@ -371,8 +463,9 @@ def test_delegate_cannot_join_queue_twice(
 ) -> None:
     engine.dispatch(open_gsl_state, join_queue_event, delegate_actor)
 
-    with pytest.raises(eng.InvalidProceduralMove, match="Already in Queue"):
-        engine.dispatch(open_gsl_state, join_queue_event, delegate_actor)
+    outcome = engine.dispatch(open_gsl_state, join_queue_event, delegate_actor)
+
+    assert outcome.state.gsl_queue == [delegate_actor.delegation.id]  # type: ignore[union-attr]
 
 
 def test_delegate_cannot_join_queue_outside_open_gsl(
@@ -381,7 +474,7 @@ def test_delegate_cannot_join_queue_outside_open_gsl(
     join_queue_event: sch.JoinQueueEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Cannot enter queue"):
+    with pytest.raises(eng.EventRejectedError, match="Cannot enter queue"):
         engine.dispatch(session_state, join_queue_event, delegate_actor)
 
 
@@ -391,7 +484,7 @@ def test_chair_cannot_join_queue(
     join_queue_event: sch.JoinQueueEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Delegate role required"):
+    with pytest.raises(eng.EventRejectedError, match="Delegate role required"):
         engine.dispatch(open_gsl_state, join_queue_event, chair_actor)
 
 
@@ -403,19 +496,20 @@ def test_delegate_can_leave_queue(
 ) -> None:
     open_gsl_state.gsl_queue.append(0)
 
-    state = engine.dispatch(open_gsl_state, leave_queue_event, delegate_actor)
+    state = engine.dispatch(open_gsl_state, leave_queue_event, delegate_actor).state
 
     assert state.gsl_queue == []
 
 
-def test_delegate_cannot_leave_queue_when_not_queued(
+def test_delegate_leave_queue_is_idempotent_when_not_queued(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
     leave_queue_event: sch.LeaveQueueEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Not in Queue"):
-        engine.dispatch(open_gsl_state, leave_queue_event, delegate_actor)
+    outcome = engine.dispatch(open_gsl_state, leave_queue_event, delegate_actor)
+
+    assert outcome.state.gsl_queue == []
 
 
 def test_delegate_can_cast_vote(
@@ -424,13 +518,15 @@ def test_delegate_can_cast_vote(
     cast_vote_event: sch.CastVoteEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor)
+    state = engine.dispatch(
+        informal_voting_state, cast_vote_event, delegate_actor
+    ).state
 
     assert state.voting is not None
     assert state.voting.voting_registry == {0: enums.VotingChoice.FAVOUR}
 
 
-def test_delegate_cannot_cast_vote_twice(
+def test_delegate_can_replace_vote(
     engine: eng.SessionEngine,
     informal_voting_state: md.SessionLiveState,
     cast_vote_event: sch.CastVoteEvent,
@@ -438,8 +534,12 @@ def test_delegate_cannot_cast_vote_twice(
 ) -> None:
     engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor)
 
-    with pytest.raises(eng.InvalidProceduralMove, match="Already cast vote"):
-        engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor)
+    outcome = engine.dispatch(informal_voting_state, cast_vote_event, delegate_actor)
+
+    assert outcome.state.voting is not None
+    assert outcome.state.voting.voting_registry == {
+        delegate_actor.delegation.id: enums.VotingChoice.FAVOUR  # type: ignore[union-attr]
+    }
 
 
 def test_delegate_cannot_cast_vote_without_voting_context(
@@ -448,8 +548,10 @@ def test_delegate_cannot_cast_vote_without_voting_context(
     cast_vote_event: sch.CastVoteEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Cannot vote"):
+    with pytest.raises(eng.EventRejectedError) as exc_info:
         engine.dispatch(session_state, cast_vote_event, delegate_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.INVALID_STATE
 
 
 def test_delegate_can_answer_roll_call(
@@ -460,7 +562,7 @@ def test_delegate_can_answer_roll_call(
 ) -> None:
     session_state.current_state = enums.States.ROLL_CALL
 
-    state = engine.dispatch(session_state, answer_roll_call_event, delegate_actor)
+    state = engine.dispatch(session_state, answer_roll_call_event, delegate_actor).state
 
     assert state.roll_call.registry == {0: enums.RollCallChoice.PRESENT}
 
@@ -478,7 +580,7 @@ def test_chair_can_close_roll_call(
         3: enums.RollCallChoice.ABSENT,
     }
 
-    state = engine.dispatch(session_state, close_roll_call_event, chair_actor)
+    state = engine.dispatch(session_state, close_roll_call_event, chair_actor).state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.roll_call.registry == {
@@ -514,12 +616,14 @@ def test_quorum_roll_call_restores_closed_gsl(
         },
     )
 
-    state = engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
+    state = engine.dispatch(
+        session_state, close_procedural_voting_event, chair_actor
+    ).state
 
     assert state.current_state == enums.States.ROLL_CALL
     assert state.roll_call.return_state == enums.States.CLOSED_GSL
 
-    state = engine.dispatch(state, close_roll_call_event, chair_actor)
+    state = engine.dispatch(state, close_roll_call_event, chair_actor).state
 
     assert state.current_state == enums.States.CLOSED_GSL
 
@@ -557,8 +661,10 @@ def test_quorum_roll_call_restores_moderated_caucus(
         },
     )
 
-    state = engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
-    state = engine.dispatch(state, close_roll_call_event, chair_actor)
+    state = engine.dispatch(
+        session_state, close_procedural_voting_event, chair_actor
+    ).state
+    state = engine.dispatch(state, close_roll_call_event, chair_actor).state
 
     assert state.current_state == enums.States.MODERATED_CAUCUS
     assert state.debate == debate
@@ -572,7 +678,7 @@ def test_delegate_cannot_close_roll_call(
 ) -> None:
     session_state.current_state = enums.States.ROLL_CALL
 
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(session_state, close_roll_call_event, delegate_actor)
 
 
@@ -584,10 +690,42 @@ def test_chair_can_toggle_timer(
 ) -> None:
     session_state.timer_remaining_seconds = 30
 
-    state = engine.dispatch(session_state, toggle_timer_event, chair_actor)
+    state = engine.dispatch(session_state, toggle_timer_event, chair_actor).state
 
     assert state.timer_is_running is True
     assert state.timer_expiration is not None
+
+
+def test_chair_can_pause_running_timer(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    toggle_timer_event: sch.ToggleTimerEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    session_state.timer_is_running = True
+    session_state.timer_expiration = datetime.now(UTC) + timedelta(seconds=30)
+
+    state = engine.dispatch(session_state, toggle_timer_event, chair_actor).state
+
+    assert state.timer_is_running is False
+    assert state.timer_expiration is None
+    assert 0 <= state.timer_remaining_seconds <= 30
+
+
+def test_chair_stops_expired_timer(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    toggle_timer_event: sch.ToggleTimerEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    session_state.timer_is_running = True
+    session_state.timer_expiration = datetime.now(UTC) - timedelta(seconds=1)
+
+    state = engine.dispatch(session_state, toggle_timer_event, chair_actor).state
+
+    assert state.timer_is_running is False
+    assert state.timer_expiration is None
+    assert state.timer_remaining_seconds == 0
 
 
 def test_delegate_cannot_toggle_timer(
@@ -596,7 +734,7 @@ def test_delegate_cannot_toggle_timer(
     toggle_timer_event: sch.ToggleTimerEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(session_state, toggle_timer_event, delegate_actor)
 
 
@@ -608,7 +746,7 @@ def test_chair_can_increase_paused_timer(
 ) -> None:
     session_state.timer_remaining_seconds = 30
 
-    state = engine.dispatch(session_state, increase_timer_event, chair_actor)
+    state = engine.dispatch(session_state, increase_timer_event, chair_actor).state
 
     assert state.timer_remaining_seconds == 45
     assert state.timer_is_running is False
@@ -620,7 +758,7 @@ def test_delegate_cannot_increase_timer(
     increase_timer_event: sch.IncreaseTimerEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(session_state, increase_timer_event, delegate_actor)
 
 
@@ -630,7 +768,9 @@ def test_chair_can_open_informal_voting(
     open_informal_voting_event: sch.OpenInformalVotingEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, open_informal_voting_event, chair_actor)
+    state = engine.dispatch(
+        open_gsl_state, open_informal_voting_event, chair_actor
+    ).state
 
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None
@@ -645,7 +785,7 @@ def test_delegate_cannot_open_informal_voting(
     open_informal_voting_event: sch.OpenInformalVotingEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(open_gsl_state, open_informal_voting_event, delegate_actor)
 
 
@@ -657,7 +797,7 @@ def test_chair_can_close_informal_voting(
 ) -> None:
     state = engine.dispatch(
         informal_voting_state, close_informal_voting_event, chair_actor
-    )
+    ).state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.voting is None
@@ -669,8 +809,37 @@ def test_chair_cannot_close_informal_voting_without_voting_context(
     close_informal_voting_event: sch.CloseInformalVotingEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="No voting present"):
+    with pytest.raises(eng.EventRejectedError) as exc_info:
         engine.dispatch(open_gsl_state, close_informal_voting_event, chair_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    "state_type,voting_type",
+    [
+        (enums.States.OPEN_GSL, enums.VotingType.INFORMAL),
+        (enums.States.VOTING_EXECUTION, enums.VotingType.PROCEDURAL),
+    ],
+)
+def test_chair_cannot_close_informal_voting_outside_its_active_context(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    close_informal_voting_event: sch.CloseInformalVotingEvent,
+    chair_actor: md.SessionActor,
+    state_type: enums.States,
+    voting_type: enums.VotingType,
+) -> None:
+    session_state.current_state = state_type
+    session_state.voting = md.VotingContext(
+        target_type=voting_type,
+        return_state=enums.States.OPEN_GSL,
+    )
+
+    with pytest.raises(eng.EventRejectedError) as exc_info:
+        engine.dispatch(session_state, close_informal_voting_event, chair_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.INVALID_STATE
 
 
 def test_chair_can_resolve_motion_into_procedural_voting(
@@ -682,7 +851,7 @@ def test_chair_can_resolve_motion_into_procedural_voting(
 ) -> None:
     open_gsl_state.submitted_motions.append(close_speakers_list_motion)
 
-    state = engine.dispatch(open_gsl_state, resolve_motion_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, resolve_motion_event, chair_actor).state
 
     assert state.current_state == enums.States.VOTING_EXECUTION
     assert state.voting is not None
@@ -703,7 +872,7 @@ def test_chair_can_deny_motion_without_opening_vote(
         payload=sch.ChairResolveMotionPayload(motion_id=1, action=False),
     )
 
-    state = engine.dispatch(open_gsl_state, event, chair_actor)
+    state = engine.dispatch(open_gsl_state, event, chair_actor).state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.voting is None
@@ -719,7 +888,7 @@ def test_delegate_cannot_resolve_motion(
 ) -> None:
     open_gsl_state.submitted_motions.append(close_speakers_list_motion)
 
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(open_gsl_state, resolve_motion_event, delegate_actor)
 
 
@@ -741,14 +910,17 @@ def test_chair_can_close_passed_procedural_vote(
         2: enums.VotingChoice.AGAINST,
     }
 
-    state = engine.dispatch(
+    outcome = engine.dispatch(
         procedural_voting_state,
         close_procedural_voting_event,
         chair_actor,
     )
+    state = outcome.state
 
     assert state.current_state == enums.States.CLOSED_GSL
     assert state.voting is None
+    assert outcome.effect is not None
+    assert outcome.effect.data.get("passed") is True
 
 
 def test_chair_can_close_failed_procedural_vote(
@@ -769,14 +941,17 @@ def test_chair_can_close_failed_procedural_vote(
         2: enums.VotingChoice.AGAINST,
     }
 
-    state = engine.dispatch(
+    outcome = engine.dispatch(
         procedural_voting_state,
         close_procedural_voting_event,
         chair_actor,
     )
+    state = outcome.state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.voting is None
+    assert outcome.effect is not None
+    assert outcome.effect.data.get("passed") is False
 
 
 def test_delegate_cannot_close_procedural_vote(
@@ -785,12 +960,69 @@ def test_delegate_cannot_close_procedural_vote(
     close_procedural_voting_event: sch.CloseProceduralVotingEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(
             procedural_voting_state,
             close_procedural_voting_event,
             delegate_actor,
         )
+
+
+def test_chair_cannot_close_procedural_vote_without_voting_context(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    close_procedural_voting_event: sch.CloseProceduralVotingEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    with pytest.raises(eng.EventRejectedError) as exc_info:
+        engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    "state_type,voting_type",
+    [
+        (enums.States.OPEN_GSL, enums.VotingType.PROCEDURAL),
+        (enums.States.VOTING_EXECUTION, enums.VotingType.INFORMAL),
+    ],
+)
+def test_chair_cannot_close_procedural_vote_outside_its_active_context(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    close_procedural_voting_event: sch.CloseProceduralVotingEvent,
+    chair_actor: md.SessionActor,
+    state_type: enums.States,
+    voting_type: enums.VotingType,
+) -> None:
+    session_state.current_state = state_type
+    session_state.voting = md.VotingContext(
+        target_type=voting_type,
+        return_state=enums.States.OPEN_GSL,
+    )
+
+    with pytest.raises(eng.EventRejectedError) as exc_info:
+        engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.INVALID_STATE
+
+
+def test_chair_cannot_close_procedural_vote_without_motion(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    close_procedural_voting_event: sch.CloseProceduralVotingEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    session_state.current_state = enums.States.VOTING_EXECUTION
+    session_state.voting = md.VotingContext(
+        target_type=enums.VotingType.PROCEDURAL,
+        return_state=enums.States.OPEN_GSL,
+    )
+
+    with pytest.raises(eng.EventRejectedError) as exc_info:
+        engine.dispatch(session_state, close_procedural_voting_event, chair_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.NOT_FOUND
 
 
 def test_chair_can_finish_caucus_and_restore_original_gsl_state(
@@ -812,7 +1044,7 @@ def test_chair_can_finish_caucus_and_restore_original_gsl_state(
         expires_at=datetime.now(UTC),
     )
 
-    state = engine.dispatch(open_gsl_state, finish_caucus_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, finish_caucus_event, chair_actor).state
 
     assert state.current_state == enums.States.OPEN_GSL
     assert state.debate is None
@@ -829,7 +1061,7 @@ def test_delegate_cannot_finish_caucus(
     finish_caucus_event: sch.FinishCaucusEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(open_gsl_state, finish_caucus_event, delegate_actor)
 
 
@@ -839,7 +1071,7 @@ def test_chair_cannot_finish_without_active_caucus(
     finish_caucus_event: sch.FinishCaucusEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="No active caucus"):
+    with pytest.raises(eng.EventRejectedError, match="No active caucus"):
         engine.dispatch(open_gsl_state, finish_caucus_event, chair_actor)
 
 
@@ -890,7 +1122,7 @@ def test_chair_can_advance_gsl_speaker(
 ) -> None:
     open_gsl_state.gsl_queue = [1, 2]
 
-    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.gsl_queue == [2]
@@ -908,7 +1140,7 @@ def test_chair_can_advance_tour_de_table_speaker(
     open_gsl_state.current_state = enums.States.TOUR_DE_TABLE
     open_gsl_state.caucus_list = [1, 2]
 
-    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.caucus_list == [2]
@@ -924,7 +1156,7 @@ def test_next_speaker_clears_current_speaker_when_gsl_empty(
     open_gsl_state.current_speaker = 1
     open_gsl_state.timer_is_running = True
 
-    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, next_speaker_event, chair_actor).state
 
     assert state.current_speaker is None
     assert state.timer_remaining_seconds == 0
@@ -939,7 +1171,7 @@ def test_next_speaker_rejects_moderated_caucus(
 ) -> None:
     open_gsl_state.current_state = enums.States.MODERATED_CAUCUS
 
-    with pytest.raises(eng.InvalidProceduralMove, match="must grant floor"):
+    with pytest.raises(eng.EventRejectedError, match="must grant floor"):
         engine.dispatch(open_gsl_state, next_speaker_event, chair_actor)
 
 
@@ -949,7 +1181,7 @@ def test_delegate_cannot_advance_speaker(
     next_speaker_event: sch.NextSpeakerEvent,
     delegate_actor: md.SessionActor,
 ) -> None:
-    with pytest.raises(eng.InvalidProceduralMove, match="Chair role required"):
+    with pytest.raises(eng.EventRejectedError, match="Chair role required"):
         engine.dispatch(open_gsl_state, next_speaker_event, delegate_actor)
 
 
@@ -959,12 +1191,12 @@ def test_chair_can_add_gsl_speaker(
     add_gsl_speaker_event: sch.AddGslSpeakerEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(open_gsl_state, add_gsl_speaker_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, add_gsl_speaker_event, chair_actor).state
 
     assert state.gsl_queue == [1]
 
 
-def test_add_gsl_speaker_rejects_duplicates(
+def test_add_gsl_speaker_is_idempotent(
     engine: eng.SessionEngine,
     open_gsl_state: md.SessionLiveState,
     add_gsl_speaker_event: sch.AddGslSpeakerEvent,
@@ -972,8 +1204,9 @@ def test_add_gsl_speaker_rejects_duplicates(
 ) -> None:
     open_gsl_state.gsl_queue = [1]
 
-    with pytest.raises(eng.InvalidProceduralMove, match="already in GSL queue"):
-        engine.dispatch(open_gsl_state, add_gsl_speaker_event, chair_actor)
+    outcome = engine.dispatch(open_gsl_state, add_gsl_speaker_event, chair_actor)
+
+    assert outcome.state.gsl_queue == [1]
 
 
 def test_chair_can_grant_floor_and_remove_gsl_queue_entry(
@@ -984,7 +1217,7 @@ def test_chair_can_grant_floor_and_remove_gsl_queue_entry(
 ) -> None:
     open_gsl_state.gsl_queue = [0, 1, 2]
 
-    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.gsl_queue == [0, 2]
@@ -1000,7 +1233,7 @@ def test_chair_can_grant_floor_and_remove_tour_de_table_entry(
     open_gsl_state.current_state = enums.States.TOUR_DE_TABLE
     open_gsl_state.caucus_list = [0, 1, 2]
 
-    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.caucus_list == [0, 2]
@@ -1021,7 +1254,7 @@ def test_chair_can_grant_floor_in_moderated_caucus(
     )
     open_gsl_state.caucus_list = [0, 1]
 
-    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
+    state = engine.dispatch(open_gsl_state, grant_floor_event, chair_actor).state
 
     assert state.current_speaker == 1
     assert state.caucus_list == [0, 1]
@@ -1036,7 +1269,7 @@ def test_grant_floor_rejects_unmoderated_caucus(
 ) -> None:
     open_gsl_state.current_state = enums.States.UNMODERATED_CAUCUS
 
-    with pytest.raises(eng.InvalidProceduralMove, match="unmoderated caucus"):
+    with pytest.raises(eng.EventRejectedError, match="unmoderated caucus"):
         engine.dispatch(open_gsl_state, grant_floor_event, chair_actor)
 
 
@@ -1048,7 +1281,7 @@ def test_chair_can_mark_roll_call(
 ) -> None:
     session_state.current_state = enums.States.ROLL_CALL
 
-    state = engine.dispatch(session_state, mark_roll_call_event, chair_actor)
+    state = engine.dispatch(session_state, mark_roll_call_event, chair_actor).state
 
     assert state.roll_call.registry == {1: enums.RollCallChoice.PRESENT_AND_VOTING}
 
@@ -1067,7 +1300,7 @@ def test_chair_cannot_mark_roll_call_nonexistent_delegations(
         ),
     )
 
-    with pytest.raises(eng.InvalidProceduralMove):
+    with pytest.raises(eng.EventRejectedError):
         engine.dispatch(session_state, event, chair_actor)
 
 
@@ -1079,7 +1312,7 @@ def test_chair_can_mark_roll_call_bulk(
 ) -> None:
     session_state.current_state = enums.States.ROLL_CALL
 
-    state = engine.dispatch(session_state, mark_roll_call_bulk_event, chair_actor)
+    state = engine.dispatch(session_state, mark_roll_call_bulk_event, chair_actor).state
 
     assert state.roll_call.registry == {
         1: enums.RollCallChoice.PRESENT,
@@ -1105,7 +1338,7 @@ def test_chair_cannot_mark_roll_call_bulk_nonexistent_delegations(
         payload=sch.MarkRollCallBulkPayload(Rollcalls=roll_calls_dict),
     )
 
-    with pytest.raises(eng.InvalidProceduralMove):
+    with pytest.raises(eng.EventRejectedError):
         engine.dispatch(session_state, event, chair_actor)
 
 
@@ -1118,10 +1351,53 @@ def test_chair_open_session_starts_roll_call(
     session_state.current_state = enums.States.SETUP
     session_state.roll_call.registry = {1: enums.RollCallChoice.PRESENT}
 
-    state = engine.dispatch(session_state, open_session_event, chair_actor)
+    state = engine.dispatch(session_state, open_session_event, chair_actor).state
 
     assert state.current_state == enums.States.ROLL_CALL
     assert state.roll_call.registry == {}
+
+
+def test_chair_can_close_session_and_clears_live_debate_state(
+    engine: eng.SessionEngine,
+    session_state: md.SessionLiveState,
+    close_session_event: sch.CloseSessionEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    session_state.current_state = enums.States.ROLL_CALL
+    session_state.current_speaker = 1
+    session_state.gsl_queue = [0, 1]
+    session_state.can_set_motion = True
+    session_state.debate = md.DebateContext(
+        debate_type=enums.DebateTypes.MODERATED_DEBATE,
+        return_state=enums.States.OPEN_GSL,
+        per_speaker_seconds=60,
+    )
+    session_state.timer_is_running = True
+    session_state.timer_expiration = datetime.now(UTC) + timedelta(seconds=60)
+    session_state.timer_remaining_seconds = 60
+
+    state = engine.dispatch(session_state, close_session_event, chair_actor).state
+
+    assert state.current_state is enums.States.FINISHED
+    assert state.current_speaker is None
+    assert state.gsl_queue == []
+    assert state.can_set_motion is False
+    assert state.debate is None
+    assert state.timer_is_running is False
+    assert state.timer_expiration is None
+    assert state.timer_remaining_seconds == 0
+
+
+def test_chair_cannot_close_session_from_active_debate(
+    engine: eng.SessionEngine,
+    open_gsl_state: md.SessionLiveState,
+    close_session_event: sch.CloseSessionEvent,
+    chair_actor: md.SessionActor,
+) -> None:
+    with pytest.raises(eng.EventRejectedError) as exc_info:
+        engine.dispatch(open_gsl_state, close_session_event, chair_actor)
+
+    assert exc_info.value.code is enums.EventErrorCode.INVALID_STATE
 
 
 @pytest.mark.xfail(strict=True, reason="SetAgendaEvent handler is not implemented.")
@@ -1131,7 +1407,7 @@ def test_chair_can_set_agenda(
     set_agenda_event: sch.SetAgendaEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, set_agenda_event, chair_actor)
+    state = engine.dispatch(session_state, set_agenda_event, chair_actor).state
 
     assert state.agenda_topics == [("Topic A", True), ("Topic B", True)]
     assert state.active_topic_index == 0
@@ -1144,6 +1420,6 @@ def test_chair_can_manually_set_phase(
     manual_phase_set_event: sch.SetPhaseEvent,
     chair_actor: md.SessionActor,
 ) -> None:
-    state = engine.dispatch(session_state, manual_phase_set_event, chair_actor)
+    state = engine.dispatch(session_state, manual_phase_set_event, chair_actor).state
 
     assert state.current_state == enums.States.OPEN_GSL
