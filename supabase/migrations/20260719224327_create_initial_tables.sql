@@ -1,20 +1,90 @@
+------------------------------------------------------
+-- ENUMS AND TYPES
+------------------------------------------------------
 create type activity_status as enum ('active', 'closed', 'planned', 'cancelled');
-create type committee_role as enum ('chair', 'delegate');
 create type asset_type as enum ('preset', 'custom');
+create type conference_role as enum (
+	'admin', -- Secretary general
+	'chair',      -- Director / Moderator
+	'press',      -- Press / Media team
+	'staff',      -- General logistics / Crisis backroom
+	'participant'    -- Participant representation
+)
 
+------------------------------------------------------
+-- CORE CONFERENCE HIERARCHY
+------------------------------------------------------
 create table conferences (
 	id bigint primary key generated always as identity, 
 	name varchar(255) not null,
+	slug varchar(100), 
 	status activity_status not null default 'planned',
-	owner_id uuid not null references auth.users on delete cascade
+	owner_id uuid not null references auth.users on delete cascade,
+	
+	location varchar(255),
+	logo varchar(1000),
+	color varchar(7) not null default '#0f172a',
+	start_date timestamptz not null,
+	end_date timestamptz not null,
+
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now(),
 );
 
 create table committees (
 	id bigint primary key generated always as identity,
 	conference_id bigint not null references conferences(id),
-	name varchar(64) not null,
-	status activity_status not null default 'planned'
+
+	name varchar(128) not null, -- full name
+	code varchar(64) not null, -- code name
+	logo varchar(1000),
+	topic TEXT,
+	status activity_status not null default 'planned',
+
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now(),
 );
+
+create table sessions (
+	id bigint primary key generated always as identity,
+	committee_id bigint not null references committees(id) on delete cascade,
+	name varchar(64),
+	status activity_status not null default 'planned',
+	started_at timestamptz,
+	ended_at timestamptz,
+	state_snapshot JSONB
+);
+
+------------------------------------------------------
+--- CONFERENCE MEMBERS
+------------------------------------------------------
+
+create table conference_assignments (
+	id bigint primary key generated always as identity,
+	conference_id bigint not null references conferences(id) on delete cascade,
+
+	user_id uuid references auth.users(id) on delete set null, 
+	name varchar(255) not null,
+	email varchar(255) not null,
+	institution varchar(255),
+
+	-- Assign role and permissions
+	role conference_role not null default 'participant',
+
+	-- null if conference_role is admin/press/...
+	committee_id bigint references committees(id) on delete set null,
+
+	-- null if not participant/delegation
+	representation_id bigint null references representations(id) on delete set null, 
+
+	created_at timestamptz not null default now(),
+	unique (conference_id, email, committee_id)
+);
+
+
+------------------------------------------------------
+--- SESSION THINGS
+------------------------------------------------------
 
 -- This table references preset/custom representations that we might work with. We can perhaps separate the two of them later
 create table representations (
@@ -54,22 +124,5 @@ create table committee_seats (
 	primary key (committee_id, representation_id)
 );
 
-create table committee_assignments (
-	user_id uuid not null references auth.users(id) on delete cascade, 
-	committee_id bigint not null references committees(id) on delete cascade,
-	role committee_role not null,
-	representation_id bigint null references representations(id), 
-
-	primary key (user_id, committee_id)
-);
-
-create table sessions (
-	id bigint primary key generated always as identity,
-	committee_id bigint not null references committees(id) on delete cascade,
-	name varchar(64),
-	status activity_status not null default 'planned',
-	started_at timestamptz,
-	ended_at timestamptz,
-	state_snapshot JSONB
-);
-
+create index idx_conf_members_user on conference_members(user_id);
+create index idx_conf_members_comm on conference_members(committee_id);
