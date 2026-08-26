@@ -12,12 +12,10 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
-from fastapi.exceptions import HTTPException
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.conference.service as conference_service
-import app.session.repository as repository
 import app.session.service as service
 from app.auth.dep import get_current_user
 from app.auth.service import (
@@ -58,25 +56,17 @@ async def create_session_endpoint(
     current_user: Annotated[AuthUser, Depends(get_current_user)],
 ):
     """POST endpoint to create a new session"""
-    try:
-        await conference_service.verify_user_role(
-            session=session,
-            user_id=current_user.user_id,
-            committee_id=session_schema.committee_id,
-            required_role="chair",
-        )
-
-        res = await service.create_session_service(
-            session=session,
-            session_schema=session_schema,
-        )
-        return {"id": res, "status": "Created"}
-
-    except service.SessionCreationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+    await conference_service.verify_user_role(
+        session=session,
+        user_id=current_user.user_id,
+        committee_id=session_schema.committee_id,
+        required_role="chair",
+    )
+    session_id = await service.create_session_service(
+        session=session,
+        session_schema=session_schema,
+    )
+    return {"id": session_id, "status": "Created"}
 
 
 @router.post("/{session_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
@@ -87,41 +77,18 @@ async def activate_session_endpoint(
     current_user: Annotated[AuthUser, Depends(get_current_user)],
 ):
     """Endpoint to activate a planned session"""
-    try:
-        stored = await repository.get_session_info(
-            session=db_session,
-            committee_session_id=session_id,
-        )
-        if stored is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found",
-            )
-
-        await conference_service.verify_user_role(
-            session=db_session,
-            user_id=current_user.user_id,
-            committee_id=stored.committee_id,
-            required_role="chair",
-        )
-
-        await service.activate_session(
-            session=db_session, manager=manager, committee_session_id=session_id
-        )
-    except AccessDeniedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc),
-        ) from exc
-    except service.SessionFetchError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
-    except service.SessionUpdateError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
-        ) from exc
+    stored = await service.get_session_for_activation(
+        session=db_session, committee_session_id=session_id
+    )
+    await conference_service.verify_user_role(
+        session=db_session,
+        user_id=current_user.user_id,
+        committee_id=stored.committee_id,
+        required_role="chair",
+    )
+    await service.activate_session(
+        session=db_session, manager=manager, committee_session_id=session_id
+    )
 
 
 @router.websocket("/ws/{session_id}")

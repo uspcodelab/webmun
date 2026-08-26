@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
@@ -43,26 +43,10 @@ app = FastAPI(
 # --- Exception Handlers
 
 
-@app.exception_handler(exceptions.NotFoundError)
-async def not_found_handler(request: Request, exc: exceptions.NotFoundError):
+@app.exception_handler(exceptions.AppException)
+async def app_exception_handler(request: Request, exc: exceptions.AppException):
     return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"detail": exc.message},
-    )
-
-
-@app.exception_handler(exceptions.AccessDeniedError)
-async def access_denied_handler(request: Request, exc: exceptions.AccessDeniedError):
-    return JSONResponse(
-        status_code=status.HTTP_403_FORBIDDEN,
-        content={"detail": exc.message},
-    )
-
-
-@app.exception_handler(exceptions.ConflictError)
-async def conflict_handler(request: Request, exc: exceptions.ConflictError):
-    return JSONResponse(
-        status_code=status.HTTP_409_CONFLICT,
+        status_code=exc.status_code,
         content={"detail": exc.message},
     )
 
