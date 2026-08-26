@@ -41,6 +41,17 @@ class CommitteeResponse(BaseModel):
     created_at: datetime | None = None
 
 
+class ConferenceSummary(BaseModel):
+    """Conference data needed to select a conference in the dashboard."""
+
+    id: int
+    name: str
+    logo: str | None = None
+    color: str
+    status: str
+    caller_role: str
+
+
 class ConferenceDetail(BaseModel):
     """Detailed conference information including its committees"""
 

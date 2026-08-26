@@ -5,6 +5,278 @@ export type ClientOptions = {
 };
 
 /**
+ * CommitteeCreate
+ *
+ * Schema for creating a committee
+ */
+export type CommitteeCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Logo
+     */
+    logo?: string | null;
+    /**
+     * Topic
+     */
+    topic?: string | null;
+    /**
+     * Status
+     */
+    status?: string;
+};
+
+/**
+ * CommitteeResponse
+ *
+ * Schema for returning committee details
+ */
+export type CommitteeResponse = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Conference Id
+     */
+    conference_id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Logo
+     */
+    logo?: string | null;
+    /**
+     * Topic
+     */
+    topic?: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+};
+
+/**
+ * ConferenceAssignment
+ *
+ * Holds information about a user's role, enrollment, and representation.
+ */
+export type ConferenceAssignment = {
+    /**
+     * Id
+     */
+    id?: number | null;
+    /**
+     * Conference Id
+     */
+    conference_id?: number | null;
+    /**
+     * User Id
+     */
+    user_id?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Institution
+     */
+    institution?: string | null;
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Committee Id
+     */
+    committee_id?: number | null;
+    /**
+     * Representation Id
+     */
+    representation_id?: number | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+};
+
+/**
+ * ConferenceCreate
+ *
+ * Schema for conference creation
+ */
+export type ConferenceCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Slug
+     */
+    slug?: string | null;
+    /**
+     * Location
+     */
+    location?: string | null;
+    /**
+     * Logo
+     */
+    logo?: string | null;
+    /**
+     * Color
+     */
+    color?: string;
+    /**
+     * Start Date
+     */
+    start_date: string;
+    /**
+     * End Date
+     */
+    end_date: string;
+};
+
+/**
+ * ConferenceDetail
+ *
+ * Detailed conference information including its committees
+ */
+export type ConferenceDetail = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Slug
+     */
+    slug?: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Owner Id
+     */
+    owner_id: string;
+    /**
+     * Location
+     */
+    location?: string | null;
+    /**
+     * Logo
+     */
+    logo?: string | null;
+    /**
+     * Color
+     */
+    color: string;
+    /**
+     * Start Date
+     */
+    start_date: string;
+    /**
+     * End Date
+     */
+    end_date: string;
+    /**
+     * Caller Role
+     */
+    caller_role?: string | null;
+    /**
+     * Committees
+     */
+    committees?: Array<CommitteeResponse>;
+};
+
+/**
+ * ConferenceSummary
+ *
+ * Conference data needed to select a conference in the dashboard.
+ */
+export type ConferenceSummary = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Logo
+     */
+    logo?: string | null;
+    /**
+     * Color
+     */
+    color: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Caller Role
+     */
+    caller_role: string;
+};
+
+/**
+ * EnrollMember
+ *
+ * Schema for enrolling/assigning a user into a conference
+ */
+export type EnrollMember = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Institution
+     */
+    institution?: string | null;
+    /**
+     * Role
+     */
+    role?: string;
+    /**
+     * Committee Id
+     */
+    committee_id?: number | null;
+    /**
+     * Representation Id
+     */
+    representation_id?: number | null;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -32,22 +304,28 @@ export type SessionCreationSchema = {
 
 /**
  * SessionRepresentation
+ *
+ * Session-specific access context for the authenticated user.
  */
 export type SessionRepresentation = {
     role: SessionRoles;
     /**
      * Representation Id
      */
-    representation_id: number | null;
+    representation_id?: number | null;
 };
 
 /**
  * SessionRoles
+ *
+ * Roles available to a participant in an active committee session.
  */
 export const SessionRoles = { CHAIR: 'chair', DELEGATE: 'delegate' } as const;
 
 /**
  * SessionRoles
+ *
+ * Roles available to a participant in an active committee session.
  */
 export type SessionRoles = typeof SessionRoles[keyof typeof SessionRoles];
 
@@ -1320,6 +1598,205 @@ export type ServerSessionMessage = ({
     type: 'dispatch_result';
 } & DispatchResultMessage);
 
+export type GetUserConferencesConferencesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/conferences/';
+};
+
+export type GetUserConferencesConferencesGetResponses = {
+    /**
+     * Response Get User Conferences Conferences  Get
+     *
+     * Successful Response
+     */
+    200: Array<ConferenceSummary>;
+};
+
+export type GetUserConferencesConferencesGetResponse = GetUserConferencesConferencesGetResponses[keyof GetUserConferencesConferencesGetResponses];
+
+export type CreateConferenceConferencesPostData = {
+    body: ConferenceCreate;
+    path?: never;
+    query?: never;
+    url: '/conferences/';
+};
+
+export type CreateConferenceConferencesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateConferenceConferencesPostError = CreateConferenceConferencesPostErrors[keyof CreateConferenceConferencesPostErrors];
+
+export type CreateConferenceConferencesPostResponses = {
+    /**
+     * Response Create Conference Conferences  Post
+     *
+     * Successful Response
+     */
+    201: {
+        [key: string]: unknown;
+    };
+};
+
+export type CreateConferenceConferencesPostResponse = CreateConferenceConferencesPostResponses[keyof CreateConferenceConferencesPostResponses];
+
+export type GetConferenceInfoConferencesIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/conferences/{id}';
+};
+
+export type GetConferenceInfoConferencesIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetConferenceInfoConferencesIdGetError = GetConferenceInfoConferencesIdGetErrors[keyof GetConferenceInfoConferencesIdGetErrors];
+
+export type GetConferenceInfoConferencesIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConferenceDetail;
+};
+
+export type GetConferenceInfoConferencesIdGetResponse = GetConferenceInfoConferencesIdGetResponses[keyof GetConferenceInfoConferencesIdGetResponses];
+
+export type CreateCommitteeConferencesIdCommitteesPostData = {
+    body: CommitteeCreate;
+    path: {
+        /**
+         * Id
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/conferences/{id}/committees';
+};
+
+export type CreateCommitteeConferencesIdCommitteesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateCommitteeConferencesIdCommitteesPostError = CreateCommitteeConferencesIdCommitteesPostErrors[keyof CreateCommitteeConferencesIdCommitteesPostErrors];
+
+export type CreateCommitteeConferencesIdCommitteesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: CommitteeResponse;
+};
+
+export type CreateCommitteeConferencesIdCommitteesPostResponse = CreateCommitteeConferencesIdCommitteesPostResponses[keyof CreateCommitteeConferencesIdCommitteesPostResponses];
+
+export type ListConferenceMembersConferencesConferenceIdMembersGetData = {
+    body?: never;
+    path: {
+        /**
+         * Conference Id
+         */
+        conference_id: number;
+    };
+    query?: never;
+    url: '/conferences/{conference_id}/members';
+};
+
+export type ListConferenceMembersConferencesConferenceIdMembersGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListConferenceMembersConferencesConferenceIdMembersGetError = ListConferenceMembersConferencesConferenceIdMembersGetErrors[keyof ListConferenceMembersConferencesConferenceIdMembersGetErrors];
+
+export type ListConferenceMembersConferencesConferenceIdMembersGetResponses = {
+    /**
+     * Response List Conference Members Conferences  Conference Id  Members Get
+     *
+     * Successful Response
+     */
+    200: Array<ConferenceAssignment>;
+};
+
+export type ListConferenceMembersConferencesConferenceIdMembersGetResponse = ListConferenceMembersConferencesConferenceIdMembersGetResponses[keyof ListConferenceMembersConferencesConferenceIdMembersGetResponses];
+
+export type EnrollMemberConferencesConferenceIdMembersPostData = {
+    body: EnrollMember;
+    path: {
+        /**
+         * Conference Id
+         */
+        conference_id: number;
+    };
+    query?: never;
+    url: '/conferences/{conference_id}/members';
+};
+
+export type EnrollMemberConferencesConferenceIdMembersPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type EnrollMemberConferencesConferenceIdMembersPostError = EnrollMemberConferencesConferenceIdMembersPostErrors[keyof EnrollMemberConferencesConferenceIdMembersPostErrors];
+
+export type EnrollMemberConferencesConferenceIdMembersPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: ConferenceAssignment;
+};
+
+export type EnrollMemberConferencesConferenceIdMembersPostResponse = EnrollMemberConferencesConferenceIdMembersPostResponses[keyof EnrollMemberConferencesConferenceIdMembersPostResponses];
+
+export type GetMySessionAccessConferencesSessionsSessionIdMeGetData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: number;
+    };
+    query?: never;
+    url: '/conferences/sessions/{session_id}/me';
+};
+
+export type GetMySessionAccessConferencesSessionsSessionIdMeGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMySessionAccessConferencesSessionsSessionIdMeGetError = GetMySessionAccessConferencesSessionsSessionIdMeGetErrors[keyof GetMySessionAccessConferencesSessionsSessionIdMeGetErrors];
+
+export type GetMySessionAccessConferencesSessionsSessionIdMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SessionRepresentation;
+};
+
+export type GetMySessionAccessConferencesSessionsSessionIdMeGetResponse = GetMySessionAccessConferencesSessionsSessionIdMeGetResponses[keyof GetMySessionAccessConferencesSessionsSessionIdMeGetResponses];
+
 export type HealthCommitteesHealthGetData = {
     body?: never;
     path?: never;
@@ -1386,33 +1863,3 @@ export type ActivateSessionEndpointCommitteesSessionIdActivatePostResponses = {
 };
 
 export type ActivateSessionEndpointCommitteesSessionIdActivatePostResponse = ActivateSessionEndpointCommitteesSessionIdActivatePostResponses[keyof ActivateSessionEndpointCommitteesSessionIdActivatePostResponses];
-
-export type GetMySessionAccessAccessSessionsSessionIdMeGetData = {
-    body?: never;
-    path: {
-        /**
-         * Session Id
-         */
-        session_id: number;
-    };
-    query?: never;
-    url: '/access/sessions/{session_id}/me';
-};
-
-export type GetMySessionAccessAccessSessionsSessionIdMeGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetMySessionAccessAccessSessionsSessionIdMeGetError = GetMySessionAccessAccessSessionsSessionIdMeGetErrors[keyof GetMySessionAccessAccessSessionsSessionIdMeGetErrors];
-
-export type GetMySessionAccessAccessSessionsSessionIdMeGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: SessionRepresentation;
-};
-
-export type GetMySessionAccessAccessSessionsSessionIdMeGetResponse = GetMySessionAccessAccessSessionsSessionIdMeGetResponses[keyof GetMySessionAccessAccessSessionsSessionIdMeGetResponses];

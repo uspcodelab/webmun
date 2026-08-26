@@ -120,7 +120,7 @@ async def websocket_endpoint(
 
         session_factory = websocket.app.state.db_session_factory
         async with session_factory() as db:
-            assignment = await conference_service.resolve_assignment(
+            assignment = await conference_service.resolve_session_assignment(
                 session=db, user_id=auth_user.user_id, session_id=session_id
             )
 

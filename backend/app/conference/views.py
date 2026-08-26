@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.conference.schemas as schemas
 import app.conference.service as service
+import app.session.schemas as session_schemas
 from app.auth.dep import get_current_user
 from app.auth.service import AuthUser
 from app.conference.models import ConferenceAssignment
@@ -30,8 +31,8 @@ async def create_conference(
 async def get_user_conferences(
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-) -> list[int]:
-    """Endpoint to get list of conference ids for a user"""
+) -> list[schemas.ConferenceSummary]:
+    """Return dashboard summaries for the authenticated user's conferences."""
     return await service.get_user_conferences(
         session=db_session, user_id=current_user.user_id
     )
@@ -106,11 +107,12 @@ async def get_my_session_access(
     session_id: int,
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
-) -> ConferenceAssignment:
+) -> session_schemas.SessionRepresentation:
     """Return the authenticated user's assignment context for a session."""
-    return await service.resolve_assignment(
+    assignment = await service.resolve_session_assignment(
         session=db_session, user_id=current_user.user_id, session_id=session_id
     )
-
-
-
+    return session_schemas.SessionRepresentation(
+        role=assignment.role,
+        representation_id=assignment.representation_id,
+    )

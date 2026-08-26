@@ -84,7 +84,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 	const [representation_id, setRepresentation_id] = useState<number | null>(null)
 
 	useEffect(() => {
-		fetch(`${import.meta.env.VITE_API_URL}/access/sessions/${parsedSessionId}/me`,
+		fetch(`${import.meta.env.VITE_API_URL}/conferences/sessions/${parsedSessionId}/me`,
 			{
 				method: "GET",
 				headers: {
@@ -95,7 +95,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 		).then((response) => {
 			if (!response.ok) throw new Error("Error when getting role")
 			return response.json()
-		}).then((data: SessionRepresentation) => { setRole(data.role); setRepresentation_id(data.representation_id); })
+		}).then((data: SessionRepresentation) => {
+			setRole(data.role);
+			setRepresentation_id(data.representation_id ?? null);
+		})
 	}, [parsedSessionId, token])
 
 	const value = {

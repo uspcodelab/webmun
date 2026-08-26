@@ -16,13 +16,14 @@ async def create_conference(
     conference_id = await repository.create_conference(
         session=session, user_id=user_id, payload=payload
     )
+    await session.commit()
     return conference_id
 
 
 async def get_user_conferences(
     session: AsyncSession, user_id: UUID
-) -> list[int]:
-    """Get all conference IDs for a user."""
+) -> list[dict[str, Any]]:
+    """Get dashboard summaries for all conferences available to a user."""
     return await repository.get_user_conferences(session=session, user_id=user_id)
 
 
@@ -68,9 +69,11 @@ async def create_committee(
             "Only conference owners and admins can create committees"
         )
 
-    return await repository.create_committee(
+    committee = await repository.create_committee(
         session=session, conference_id=conference_id, payload=payload
     )
+    await session.commit()
+    return committee
 
 
 async def enroll_member(
@@ -88,9 +91,11 @@ async def enroll_member(
             "Only conference owners and admins can enroll members"
         )
 
-    return await repository.enroll_member(
+    assignment = await repository.enroll_member(
         session=session, conference_id=conference_id, payload=payload
     )
+    await session.commit()
+    return assignment
 
 
 async def list_conference_members(
@@ -110,19 +115,10 @@ async def list_conference_members(
     )
 
 
-async def resolve_assignment(
-    session: AsyncSession,
-    user_id: UUID,
-    committee_id: int | None = None,
-    session_id: int | None = None,
+def _require_valid_assignment(
+    assignment: ConferenceAssignment | None,
 ) -> ConferenceAssignment:
-    """Resolve a user's assignment in a committee or session context."""
-    assignment = await repository.get_assignment(
-        session=session,
-        user_id=user_id,
-        committee_id=committee_id,
-        session_id=session_id,
-    )
+    """Validate that an assignment grants a usable committee identity."""
     if assignment is None:
         raise AccessDeniedError("User has no assignment for this context")
 
@@ -132,6 +128,34 @@ async def resolve_assignment(
     return assignment
 
 
+async def resolve_committee_assignment(
+    session: AsyncSession,
+    user_id: UUID,
+    committee_id: int,
+) -> ConferenceAssignment:
+    """Resolve a user's assignment for one committee."""
+    assignment = await repository.get_committee_assignment(
+        session=session,
+        user_id=user_id,
+        committee_id=committee_id,
+    )
+    return _require_valid_assignment(assignment)
+
+
+async def resolve_session_assignment(
+    session: AsyncSession,
+    user_id: UUID,
+    session_id: int,
+) -> ConferenceAssignment:
+    """Resolve a user's assignment for one committee session."""
+    assignment = await repository.get_session_assignment(
+        session=session,
+        user_id=user_id,
+        session_id=session_id,
+    )
+    return _require_valid_assignment(assignment)
+
+
 async def verify_user_role(
     session: AsyncSession,
     user_id: UUID,
@@ -139,7 +163,7 @@ async def verify_user_role(
     required_role: Literal["chair", "delegate"],
 ) -> ConferenceAssignment:
     """Verify and require that a user has a specific role for a committee."""
-    assignment = await resolve_assignment(
+    assignment = await resolve_committee_assignment(
         session=session, user_id=user_id, committee_id=committee_id
     )
 
@@ -149,6 +173,4 @@ async def verify_user_role(
         )
 
     return assignment
-
-
 

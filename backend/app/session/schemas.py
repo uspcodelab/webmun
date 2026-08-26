@@ -1,3 +1,4 @@
+from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -13,6 +14,20 @@ class SessionCreationSchema(BaseModel):
 
     committee_id: int
     name: str | None = None
+
+
+class SessionRoles(StrEnum):
+    """Roles available to a participant in an active committee session."""
+
+    CHAIR = "chair"
+    DELEGATE = "delegate"
+
+
+class SessionRepresentation(BaseModel):
+    """Session-specific access context for the authenticated user."""
+
+    role: SessionRoles
+    representation_id: int | None = None
 
 
 class MotionPayload(BaseModel):
