@@ -17,7 +17,7 @@ async def get_committee_assignment(
             ca.role,
             ca.representation_id
         FROM public.committees c 
-        JOIN public.committee_assignments ca 
+        JOIN public.conference_assignments ca 
         ON c.id = ca.committee_id
         WHERE c.id = :committee_id AND 
         ca.user_id = :user_id
@@ -31,10 +31,14 @@ async def get_committee_assignment(
     if row is None:
         return None
 
+    role = row["role"]
+    if role == "participant":
+        role = "delegate"
+
     return CommitteeAssignment(
         user_id=row["user_id"],
         committee_id=row["committee_id"],
-        role=row["role"],
+        role=role,
         representation_id=row["representation_id"],
     )
 
@@ -50,7 +54,7 @@ async def get_session_assignment(
             ca.role,
             ca.representation_id
         FROM public.sessions s
-        JOIN public.committee_assignments ca
+        JOIN public.conference_assignments ca
             ON ca.committee_id = s.committee_id
         WHERE s.id = :session_id
           AND ca.user_id = :user_id
@@ -63,9 +67,13 @@ async def get_session_assignment(
     if row is None:
         return None
 
+    role = row["role"]
+    if role == "participant":
+        role = "delegate"
+
     return CommitteeAssignment(
         user_id=row["user_id"],
         committee_id=row["committee_id"],
-        role=row["role"],
+        role=role,
         representation_id=row["representation_id"],
     )

@@ -4,7 +4,6 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.access.models import CommitteeAssignment
 from app.core.database import RepositoryError
 from app.session.models import DelegationContext, StoredSession
 
@@ -91,31 +90,6 @@ async def update_session_info(
         )
     except SQLAlchemyError as exc:
         raise RepositoryError("Session update failed") from exc
-
-
-async def bulk_insert_assignments(
-    session: AsyncSession, delegations: list[CommitteeAssignment]
-):
-    """Inserts via bulk all (uuid, delegation, session_id) rows"""
-    params = [
-        {
-            "user_id": d.user_id,
-            "session_id": d.committee_id,
-            "role": d.role,
-            "delegation_id": d.representation_id,
-        }
-        for d in delegations
-    ]
-
-    query = text("""
-        INSERT INTO public.committee_assignments (user_id, committee_id, role, representation_id)
-        VALUES (:user_id, :committee_id, :role, :representation_id)
-    """)
-
-    await session.execute(
-        query,
-        params,
-    )
 
 
 # TODO: pass this out to conferences/ domain

@@ -4,12 +4,12 @@
 create type activity_status as enum ('active', 'closed', 'planned', 'cancelled');
 create type asset_type as enum ('preset', 'custom');
 create type conference_role as enum (
-	'admin', -- Secretary general
-	'chair',      -- Director / Moderator
-	'press',      -- Press / Media team
-	'staff',      -- General logistics / Crisis backroom
-	'participant'    -- Participant representation
-)
+	'admin',        -- Secretary general / Organizer
+	'chair',        -- Director / Moderator
+	'press',        -- Press / Media team
+	'staff',        -- General logistics / Crisis backroom
+	'participant'  -- Delegate / Delegation
+);
 
 ------------------------------------------------------
 -- CORE CONFERENCE HIERARCHY
@@ -28,12 +28,12 @@ create table conferences (
 	end_date timestamptz not null,
 
 	created_at timestamptz not null default now(),
-	updated_at timestamptz not null default now(),
+	updated_at timestamptz not null default now()
 );
 
 create table committees (
 	id bigint primary key generated always as identity,
-	conference_id bigint not null references conferences(id),
+	conference_id bigint not null references conferences(id) on delete cascade,
 
 	name varchar(128) not null, -- full name
 	code varchar(64) not null, -- code name
@@ -42,7 +42,7 @@ create table committees (
 	status activity_status not null default 'planned',
 
 	created_at timestamptz not null default now(),
-	updated_at timestamptz not null default now(),
+	updated_at timestamptz not null default now()
 );
 
 create table sessions (
@@ -56,34 +56,7 @@ create table sessions (
 );
 
 ------------------------------------------------------
---- CONFERENCE MEMBERS
-------------------------------------------------------
-
-create table conference_assignments (
-	id bigint primary key generated always as identity,
-	conference_id bigint not null references conferences(id) on delete cascade,
-
-	user_id uuid references auth.users(id) on delete set null, 
-	name varchar(255) not null,
-	email varchar(255) not null,
-	institution varchar(255),
-
-	-- Assign role and permissions
-	role conference_role not null default 'participant',
-
-	-- null if conference_role is admin/press/...
-	committee_id bigint references committees(id) on delete set null,
-
-	-- null if not participant/delegation
-	representation_id bigint null references representations(id) on delete set null, 
-
-	created_at timestamptz not null default now(),
-	unique (conference_id, email, committee_id)
-);
-
-
-------------------------------------------------------
---- SESSION THINGS
+-- REPRESENTATIONS & LAYOUTS
 ------------------------------------------------------
 
 -- This table references preset/custom representations that we might work with. We can perhaps separate the two of them later
@@ -93,8 +66,7 @@ create table representations (
 	rep_type asset_type not null default 'preset',
 	code varchar(10),
 	identifier varchar(255) not null, -- this can be either an url if the rep_type is custom, or a code (like 'br')
-	conference_id bigint null -- if set references a specific conference. if we delete that conference entry, we might setup a custom handler on the
-	-- backend
+	conference_id bigint null references conferences(id) on delete cascade
 );
 
 -- preset layouts for conferences
@@ -119,10 +91,37 @@ create table layout_seats (
 create table committee_seats (
 	committee_id bigint not null references committees(id) on delete cascade,
 	representation_id bigint not null references representations(id) on delete cascade,
-	seat_label varchar(3),
+	seat_label varchar(3), 
 		
 	primary key (committee_id, representation_id)
 );
 
-create index idx_conf_members_user on conference_members(user_id);
-create index idx_conf_members_comm on conference_members(committee_id);
+------------------------------------------------------
+--- CONFERENCE MEMBERS & ASSIGNMENTS
+------------------------------------------------------
+
+create table conference_assignments (
+	id bigint primary key generated always as identity,
+	conference_id bigint not null references conferences(id) on delete cascade,
+
+	user_id uuid references auth.users(id) on delete set null, 
+	name varchar(255) not null,
+	email varchar(255) not null,
+	institution varchar(255),
+
+	-- Assign role and permissions
+	role conference_role not null default 'participant',
+
+	-- null if conference_role is admin/press/staff
+	committee_id bigint references committees(id) on delete set null,
+
+	-- null if not participant/delegation
+	representation_id bigint null references representations(id) on delete set null, 
+
+	created_at timestamptz not null default now(),
+	unique (conference_id, email, committee_id)
+);
+
+create index idx_conf_assignments_user on conference_assignments(user_id);
+create index idx_conf_assignments_comm on conference_assignments(committee_id);
+create index idx_conf_assignments_conf on conference_assignments(conference_id);

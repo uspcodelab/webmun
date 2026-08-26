@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import app.session.enums as enums
 import app.session.repository as repository
 import app.session.schemas as schemas
-from app.access.models import CommitteeAssignment
+from app.conference.models import ConferenceAssignment
 from app.core.database import RepositoryError
 from app.session.engine import SessionEngine
 
@@ -168,7 +168,7 @@ async def prepare_session_connect(
     session: AsyncSession,
     manager: ConnectionManager,
     committee_session_id: int,
-    assignment: CommitteeAssignment,
+    assignment: ConferenceAssignment,
 ) -> SessionActor:
     """Service that prepares for session connect.
     Primarily used as a fallback in case the SessionLiveState is not in manager

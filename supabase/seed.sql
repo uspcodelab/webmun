@@ -88,16 +88,17 @@ values
     (1, (select id from representations where code = 'tw'), '1-1'),
     (1, (select id from representations where code = 'tr'), '2-6');
 
-insert into public.committee_assignments
-	(user_id, committee_id, role, representation_id)
+insert into public.conference_assignments
+	(conference_id, user_id, name, email, role, committee_id, representation_id)
 values
-	('11111111-1111-1111-1111-111111111111', 1, 'chair', null),
-	('22222222-2222-2222-2222-222222222222', 1, 'delegate', (select id from representations where code = 'al')),
-	('33333333-3333-3333-3333-333333333333', 1, 'delegate', (select id from representations where code = 'de')),
-	('44444444-4444-4444-4444-444444444444', 1, 'delegate', (select id from representations where code = 'br'));
+	((select id from conferences where name = 'I WebMUN'), '11111111-1111-1111-1111-111111111111', 'Chair Person', 'chair@codelab.usp.br', 'chair', 1, null),
+	((select id from conferences where name = 'I WebMUN'), '22222222-2222-2222-2222-222222222222', 'Delegate Albania', 'albania@codelab.usp.br', 'participant', 1, (select id from representations where code = 'al')),
+	((select id from conferences where name = 'I WebMUN'), '33333333-3333-3333-3333-333333333333', 'Delegate Germany', 'alemanha@codelab.usp.br', 'participant', 1, (select id from representations where code = 'de')),
+	((select id from conferences where name = 'I WebMUN'), '44444444-4444-4444-4444-444444444444', 'Delegate Brazil', 'brazil@codelab.usp.br', 'participant', 1, (select id from representations where code = 'br'));
 
 insert into public.sessions 
 	(committee_id)
 values
 	(1);
+
 

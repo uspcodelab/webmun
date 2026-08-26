@@ -1,17 +1,20 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, status,
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
+from fastapi.responses import JSONResponse
+
+import app.core.exceptions as exceptions
 from app.access.views import router as access_router
+from app.conference.views import router as conference_router
 from app.core.config import get_settings
 from app.core.database import create_db
 from app.core.openapi import add_websocket_message_schemas
 from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
 from app.session.views import router as session_router
-import app.core.exceptions as exceptions
 
 
 # Startup and shutdown logic for shared variables, such as
@@ -40,12 +43,30 @@ app = FastAPI(
 
 # --- Exception Handlers
 
+
 @app.exception_handler(exceptions.NotFoundError)
 async def not_found_handler(request: Request, exc: exceptions.NotFoundError):
-    return {
-        "status_code": status.HTTP_404_NOT_FOUND,
-        "message": exc.message
-    }
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": exc.message},
+    )
+
+
+@app.exception_handler(exceptions.AccessDeniedError)
+async def access_denied_handler(request: Request, exc: exceptions.AccessDeniedError):
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN,
+        content={"detail": exc.message},
+    )
+
+
+@app.exception_handler(exceptions.ConflictError)
+async def conflict_handler(request: Request, exc: exceptions.ConflictError):
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={"detail": exc.message},
+    )
+
 
 # --- Middlewares
 
@@ -58,6 +79,7 @@ app.add_middleware(
 
 # --- Routes
 
+app.include_router(conference_router, prefix="/conferences", tags=["conferences"])
 app.include_router(session_router, prefix="/committees", tags=["committees"])
 app.include_router(access_router, prefix="/access", tags=["access"])
 
