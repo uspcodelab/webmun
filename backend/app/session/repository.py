@@ -5,13 +5,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.models import CommitteeAssignment
+from app.core.database import RepositoryError
 from app.session.models import DelegationContext, StoredSession
-
-
-class RepositoryError(Exception):
-    """Base exception for all repository issues"""
-
-    pass
 
 
 async def create_session(

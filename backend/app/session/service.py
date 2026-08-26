@@ -13,6 +13,7 @@ import app.session.enums as enums
 import app.session.repository as repository
 import app.session.schemas as schemas
 from app.access.models import CommitteeAssignment
+from app.core.database import RepositoryError
 from app.session.engine import SessionEngine
 
 from .manager import ConnectionManager
@@ -138,7 +139,7 @@ async def activate_session(
 
     try:
         await repository.update_session_info(session=session, session_info=updated)
-    except repository.RepositoryError:
+    except RepositoryError:
         raise SessionUpdateError("Could not update session info") from None
 
     await session.commit()

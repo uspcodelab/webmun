@@ -11,6 +11,12 @@ from sqlalchemy.ext.asyncio import (
 from app.core.config import Settings
 
 
+class RepositoryError(Exception):
+    """Base exception for all repository issues"""
+
+    pass
+
+
 def create_db(
     settings: Settings,
 ) -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
