@@ -3,11 +3,8 @@ from uuid import uuid4
 import pytest
 
 from app.access.models import CommitteeAssignment
-from app.access.service import (
-    AccessDenied,
-    resolve_committee_assignment,
-    verify_user_role,
-)
+from app.access.service import resolve_committee_assignment, verify_user_role
+from app.core.exceptions import AccessDeniedError
 
 
 @pytest.mark.anyio
@@ -17,7 +14,7 @@ async def test_denies_user_without_assignment(monkeypatch):
 
     monkeypatch.setattr("app.access.service.get_committee_assignment", no_assignment)
 
-    with pytest.raises(AccessDenied, match="no committee assignment"):
+    with pytest.raises(AccessDeniedError, match="no committee assignment"):
         await resolve_committee_assignment(object(), uuid4(), 1)
 
 
@@ -35,7 +32,7 @@ async def test_denies_delegate_without_delegation(monkeypatch):
         "app.access.service.get_committee_assignment", invalid_assignment
     )
 
-    with pytest.raises(AccessDenied, match="no delegation id"):
+    with pytest.raises(AccessDeniedError, match="no delegation id"):
         await resolve_committee_assignment(object(), uuid4(), 1)
 
 
@@ -74,7 +71,7 @@ async def test_role_check_denies_a_delegate_when_a_chair_is_required(monkeypatch
         "app.access.service.get_committee_assignment", delegate_assignment
     )
 
-    with pytest.raises(AccessDenied, match="requires the chair role"):
+    with pytest.raises(AccessDeniedError, match="requires the chair role"):
         await verify_user_role(object(), assignment.user_id, 1, "chair")
 
 

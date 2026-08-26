@@ -1,12 +1,14 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 
 from app.access.views import router as access_router
 from app.core.config import get_settings
 from app.core.database import create_db
+from app.core.exceptions import AppException
 from app.core.openapi import add_websocket_message_schemas
 from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
@@ -36,6 +38,11 @@ app = FastAPI(
     title="WebMUN API",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 # CORS config for Vite
 app.add_middleware(

@@ -4,11 +4,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.models import CommitteeAssignment
+from app.core.exceptions import AccessDeniedError
 
 from .repository import get_committee_assignment, get_session_assignment
-
-
-class AccessDenied(Exception): ...
 
 
 async def resolve_committee_assignment(
@@ -21,10 +19,10 @@ async def resolve_committee_assignment(
     )
 
     if assignment is None:
-        raise AccessDenied("User has no committee assignment")
+        raise AccessDeniedError("User has no committee assignment")
 
     if assignment.role == "delegate" and assignment.representation_id is None:
-        raise AccessDenied("Delegate role has no delegation id")
+        raise AccessDeniedError("Delegate role has no delegation id")
 
     return assignment
 
@@ -38,10 +36,10 @@ async def resolve_session_assignment(
     assignment = await get_session_assignment(session, user_id, session_id)
 
     if assignment is None:
-        raise AccessDenied("User has no assignment for this session")
+        raise AccessDeniedError("User has no assignment for this session")
 
     if assignment.role == "delegate" and assignment.representation_id is None:
-        raise AccessDenied("Delegate role has no delegation id")
+        raise AccessDeniedError("Delegate role has no delegation id")
 
     return assignment
 
@@ -56,9 +54,11 @@ async def verify_user_role(
     assignment = await get_committee_assignment(session, user_id, committee_id)
 
     if assignment is None:
-        raise AccessDenied("User has no committee assignment")
+        raise AccessDeniedError("User has no committee assignment")
 
     if assignment.role != required_role:
-        raise AccessDenied(f"User requires the {required_role} role for this committee")
+        raise AccessDeniedError(
+            f"User requires the {required_role} role for this committee"
+        )
 
     return assignment
