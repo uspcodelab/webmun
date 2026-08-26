@@ -5,8 +5,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.access.enums import SessionRoles
-from app.access.models import CommitteeAssignment
+from app.conference.models import ConferenceAssignment
 from app.session import enums
 from app.session.enums import SessionRole
 from app.session.manager import ConnectionManager
@@ -23,10 +22,10 @@ from app.session.service import (
 
 @pytest.fixture
 def brazil_assignment():
-    return CommitteeAssignment(
+    return ConferenceAssignment(
         user_id=UUID("44444444-4444-4444-4444-444444444444"),
         committee_id=0,
-        role=SessionRoles.DELEGATION,
+        role="delegate",
         representation_id=0,
     )
 
@@ -100,7 +99,7 @@ def test_cannot_build_actor_with_nonexistent_delegation(
 async def test_prepare_connect_without_db(
     connection_manager: ConnectionManager,
     session_state: SessionLiveState,
-    brazil_assignment: CommitteeAssignment,
+    brazil_assignment: ConferenceAssignment,
 ) -> None:
     connection_manager.room_states[0] = session_state
     mock_session = None
@@ -120,7 +119,7 @@ async def test_prepare_connect_without_db(
 @pytest.mark.anyio
 async def test_prepare_connect_fetches_db(
     connection_manager: ConnectionManager,
-    brazil_assignment: CommitteeAssignment,
+    brazil_assignment: ConferenceAssignment,
     monkeypatch,
 ) -> None:
     mock_session = MagicMock
@@ -156,7 +155,7 @@ async def test_prepare_connect_fetches_db(
 @pytest.mark.anyio
 async def test_cant_prepare_connect_storedlive_missing(
     connection_manager: ConnectionManager,
-    brazil_assignment: CommitteeAssignment,
+    brazil_assignment: ConferenceAssignment,
     monkeypatch,
 ) -> None:
     with pytest.raises(SessionFetchError, match="Could not fetch session info"):
