@@ -14,14 +14,16 @@ from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
 from app.session.views import router as session_router
 
-
 # Startup and shutdown logic for shared variables, such as
 # (db session, settings, connection manager, etc)
 # You can view more of this on "FastAPI Lifespan"
+
+settings = get_settings()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup phase
-    settings = get_settings()
     engine, session_factory = create_db(settings)
     app.state.db_engine = engine
     app.state.db_session_factory = session_factory
@@ -45,12 +47,19 @@ async def app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 
+settings = get_settings()
+
 # CORS config for Vite
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.list_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    if settings.ENVIRONMENT == "production"
+    else ["*"],
+    allow_headers=["Authorization", "Content-Type", "Accept"]
+    if settings.ENVIRONMENT == "production"
+    else ["*"],
 )
 
 # include commitees here?
