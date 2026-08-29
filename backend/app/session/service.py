@@ -13,6 +13,12 @@ import app.session.enums as enums
 import app.session.repository as repository
 import app.session.schemas as schemas
 from app.access.models import CommitteeAssignment
+from app.core.exceptions import (
+    BadRequest,
+    ConflictError,
+    InternalServerError,
+    NotFoundError,
+)
 from app.session.engine import EventRejectedError, SessionEngine
 
 from .manager import ConnectionManager
@@ -28,15 +34,7 @@ class ActorResolutionError(Exception):
     pass
 
 
-class SessionCreationError(Exception):
-    pass
-
-
 class SessionFetchError(Exception):
-    pass
-
-
-class SessionUpdateError(Exception):
     pass
 
 
@@ -91,11 +89,20 @@ async def create_session_service(
     )
 
     if session_id is None:
-        raise SessionCreationError("Could not create session with given schema")
+        raise BadRequest("Could not create session with given schema")
 
     await session.commit()
 
     return session_id
+
+
+async def get_session_for_activation(session: AsyncSession, committee_session_id: int):
+    stored = await repository.get_session_info(
+        session=session, committee_session_id=committee_session_id
+    )
+    if stored is None:
+        raise NotFoundError("Session not found")
+    return stored
 
 
 async def activate_session(
@@ -104,21 +111,16 @@ async def activate_session(
     committee_session_id: int,
 ):
     """Activate a planned session"""
-    stored = await repository.get_session_info(
-        session=session, committee_session_id=committee_session_id
-    )
-
-    if stored is None:
-        raise SessionFetchError("Could not fetch session info")
+    stored = await get_session_for_activation(session, committee_session_id)
     if stored.status != "planned":
-        raise SessionFetchError("Session already started")
+        raise ConflictError("Session already started")
 
     delegations = await repository.bulk_get_delegation_context(
         session=session, committee_id=stored.committee_id
     )
 
     if delegations is None:
-        raise SessionFetchError("Could not fetch session delegations info")
+        raise ConflictError("Session delegations are unavailable")
 
     live_state = SessionLiveState(
         session_id=stored.id,
@@ -139,7 +141,7 @@ async def activate_session(
     try:
         await repository.update_session_info(session=session, session_info=updated)
     except repository.RepositoryError:
-        raise SessionUpdateError("Could not update session info") from None
+        raise InternalServerError("Could not update session info") from None
 
     await session.commit()
 
