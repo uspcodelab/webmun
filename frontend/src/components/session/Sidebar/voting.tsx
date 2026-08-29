@@ -97,6 +97,7 @@ export default function VotingMenu() {
                 <p className="text-muted-foreground flex justify-center mb-4">Maioria Necessaria: {requiredMajority} votos</p>
 
             </div>
+            <div className="flex justify-center items-center mb-4">
             {canBeVetoed && isVetoed && (
                 <h2 className="text-red-700 font-bold text-xl">A moção foi vetada.</h2>
             )}
@@ -105,6 +106,7 @@ export default function VotingMenu() {
             ) : (
                 <h2 className="text-red-700 font-bold text-xl">A moção nao passsa.</h2>
             ) : null}
+            </div>
             {isChair && (
                 <div className="ml-4 mr-4 mb-2   flex w-auto min-w-0 flex-row gap-2 overflow-hidden">
                     <Button variant="destructive" className="flex-1 min-w-0"
