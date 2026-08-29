@@ -50,34 +50,37 @@ MOTIONS_ALLOWED: dict[States, set[Motions]] = {
         Motions.POSTPONE_SESSION,
         Motions.TOUR_DE_TABLE,
         Motions.END_DEBATE,
-        Motions.VOTE_AMENDMENT,
-        Motions.VOTE_BY_ROLL_CALL,
         Motions.CLOSE_SPEAKERS_LIST,
-        Motions.SPLIT_PROPOSAL,
         Motions.INTRODUCE_RESOLUTION_PROPOSAL,
-        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
         Motions.CHANGE_TOPIC,
         Motions.QUORUM,
         Motions.CUSTOM_MOTION,
     },
     States.CLOSED_GSL: {
-        Motions.REOPEN_SPEAKERS_LIST,
+        Motions.CHANGE_DEBATE_TYPE,
+        Motions.POSTPONE_SESSION,
+        Motions.TOUR_DE_TABLE,
         Motions.END_DEBATE,
-        Motions.VOTE_AMENDMENT,
-        Motions.VOTE_BY_ROLL_CALL,
+        Motions.REOPEN_SPEAKERS_LIST,
         Motions.INTRODUCE_RESOLUTION_PROPOSAL,
-        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
+        Motions.CHANGE_TOPIC,
         Motions.QUORUM,
         Motions.CUSTOM_MOTION,
     },
     States.VOTING_PREPARATION: {
         Motions.VOTE_BY_ROLL_CALL,
         Motions.SPLIT_PROPOSAL,
+        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
+        Motions.VOTE_AMENDMENT,
         Motions.CUSTOM_MOTION,
     },
     States.MODERATED_CAUCUS: {
+        Motions.CHANGE_DEBATE_TYPE,
         Motions.POSTPONE_SESSION,
+        Motions.TOUR_DE_TABLE,
         Motions.END_DEBATE,
+        Motions.INTRODUCE_RESOLUTION_PROPOSAL,
+        Motions.CHANGE_TOPIC,
         Motions.QUORUM,
         Motions.CUSTOM_MOTION,
     },
@@ -278,7 +281,7 @@ def handle_delegate_submit_motion(
         )
 
     if (
-        current_state in {States.MODERATED_CAUCUS, States.UNMODERATED_CAUCUS}
+        current_state in {States.UNMODERATED_CAUCUS}
         and not state.can_set_motion
     ):
         raise EventRejectedError(
@@ -551,52 +554,52 @@ def apply_passed_motion(
     state.timer_is_running = False
     state.timer_expiration = None
 
-    # 1st block: change of debate motions
-    if motion.type == Motions.CHANGE_DEBATE_TYPE and motion.debate_type is not None:
-        state.caucus_list = []
-        state.current_speaker = None
-        duration_seconds = (
-            (motion.total_duration_minutes * 60)
-            if motion.total_duration_minutes is not None
-            else 600
-        )  # defaults to 10 minutes as fallback
-
-        match motion.debate_type:
-            case DebateTypes.MODERATED_DEBATE:
-                next_state = States.MODERATED_CAUCUS
-                state.debate = DebateContext(
-                    debate_type=DebateTypes.MODERATED_DEBATE,
-                    return_state=return_state,
-                    total_duration_seconds=duration_seconds,
-                    per_speaker_seconds=motion.per_speaker_seconds,
-                    expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
-                )
-                reset_timer(
-                    state,
-                    motion.per_speaker_seconds
-                    if motion.per_speaker_seconds is not None
-                    else 60,
-                )
-
-            case DebateTypes.UNMODERATED_DEBATE:
-                next_state = States.UNMODERATED_CAUCUS
-                state.debate = DebateContext(
-                    debate_type=DebateTypes.UNMODERATED_DEBATE,
-                    return_state=return_state,
-                    total_duration_seconds=duration_seconds,
-                    per_speaker_seconds=None,
-                    expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
-                )
-                reset_timer(state)  # should not display per_speaker timer
-
-            case DebateTypes.SPEAKERS_LIST:
-                next_state = States.OPEN_GSL
-                state.debate = None
-                reset_timer(state, state.gsl_default_time_seconds)
-
-    match motion.type:
+    match motion.type: 
         case Motions.CHANGE_DEBATE_TYPE:
-            pass
+            if motion.debate_type is None:
+                raise EventRejectedError(
+                code=enums.EventErrorCode.INVALID_MESSAGE,
+                message="No Debate Type Provided",
+                )
+            state.current_speaker = None
+            duration_seconds = (
+                (motion.total_duration_minutes * 60)
+                if motion.total_duration_minutes is not None
+                else 600
+            )  # defaults to 10 minutes as fallback
+
+            match motion.debate_type:
+                case DebateTypes.MODERATED_DEBATE:
+                    next_state = States.MODERATED_CAUCUS
+                    state.debate = DebateContext(
+                        debate_type=DebateTypes.MODERATED_DEBATE,
+                        return_state=return_state,
+                        total_duration_seconds=duration_seconds,
+                        per_speaker_seconds=motion.per_speaker_seconds,
+                        expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
+                    )
+                    reset_timer(
+                        state,
+                        motion.per_speaker_seconds
+                        if motion.per_speaker_seconds is not None
+                        else 60,
+                    )
+
+                case DebateTypes.UNMODERATED_DEBATE:
+                    next_state = States.UNMODERATED_CAUCUS
+                    state.debate = DebateContext(
+                        debate_type=DebateTypes.UNMODERATED_DEBATE,
+                        return_state=return_state,
+                        total_duration_seconds=duration_seconds,
+                        per_speaker_seconds=None,
+                        expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
+                    )
+                    reset_timer(state)  # should not display per_speaker timer
+
+                case DebateTypes.SPEAKERS_LIST:
+                    next_state = States.OPEN_GSL
+                    state.debate = None
+                    reset_timer(state, state.gsl_default_time_seconds)
         case Motions.POSTPONE_SESSION:
             pass
         case Motions.REOPEN_SESSION:
@@ -982,11 +985,6 @@ def handle_mark_roll_call_bulk(
     state: SessionLiveState, event: schemas.MarkRollCallBulkEvent, actor: SessionActor
 ) -> DispatchOutcome:
     require_chair(actor)
-    if state.current_state != States.ROLL_CALL or state.roll_call is None:
-        raise EventRejectedError(
-            code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot mark roll call right now",
-        )
 
     for delegation_id in event.payload.Rollcalls.keys():
         if delegation_id not in state.delegations:
