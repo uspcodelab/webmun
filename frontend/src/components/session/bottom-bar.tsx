@@ -7,7 +7,7 @@ import ExitButton from "./bottom-bar-buttons/ExitButton"
 import BRBButton from "./bottom-bar-buttons/BRB"
 import IncidentHelp from "./bottom-bar-buttons/IncidentHelp"
 import { useSession } from "@/context/SessionContext"
-import { SessionRoles } from "@/schemas/types.gen"
+import { SessionRoles} from "@/schemas/types.gen"
 
 
 export default function BottomBar() {

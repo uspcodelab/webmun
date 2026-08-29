@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Play, Pause } from "lucide-react"
+import { Play, Pause, Plus } from "lucide-react"
+import { sendMessage } from "@/context/SessionContext"
+import { type IncreaseTimerEvent, ChairEvents } from "@/schemas/types.gen"
 import { useState } from "react"
 
 
@@ -18,7 +20,8 @@ export default function UnmoderatedDebate() {
 
             <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
                 <div className="text-6xl font-bold tracking-tight text-secondary">08:00</div>
-                <Button
+                <div className="flex flex-row gap-4">
+                    <Button
                     type="button"
                     size="icon"
                     variant="outline"
@@ -26,7 +29,10 @@ export default function UnmoderatedDebate() {
                 >
                     {isRunning ? <Pause className="h-9 w-9" /> : <Play className="h-9 w-9" />}
                 </Button>
-                <p className="text-sm text-muted-foreground">Temporizador placeholder</p>
+                <Button onClick={() => sendMessage({ type: ChairEvents.INCREASE_TIMER_EVENT, payload: { seconds: 5 } } satisfies IncreaseTimerEvent)}><Plus />5s</Button>
+
+                </div>
+                
             </div>
 
             <Separator></Separator>
