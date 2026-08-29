@@ -59,12 +59,11 @@ export default function SessionPage() {
                         />
                     </div>
                     <div className="flex h-full w-[25%] shrink-0 flex-col bg-white">
-                        {/*currentState === States.SETUP_ROOM && <div className='flex flex-1 items-center justify-center text-muted-foreground'><div className="flex flex-col gap-2 items-center"> <Clock8 className="h-10 w-10" /> <p>Aguarde a Sessão Começar</p></div></div>}
+                        {currentState === States.SETUP_ROOM && <div className='flex flex-1 items-center justify-center text-muted-foreground'><div className="flex flex-col gap-2 items-center"> <Clock8 className="h-10 w-10" /> <p>Aguarde a Sessão Começar</p></div></div>}
                         {currentState === States.OPEN_GSL && <SpeakerList />}
                         {currentState === States.MODERATED_CAUCUS && <ModeratedDebate />}
                         {currentState === States.UNMODERATED_CAUCUS && <UnmoderatedDebate />}
-                        {currentState === States.VOTING_EXECUTION && <VotingMenu />*/}
-                        <UnmoderatedDebate />
+                        {currentState === States.VOTING_EXECUTION && <VotingMenu />}
                         {currentState !== States.SETUP_ROOM  && <MotionsList />}
                         
                     </div>

@@ -143,7 +143,7 @@ export default function TestButton() {
       }}
     >
       <DialogTrigger asChild>
-        <Button disabled={currentState === States.SETUP_ROOM || currentState === States.ROLL_CALL} className="m-4 flex h-8/10  flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
+        <Button disabled={currentState === States.SETUP_ROOM || currentState === States.ROLL_CALL || currentState === States.UNMODERATED_CAUCUS} className="m-4 flex h-8/10  flex-col items-center justify-center gap-1 bg-white p-2 text-center text-neutral-500 hover:bg-tertiary-200 hover:text-secondary">
           <span className="flex h-[3vh] w-[3vh] items-center justify-center [&>svg]:size-full">
             <Hand className="size-[3vh]" />
           </span>
