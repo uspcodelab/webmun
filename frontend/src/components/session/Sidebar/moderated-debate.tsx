@@ -21,8 +21,9 @@ import { SessionRoles } from "@/schemas/types.gen"
 
 export default function ModeratedDebate() {
 
-    const {role} = useSession()
-    const isChair = role===SessionRoles.CHAIR
+    const { role } = useSession()
+    const remainingDiscouses = 1
+    const isChair = role === SessionRoles.CHAIR
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
     const delegationsById = useCommitteeStore((state) => state.delegations)
@@ -32,7 +33,7 @@ export default function ModeratedDebate() {
     })
     const waitingCount = queuedDelegations.length
 
-//TODO: Actually implement speaker history
+    //TODO: Actually implement speaker history
     return (
         <div className="flex min-h-0 flex-1 flex-col">
             <div className="mr-4 mb-2 ml-4 mt-4 ">
@@ -80,34 +81,54 @@ export default function ModeratedDebate() {
                 </Button>
             )}
             {isChair && (
-                <div className="ml-4 mr-4 mb-2   flex w-auto min-w-0 flex-row gap-2 overflow-hidden">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="outline"
-                                className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-                                disabled={waitingCount === 0}
-                            >
-                                <span className="md:hidden">Proximo</span>
-                                <span className="hidden md:inline">Proximo Orador</span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Escolher o próximo orador</p>
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white">
-                                <span className="md:hidden">Cessao</span>
-                                <span className="hidden md:inline">Cessao de Tempo</span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Ceder tempo restante a outra delegacao</p>
-                        </TooltipContent>
-                    </Tooltip>
-
+                <div className="ml-4 mr-4 mb-2   flex w-auto min-w-0 flex-col gap-2 overflow-hidden">
+                    <div className="flex flex-row w-full gap-2">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                                    disabled={waitingCount === 0}
+                                >
+                                    <span className="md:hidden">Proximo</span>
+                                    <span className="hidden md:inline">Proximo Orador</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Escolher o próximo orador</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white">
+                                    <span className="md:hidden">Cessao</span>
+                                    <span className="hidden md:inline">Cessao de Tempo</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Ceder tempo restante a outra delegacao</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                    <div className="flex flex-row w-full gap-2">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="destructive" disabled={currentSpeaker === null} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap ">
+                                    <span>Encerrar Fala</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Finalizar a fala atual e ceder o tempo a mesa</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <div className="flex flex-1 items-center justify-center px-2">
+                            {remainingDiscouses > 0 && (
+                                <p className="text-sm font-bold">
+                                    {remainingDiscouses} discursos restantes
+                                </p>
+                            )}
+                        </div>
+                    </div>
 
                 </div>
             )}
