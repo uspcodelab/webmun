@@ -2,13 +2,16 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Timer from "./timer"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
+import { States } from '@/schemas/types.gen';
 
 
-import  Agenda  from "./Agenda"
+import Agenda from "./Agenda"
 
 export default function TopBar() {
     const agendaTopics = useCommitteeStore((state) => state.agenda_topics)
     const activeTopicIndex = useCommitteeStore((state) => state.active_topic_index)
+    const currentState = useCommitteeStore((state) => state.current_state)
+
 
     const currentTopicLabel =
         activeTopicIndex !== null && activeTopicIndex !== undefined && agendaTopics !== undefined && agendaTopics[activeTopicIndex] !== undefined
@@ -21,7 +24,10 @@ export default function TopBar() {
                 <img src="/Images/branding/logo.png" alt="WebMun logo" className="h-full w-auto object-contain" />
                 <h1>Conselho de Segurança</h1>
                 <Separator orientation="vertical" />
-                <Timer />
+                {currentState != States.UNMODERATED_CAUCUS  &&
+                    <Timer />
+                }
+
 
                 <div className="ml-auto flex shrink-0 items-center gap-3 pl-2">
                     <div className="flex flex-col items-end gap-1">
@@ -47,6 +53,6 @@ export default function TopBar() {
 
         </div>
 
-        
+
     </>)
 }
