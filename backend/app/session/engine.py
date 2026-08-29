@@ -115,12 +115,12 @@ def validate_motion_payload(
     # can also raise error if there are missing fields
     if (
         payload.type == Motions.CHANGE_DEBATE_TYPE
-        and payload.debate_type == DebateTypes.MODERATED_DEBATE
-        and payload.per_speaker_seconds is None
+        and payload.debate_type == DebateTypes.UNMODERATED_DEBATE
+        and payload.total_duration_minutes is None
     ):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_MESSAGE,
-            message="Cannot submit motion without speaking time",
+            message="Cannot submit motion this motion without duration",
         )
 
 
