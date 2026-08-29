@@ -6,12 +6,14 @@ services:
     env_file:
       - ./frontend/.env.local
     environment:
-      - VITE_SUPABASE_URL=http://host.docker.internal:54321
+      OPENAPI_URL: http://backend:8000/openapi.json
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./frontend:/app
       - packages:/app/node_modules
+    ports:
+      - "5173:5173"
     depends_on:
       backend:
         condition: service_healthy
@@ -44,6 +46,8 @@ services:
       - ./backend/.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
     environment:
       - SUPABASE_URL=http://host.docker.internal:54321
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@host.docker.internal:54322/postgres
