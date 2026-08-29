@@ -3,10 +3,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     env_file:
       - ./frontend/.env.local
-    network_mode: host
+    environment:
+      - VITE_SUPABASE_URL=http://host.docker.internal:54321
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./frontend:/app
       - packages:/app/node_modules
@@ -40,8 +42,11 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./backend/.env
-    # Supabase CLI binds locally to the host. This local stack targets Linux.
-    network_mode: host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@host.docker.internal:54322/postgres
     volumes:
       - ./backend:/app
       - backend_packages:/app/.venv
