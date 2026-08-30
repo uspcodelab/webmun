@@ -35,7 +35,7 @@ class ConnectionManager:
 
     async def broadcast_message(self, session_id: int, message: ServerSessionMessage):
         """Sends current state to all clients in the room"""
-        for connection in self.active_connections[session_id]:
+        for connection in self.active_connections.get(session_id, {}):
             await connection.send_json(message.model_dump(mode="json"))
 
     async def send_message(
