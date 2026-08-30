@@ -47,8 +47,6 @@ async def app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 
-settings = get_settings()
-
 # CORS config for Vite
 app.add_middleware(
     CORSMiddleware,
