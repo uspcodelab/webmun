@@ -92,6 +92,7 @@ def event_message(request_id: str) -> dict:
 async def test_websocket_endpoint_broadcasts_dispatch_outcome(
     authenticated_websocket_dependencies,
     chair_actor: SessionActor,
+    fake_redis,
     session_state: SessionLiveState,
     monkeypatch,
 ) -> None:
@@ -104,6 +105,7 @@ async def test_websocket_endpoint_broadcasts_dispatch_outcome(
         return_value=DispatchOutcome(state=session_state)
     )
     monkeypatch.setattr(views.service, "handle_client_messages", handle_client_messages)
+    await views.store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
 
     await views.websocket_endpoint(
         websocket,  # type: ignore[arg-type]
@@ -112,15 +114,20 @@ async def test_websocket_endpoint_broadcasts_dispatch_outcome(
         engine=MagicMock(),
         logger=MagicMock(),
         settings=MagicMock(),
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
     assert websocket.accepted is True
     assert websocket.sent_json == [
         {
+            "type": "state_snapshot",
+            "state": session_state.model_dump(mode="json"),
+        },
+        {
             "type": "dispatch_result",
             "state": session_state.model_dump(mode="json"),
             "effect": None,
-        }
+        },
     ]
     handle_client_messages.assert_awaited_once()
 
@@ -129,6 +136,7 @@ async def test_websocket_endpoint_broadcasts_dispatch_outcome(
 async def test_websocket_endpoint_sends_rejection_only_to_sender(
     authenticated_websocket_dependencies,
     chair_actor: SessionActor,
+    fake_redis,
     session_state: SessionLiveState,
     monkeypatch,
 ) -> None:
@@ -149,6 +157,7 @@ async def test_websocket_endpoint_sends_rejection_only_to_sender(
         "handle_client_messages",
         AsyncMock(return_value=rejection),
     )
+    await views.store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
 
     await views.websocket_endpoint(
         websocket,  # type: ignore[arg-type]
@@ -157,15 +166,20 @@ async def test_websocket_endpoint_sends_rejection_only_to_sender(
         engine=MagicMock(),
         logger=MagicMock(),
         settings=MagicMock(),
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
     assert websocket.sent_json == [
+        {
+            "type": "state_snapshot",
+            "state": session_state.model_dump(mode="json"),
+        },
         {
             "type": "event_rejected",
             "request_id": str(request_id),
             "code": enums.EventErrorCode.INVALID_STATE,
             "message": "Cannot enter queue right now",
-        }
+        },
     ]
 
 
@@ -173,6 +187,7 @@ async def test_websocket_endpoint_sends_rejection_only_to_sender(
 async def test_websocket_endpoint_rejects_invalid_event_and_keeps_connection_open(
     authenticated_websocket_dependencies,
     chair_actor: SessionActor,
+    fake_redis,
     session_state: SessionLiveState,
     monkeypatch,
 ) -> None:
@@ -185,6 +200,7 @@ async def test_websocket_endpoint_rejects_invalid_event_and_keeps_connection_ope
     )
     handle_client_messages = AsyncMock()
     monkeypatch.setattr(views.service, "handle_client_messages", handle_client_messages)
+    await views.store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
 
     await views.websocket_endpoint(
         websocket,  # type: ignore[arg-type]
@@ -193,18 +209,21 @@ async def test_websocket_endpoint_rejects_invalid_event_and_keeps_connection_ope
         engine=MagicMock(),
         logger=MagicMock(),
         settings=MagicMock(),
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
     assert websocket.closed is None
-    assert websocket.sent_json[0]["type"] == "event_rejected"
-    assert websocket.sent_json[0]["request_id"] is None
-    assert websocket.sent_json[0]["code"] == enums.EventErrorCode.INVALID_MESSAGE
+    assert websocket.sent_json[0]["type"] == "state_snapshot"
+    assert websocket.sent_json[1]["type"] == "event_rejected"
+    assert websocket.sent_json[1]["request_id"] is None
+    assert websocket.sent_json[1]["code"] == enums.EventErrorCode.INVALID_MESSAGE
     handle_client_messages.assert_not_awaited()
 
 
 @pytest.mark.anyio
 async def test_websocket_endpoint_closes_when_initial_auth_message_is_invalid(
     chair_actor: SessionActor,
+    fake_redis,
 ) -> None:
     websocket = FakeWebSocket([{"type": "event"}])
 
@@ -215,6 +234,7 @@ async def test_websocket_endpoint_closes_when_initial_auth_message_is_invalid(
         engine=MagicMock(),
         logger=MagicMock(),
         settings=MagicMock(),
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
     assert websocket.accepted is True
