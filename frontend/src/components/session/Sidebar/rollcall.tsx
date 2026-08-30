@@ -1,5 +1,5 @@
 import { useCommitteeStore } from "@/store/useCommitteeStore"
-import { RollCallChoice, SessionRoles } from "@/schemas/types.gen"
+import { RollCallChoice, SessionRoles, type AnswerRollCallEvent, DelegateEvents } from "@/schemas/types.gen"
 import { Button } from "@/components/ui/button"
 import {
     Tooltip,
@@ -7,13 +7,18 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useSession } from "@/context/SessionContext"
+import { sendMessage } from "@/context/SessionContext"
+
 
 export default function RollCall() {
     const presentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
     const absentDelegations = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice === RollCallChoice.ABSENT).length)
     const totalDelegations = useCommitteeStore((state) => Object.keys(state.delegations).length)
 
+    const rcregistry = useCommitteeStore((state) => state.roll_call?.registry ?? {})
+
     const { role } = useSession()
+    const { representation_id } = useSession() 
     const isChair = role === SessionRoles.CHAIR
 
     return (
@@ -55,7 +60,11 @@ export default function RollCall() {
                     <div className="flex flex-row mt-4" >
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-green-800 text-white hover:bg-green-700">
+                                <Button 
+                                className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-green-800 text-white hover:bg-green-700"
+                                onClick={() => sendMessage({ type: DelegateEvents.ANSWER_ROLL_CALL_EVENT, payload: { choice: RollCallChoice.PRESENT_AND_VOTING } } satisfies AnswerRollCallEvent)}
+                                disabled={rcregistry[representation_id!] != null}
+                                >
                                     Presente e votante
                                 </Button>
                             </TooltipTrigger>
@@ -65,7 +74,11 @@ export default function RollCall() {
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-green-800 text-white hover:bg-green-700">
+                                <Button 
+                                className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-green-800 text-white hover:bg-green-700"
+                                onClick={() => sendMessage({ type: DelegateEvents.ANSWER_ROLL_CALL_EVENT, payload: { choice: RollCallChoice.PRESENT } } satisfies AnswerRollCallEvent)}
+                                disabled={rcregistry[representation_id!] != null}
+                                >
                                     Presente
                                 </Button>
                             </TooltipTrigger>
