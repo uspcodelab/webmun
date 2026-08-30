@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import redis.asyncio as redis
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -14,10 +15,6 @@ from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
 from app.session.views import router as session_router
 
-# Startup and shutdown logic for shared variables, such as
-# (db session, settings, connection manager, etc)
-# You can view more of this on "FastAPI Lifespan"
-
 settings = get_settings()
 
 
@@ -31,8 +28,13 @@ async def lifespan(app: FastAPI):
     app.state.session_engine = SessionEngine()
     app.state.connection_manager = ConnectionManager()
 
+    app.state.redis = redis.from_url(
+        settings.REDIS_URL.get_secret_value(),
+    )
+
     yield
 
+    await app.state.redis.close()
     await engine.dispose()
 
 

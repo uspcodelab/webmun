@@ -1,6 +1,7 @@
 import logging
 
 from fastapi.requests import HTTPConnection
+from redis.asyncio import Redis
 
 from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
@@ -18,3 +19,8 @@ def get_session_engine(connection: HTTPConnection) -> SessionEngine:
 
 def get_logger() -> logging.Logger:
     return logging.getLogger("uvicorn.error")
+
+
+def get_session_store(connection: HTTPConnection) -> Redis:
+    """Dependency injection for Cache pool"""
+    return connection.app.state.redis

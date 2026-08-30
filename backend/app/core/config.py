@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     # supabase config
     SUPABASE_URL: AnyHttpUrl
 
+    REDIS_URL: SecretStr
+
     @property
     def list_cors_origins(self) -> list[str]:
         origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
@@ -33,4 +35,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings():
-    return Settings()
+    return Settings()  # type:ignore

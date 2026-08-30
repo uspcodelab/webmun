@@ -3,16 +3,21 @@ set default-list := true
 MKDOCS := "mkdocs"
 
 # start the dev environment
-dev:
+start-dev:
 	echo "Starting dev environment"
 	supabase start || npx supabase start 
 	docker compose up --watch
 
 # stop dev environment
-stop:
+stop-dev:
 	echo "Stopping dev environment"
 	docker compose down 
 	supabase stop || npx supabase stop 
+
+# stop and clean containers, images, and volumes
+clean-dev:
+	docker compose down -v --rmi all --remove-orphans
+	supabase stop --no-backup
 
 # serve documentation using mkdocs
 docs-serve:
