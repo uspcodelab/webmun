@@ -575,14 +575,15 @@ def apply_passed_motion(
                         debate_type=DebateTypes.MODERATED_DEBATE,
                         return_state=return_state,
                         total_duration_seconds=duration_seconds,
-                        per_speaker_seconds=motion.per_speaker_seconds,
+                        per_speaker_seconds=motion.per_speaker_seconds if motion.per_speaker_seconds is not None
+                        else state.gsl_default_time_seconds, 
                         expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
                     )
                     reset_timer(
                         state,
                         motion.per_speaker_seconds
                         if motion.per_speaker_seconds is not None
-                        else 60,
+                        else state.gsl_default_time_seconds,
                     )
 
                 case DebateTypes.UNMODERATED_DEBATE:
@@ -686,16 +687,11 @@ def handle_close_procedural_voting(
 
     present = count_present_delegations(state)
     passed = tally_votes(state.voting, present)
+
+    #TODO: Change this
     effect = SessionEffect(
         type=enums.SessionEffectType.VOTE_CLOSED,
-        data={
-            "present": present,
-            "favour": sum(
-                vote == enums.VotingChoice.FAVOUR
-                for vote in state.voting.voting_registry.values()
-            ),
-            "passed": passed,
-        },
+        data=state.voting,
     )
 
     if passed:
