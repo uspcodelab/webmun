@@ -1,9 +1,18 @@
 # Environment configuration file for testing
 
+import os
 from datetime import datetime
 from uuid import UUID
 
 import pytest
+
+# `app.main` builds middleware at import time, which loads Settings before the
+# OpenAPI test can run. These are non-secret placeholders; database access is
+# mocked in unit tests and no application lifespan is started by that test.
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/webmun_test"
+)
+os.environ.setdefault("SUPABASE_URL", "https://supabase.example.test")
 
 from app.session.engine import SessionEngine
 from app.session.enums import (
