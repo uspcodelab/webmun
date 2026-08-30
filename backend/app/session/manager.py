@@ -4,27 +4,18 @@ This file describes the overall manager for websocket and states
 
 from fastapi import WebSocket
 
-from app.session.schemas import ServerSessionMessage, StateSnapshotMessage
+from app.session.schemas import ServerSessionMessage
 
-from .models import SessionActor, SessionLiveState
+from .models import SessionActor
 
 
 class ConnectionManager:
     def __init__(self):
         # Initialize dictionary with room_name and dict with websocket -> delegation
         self.active_connections: dict[int, dict[WebSocket, SessionActor]] = {}
-        self.room_states: dict[int, SessionLiveState] = {}
 
-    #
     async def connect(self, websocket: WebSocket, session_id: int, actor: SessionActor):
         self.active_connections.setdefault(session_id, {})[websocket] = actor
-
-        # Send the initial state through the same typed protocol as later updates.
-        if session_id in self.room_states:
-            state = self.room_states[session_id]
-            await websocket.send_json(
-                StateSnapshotMessage(state=state).model_dump(mode="json")
-            )
 
     def disconnect(self, websocket: WebSocket, session_id: int):
         self.active_connections[session_id].pop(websocket)

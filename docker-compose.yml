@@ -38,6 +38,20 @@ services:
         - action: restart
           path: ./backend/app/session/enums.py
 
+  redis:
+    image: redis:latest
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+
   backend:
     build:
       context: ./backend
@@ -51,9 +65,13 @@ services:
     environment:
       - SUPABASE_URL=http://host.docker.internal:54321
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@host.docker.internal:54322/postgres
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
       - backend_packages:/app/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request, sys;
                       res = urllib.request.urlopen('http://localhost:8000/committees/health', timeout=3);
@@ -67,3 +85,4 @@ services:
 volumes:
   packages:
   backend_packages:
+  redis_data:

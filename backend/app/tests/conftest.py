@@ -13,6 +13,8 @@ os.environ.setdefault(
     "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/webmun_test"
 )
 os.environ.setdefault("SUPABASE_URL", "https://supabase.example.test")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+
 
 from app.session.engine import SessionEngine
 from app.session.enums import (
@@ -93,6 +95,25 @@ class FakeEngine:
 @pytest.fixture
 def fake_engine():
     return FakeEngine()
+
+
+class FakeRedis:
+    def __init__(self) -> None:
+        self.values: dict[str, str] = {}
+
+    async def get(self, key: str) -> str | None:
+        return self.values.get(key)
+
+    async def set(self, key: str, value: str) -> None:
+        self.values[key] = value
+
+    async def delete(self, key: str) -> int:
+        return int(self.values.pop(key, None) is not None)
+
+
+@pytest.fixture
+def fake_redis() -> FakeRedis:
+    return FakeRedis()
 
 
 @pytest.fixture

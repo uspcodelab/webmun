@@ -13,6 +13,7 @@ from fastapi import (
     status,
 )
 from pydantic import ValidationError
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.access.service as access
@@ -26,8 +27,14 @@ from app.auth.service import (
 )
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
-from app.core.dep import get_connection_manager, get_logger, get_session_engine
+from app.core.dep import (
+    get_connection_manager,
+    get_logger,
+    get_session_engine,
+    get_session_store,
+)
 from app.core.exceptions import AccessDeniedError
+from app.session import store
 from app.session.engine import EventRejectedError, SessionEngine
 from app.session.enums import EventErrorCode
 from app.session.manager import ConnectionManager
@@ -38,6 +45,7 @@ from app.session.schemas import (
     EventMessage,
     EventRejectedMessage,
     SessionCreationSchema,
+    StateSnapshotMessage,
 )
 
 router = APIRouter()
@@ -75,6 +83,7 @@ async def activate_session_endpoint(
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
     current_user: Annotated[AuthUser, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_session_store)],
 ):
     """Endpoint to activate a planned session"""
     stored = await service.get_session_for_activation(
@@ -87,7 +96,10 @@ async def activate_session_endpoint(
         required_role="chair",
     )
     await service.activate_session(
-        session=db_session, manager=manager, committee_session_id=session_id
+        session=db_session,
+        redis=redis,
+        manager=manager,
+        committee_session_id=session_id,
     )
 
 
@@ -99,13 +111,10 @@ async def websocket_endpoint(
     engine: Annotated[SessionEngine, Depends(get_session_engine)],
     logger: Annotated[logging.Logger, Depends(get_logger)],
     settings: Annotated[Settings, Depends(get_settings)],
+    redis: Annotated[Redis, Depends(get_session_store)],
 ):
     """
     Endpoint for connecting to a committee session.
-
-    Overall flow: accepts websocket -> user sends token -> we verify it ->
-    if valid, lookup an assigment -> builds actor, connects to manager, and receive The
-    current session state
     """
 
     await websocket.accept()
@@ -130,9 +139,18 @@ async def websocket_endpoint(
                 manager=manager,
                 committee_session_id=session_id,
                 assignment=assignment,
+                redis=redis,
             )
 
+        # connect, and send state snapshot
+        state = await store.get_state(session=redis, session_id=session_id)
         await manager.connect(websocket, session_id, actor)
+        await manager.send_message(
+            session_id=session_id,
+            websocket=websocket,
+            message=StateSnapshotMessage(state=state),
+        )
+
         try:
             while True:
                 data = await websocket.receive_json()
@@ -148,12 +166,12 @@ async def websocket_endpoint(
                     continue
 
                 result = await service.handle_client_messages(
-                    manager=manager,
                     engine=engine,
                     logger=logger,
                     session_id=session_id,
                     actor=actor,
                     data=validated_event,
+                    redis=redis,
                 )
                 match result:
                     # Either broadcast result outcome, or send error message back to socket
