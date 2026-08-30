@@ -38,10 +38,8 @@ from app.session import store
 from app.session.engine import EventRejectedError, SessionEngine
 from app.session.enums import EventErrorCode
 from app.session.manager import ConnectionManager
-from app.session.models import DispatchOutcome
 from app.session.schemas import (
     AuthenticateMessage,
-    DispatchResultMessage,
     EventMessage,
     EventRejectedMessage,
     SessionCreationSchema,
@@ -142,14 +140,31 @@ async def websocket_endpoint(
                 redis=redis,
             )
 
-        # connect, and send state snapshot
-        state = await store.get_state(session=redis, session_id=session_id)
         await manager.connect(websocket, session_id, actor)
-        await manager.send_message(
-            session_id=session_id,
-            websocket=websocket,
-            message=StateSnapshotMessage(state=state),
+
+        # TODO: remove this lock whenever someone connects, since this may add latency
+        # when FSM is calculating something
+        # for an MVP, its alright
+        lock = redis.lock(
+            f"webmun:session:{session_id}:lock",
+            timeout=5,
+            blocking_timeout=2,
         )
+
+        async with lock:
+            res = await store.get_outcome(client=redis, session_id=session_id)
+            if res is None:
+                manager.disconnect(websocket, session_id)
+                await websocket.close(
+                    code=status.WS_1011_INTERNAL_ERROR, reason="session_unavailable"
+                )
+                return
+
+            await manager.send_message(
+                session_id=session_id,
+                websocket=websocket,
+                message=StateSnapshotMessage(state=res.state),
+            )
 
         try:
             while True:
@@ -173,25 +188,16 @@ async def websocket_endpoint(
                     data=validated_event,
                     redis=redis,
                 )
-                match result:
-                    # Either broadcast result outcome, or send error message back to socket
-                    case DispatchOutcome():
-                        await manager.broadcast_message(
-                            session_id=session_id,
-                            message=DispatchResultMessage(
-                                state=result.state, effect=result.effect
-                            ),
-                        )
-                    case EventRejectedError():
-                        await manager.send_message(
-                            session_id=session_id,
-                            message=EventRejectedMessage(
-                                request_id=validated_event.request_id,
-                                code=result.code,
-                                message=str(result),
-                            ),
-                            websocket=websocket,
-                        )
+                if isinstance(result, EventRejectedError):
+                    await manager.send_message(
+                        session_id=session_id,
+                        message=EventRejectedMessage(
+                            request_id=validated_event.request_id,
+                            code=result.code,
+                            message=str(result),
+                        ),
+                        websocket=websocket,
+                    )
 
         except WebSocketDisconnect:
             manager.disconnect(websocket, session_id)

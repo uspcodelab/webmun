@@ -26,6 +26,7 @@ from app.session.engine import EventRejectedError, SessionEngine
 from .manager import ConnectionManager
 from .models import (
     DelegationContext,
+    DispatchOutcome,
     RollCallContext,
     SessionActor,
     SessionLiveState,
@@ -58,11 +59,11 @@ async def build_actor(
     if role == enums.SessionRole.DELEGATE:
         if delegation_id is None:
             raise ActorResolutionError("needs delegate id")
-        state = await store.get_state(session=redis, session_id=session_id)
-        if state is None:
+        res = await store.get_outcome(client=redis, session_id=session_id)
+        if res is None:
             raise ActorResolutionError("session not found")
 
-        delegation = state.delegations.get(delegation_id)
+        delegation = res.state.delegations.get(delegation_id)
         if delegation is None:
             raise ActorResolutionError("delegation not found")
 
@@ -148,9 +149,8 @@ async def activate_session(
 
     await session.commit()
 
-    await store.save_state(session=redis, state=live_state)
-
     manager.active_connections.setdefault(committee_session_id, {})
+    await store.save_outcome(client=redis, result=DispatchOutcome(state=live_state))
 
 
 async def pause_session(
@@ -177,11 +177,11 @@ async def prepare_session_connect(
     redis: Redis,
 ) -> SessionActor:
     """Service that prepares for session connect.
-    Primarily used as a fallback in case the SessionLiveState is not in manager
+    Used as a fallback if redis/backend does not have the session_id
     """
-    live_state = await store.get_state(session=redis, session_id=committee_session_id)
+    res = await store.get_outcome(client=redis, session_id=committee_session_id)
 
-    if live_state is None:
+    if res is None:
         stored_state = await repository.get_session_info(session, committee_session_id)
         if stored_state is None:
             raise SessionFetchError("Could not fetch session info")
@@ -194,7 +194,9 @@ async def prepare_session_connect(
         live_state = SessionLiveState.model_validate(stored_state.state_snapshot)
 
         # put SessionLiveState on Cache
-        live_state = await store.save_state(session=redis, state=live_state)
+        await store.save_outcome(client=redis, result=DispatchOutcome(state=live_state))
+
+    if manager.active_connections.get(committee_session_id) is None:
         manager.active_connections.setdefault(committee_session_id, {})
 
     actor = await build_actor(
@@ -216,14 +218,24 @@ async def handle_client_messages(
     data: schemas.EventMessage,
     redis: Redis,
 ):
-    event = data.event
-    state = await store.get_state(session=redis, session_id=session_id)
+    lock = redis.lock(
+        f"webmun:session:{session_id}:lock",
+        timeout=5,
+        blocking_timeout=2,
+    )
 
-    logger.info(event)  # Debugging
+    # Lock for calculating in FSM without another worker overriding
+    async with lock:
+        event = data.event
+        outcome = await store.get_outcome(client=redis, session_id=session_id)
+        if outcome is None:
+            raise NotFoundError("Session state has not been found")
 
-    try:
-        result = engine.dispatch(state, event, actor)
-        await store.save_state(session=redis, state=state)
-        return result
-    except EventRejectedError as exc:
-        return exc
+        logger.info("Processing %s for session %s", event.type, session_id)
+
+        try:
+            result = engine.dispatch(outcome.state, event, actor)
+            await store.save_publish_outcome(client=redis, result=result)
+            return result
+        except EventRejectedError as exc:
+            return exc
