@@ -42,7 +42,6 @@ async def test_connect_stores_actor(
 
 
 @pytest.mark.anyio
-@pytest.mark.anyio
 async def test_disconnect_removes_socket(
     connection_manager: ConnectionManager,
     chair_actor: SessionActor,
@@ -112,10 +111,6 @@ async def test_send_message_sends_rejection_only_to_originating_connection(
 
 
 @pytest.mark.anyio
-@pytest.mark.xfail(
-    strict=True,
-    reason="broadcast_message indexes active_connections when no clients are connected.",
-)
 async def test_broadcast_state_without_connections_is_noop(
     connection_manager: ConnectionManager,
 ) -> None:

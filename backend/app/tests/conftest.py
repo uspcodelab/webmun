@@ -100,6 +100,7 @@ def fake_engine():
 class FakeRedis:
     def __init__(self) -> None:
         self.values: dict[str, str] = {}
+        self.published: list[tuple[str, str]] = []
 
     async def get(self, key: str) -> str | None:
         return self.values.get(key)
@@ -109,6 +110,45 @@ class FakeRedis:
 
     async def delete(self, key: str) -> int:
         return int(self.values.pop(key, None) is not None)
+
+    def pipeline(self) -> "FakePipeline":
+        return FakePipeline(self)
+
+    def lock(self, *_args: object, **_kwargs: object) -> "FakeLock":
+        return FakeLock()
+
+
+class FakePipeline:
+    def __init__(self, client: FakeRedis) -> None:
+        self.client = client
+        self.commands: list[tuple[str, str, str]] = []
+
+    async def __aenter__(self) -> "FakePipeline":
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
+
+    def set(self, key: str, value: str) -> None:
+        self.commands.append(("set", key, value))
+
+    def publish(self, channel: str, message: str) -> None:
+        self.commands.append(("publish", channel, message))
+
+    async def execute(self) -> None:
+        for command, key, value in self.commands:
+            if command == "set":
+                self.client.values[key] = value
+            else:
+                self.client.published.append((key, value))
+
+
+class FakeLock:
+    async def __aenter__(self) -> "FakeLock":
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
 
 
 @pytest.fixture
