@@ -42,12 +42,17 @@ async def delete_outcome(client: redis.Redis, session_id: int) -> None:
 
 
 async def subscriber_worker(
-    client: redis.Redis, connection_manager: ConnectionManager, logger: logging.Logger
+    client: redis.Redis,
+    connection_manager: ConnectionManager,
+    logger: logging.Logger,
+    ready: asyncio.Event | None = None,
 ) -> None:
     async with client.pubsub() as pubsub:
         try:
             await pubsub.subscribe(SESSION_STATE_CHANNEL)
             logger.info("Subscribed to Redis channel %s", SESSION_STATE_CHANNEL)
+            if ready is not None:
+                ready.set()
 
             async for message in pubsub.listen():
                 if message and message["type"] == "message":
