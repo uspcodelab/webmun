@@ -15,6 +15,7 @@ os.environ.setdefault(
 os.environ.setdefault("SUPABASE_URL", "https://supabase.example.test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 
+
 from app.session.engine import SessionEngine
 from app.session.enums import (
     SessionRole,
