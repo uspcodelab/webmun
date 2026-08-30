@@ -16,12 +16,15 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { CircleFlag } from 'react-circle-flags'
 import { sendMessage } from "@/context/SessionContext"
-import { type AddGslSpeakerEvent, type MarkRollCallEvent, type GrantFloorEvent , ChairEvents, RollCallChoice } from "@/schemas/types.gen"
+import { type AddGslSpeakerEvent, type MarkRollCallEvent, type GrantFloorEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useSession } from "@/context/SessionContext"
+
+import { States, VotingChoice, SessionRoles } from '@/schemas/types.gen';
 
 
 type DelegationMapProps = {
@@ -34,6 +37,10 @@ export default function DelegationMap({
     semicircleCount = 3,
     buttonsPerSemicircle = 12,
 }: DelegationMapProps) {
+
+    const { role } = useSession()
+    const isChair = role === SessionRoles.CHAIR
+
     const circles = Array.from({ length: Math.max(1, semicircleCount) }, (_, i) => i)
 
     const getSeatCount = (circleIndex: number) => {
@@ -60,11 +67,28 @@ export default function DelegationMap({
     const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)
     const currentState = useCommitteeStore((state) => state.current_state)
 
-    const ringColors : Record<string, string> = {
-        "None" : "ring-sky-300/30",
-        "Absent" : "ring-red-500/50",
-        "Present" : "ring-yellow-500/50",
-        "Present and Voting" : "ring-lime-600/50"
+    const votingRegistry = useCommitteeStore((state) => state.voting?.voting_registry ?? null)
+
+
+
+    const getDelegationRingColor = (state: string | undefined, presence: string | undefined, vote: VotingChoice | null) => {
+        switch (state) {
+            case States.ROLL_CALL:
+                if (presence === RollCallChoice.PRESENT_AND_VOTING) return "ring-green-700/50"
+                if (presence === RollCallChoice.PRESENT) return "ring-green-500/50"
+                if (presence === RollCallChoice.ABSENT) return "ring-red-500/50"
+                return "ring-sky-300/30"
+            case States.VOTING_EXECUTION:
+                if (vote === VotingChoice.FAVOUR) return "ring-green-500/50"
+                if (vote === VotingChoice.YES_WITH_RIGHTS) return "ring-green-300/50"
+                if (vote === VotingChoice.AGAINST) return "ring-red-500/50"
+                if (vote === VotingChoice.NO_WITH_RIGHTS) return "ring-red-300/50"
+                if (vote === VotingChoice.ABSTAIN) return "ring-gray-400/50"
+                return "ring-neutral-300/30"
+            default:
+                if (presence == RollCallChoice.PRESENT_AND_VOTING || presence === RollCallChoice.PRESENT) return "ring-sky-300/50"
+                return "ring-neutral-400/30"
+        }
     }
 
     return (
@@ -119,7 +143,8 @@ export default function DelegationMap({
                                 const delegation = delegationsBySeat.get(seat)
 
                                 const presence = rcregistry && delegation ? rcregistry[delegation.id] : "None"
-                                const ringcolor = ringColors[presence?? "None"]
+                                const vote = votingRegistry && delegation ? votingRegistry[delegation.id] : null
+                                const ringcolor = getDelegationRingColor(currentState, presence, vote)
 
                                 if (!delegation) {
                                     return <div key={`empty-seat-${seat}`} />
@@ -134,70 +159,85 @@ export default function DelegationMap({
                                             transform: "translate(-50%, -50%)",
                                         }}
                                     >
-                                        <ContextMenu>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <ContextMenuTrigger asChild>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
-                                                        >
-                                                            <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
-                                                                <CircleFlag
-                                                                    countryCode={delegation.code}
-                                                                    className="scale-110 object-contain"
-                                                                />
-                                                            </span>
-                                                        </Button>
-                                                    </ContextMenuTrigger>
-                                                </TooltipTrigger>
-                                                {/* TODO: Replace by country full name */}
-                                                <TooltipContent>
-                                                    <p>{delegation.name}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                            <ContextMenuContent className="w-60">
-                                                <ContextMenuGroup>
-                                                    <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
-                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.ADD_GSL_SPEAKER_EVENT, payload: { representation_id: delegation.id } } satisfies AddGslSpeakerEvent)}>
-                                                        Colocar na Lista de Discursos
-                                                    </ContextMenuItem>
-                                                    <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.GRANT_FLOOR_EVENT, payload: { representation_id: delegation.id } } satisfies GrantFloorEvent)}>
-                                                        Dar a palavra
-                                                    </ContextMenuItem>
-                                                </ContextMenuGroup>
-                                                <ContextMenuSeparator />
-                                                <ContextMenuGroup>
-                                                    <ContextMenuItem>Ausência Temporária</ContextMenuItem>
-                                                    <ContextMenuSub>
-                                                        <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
-                                                        <ContextMenuSubContent>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT_AND_VOTING } } satisfies MarkRollCallEvent)}>
-                                                                Presente Votante
-                                                            </ContextMenuItem>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT } } satisfies MarkRollCallEvent)}>
-                                                                Presente
-                                                            </ContextMenuItem>
-                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.ABSENT } } satisfies MarkRollCallEvent)}>
-                                                                Ausente
-                                                            </ContextMenuItem>
-                                                        </ContextMenuSubContent>
-                                                    </ContextMenuSub>
+                                        {isChair && (
+                                            <ContextMenu>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <ContextMenuTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
+                                                            >
+                                                                <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+                                                                    <CircleFlag
+                                                                        countryCode={delegation.code}
+                                                                        className="scale-110 object-contain"
+                                                                    />
+                                                                </span>
+                                                            </Button>
+                                                        </ContextMenuTrigger>
+                                                    </TooltipTrigger>
+                                                    {/* TODO: Replace by country full name */}
+                                                    <TooltipContent>
+                                                        <p>{delegation.name}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <ContextMenuContent className="w-60">
+                                                    <ContextMenuGroup>
+                                                        <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
+                                                        <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.ADD_GSL_SPEAKER_EVENT, payload: { representation_id: delegation.id } } satisfies AddGslSpeakerEvent)}>
+                                                            Colocar na Lista de Discursos
+                                                        </ContextMenuItem>
+                                                        <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.GRANT_FLOOR_EVENT, payload: { representation_id: delegation.id } } satisfies GrantFloorEvent)}>
+                                                            Dar a palavra
+                                                        </ContextMenuItem>
+                                                    </ContextMenuGroup>
+                                                    <ContextMenuSeparator />
+                                                    <ContextMenuGroup>
+                                                        <ContextMenuItem>Ausência Temporária</ContextMenuItem>
+                                                        <ContextMenuSub>
+                                                            <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
+                                                            <ContextMenuSubContent>
+                                                                <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT_AND_VOTING } } satisfies MarkRollCallEvent)}>
+                                                                    Presente Votante
+                                                                </ContextMenuItem>
+                                                                <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.PRESENT } } satisfies MarkRollCallEvent)}>
+                                                                    Presente
+                                                                </ContextMenuItem>
+                                                                <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.MARK_ROLL_CALL_EVENT, payload: { delegation_id: delegation.id, choice: RollCallChoice.ABSENT } } satisfies MarkRollCallEvent)}>
+                                                                    Ausente
+                                                                </ContextMenuItem>
+                                                            </ContextMenuSubContent>
+                                                        </ContextMenuSub>
 
-                                                </ContextMenuGroup>
-                                                <ContextMenuSeparator />
-                                                <ContextMenuGroup>
-                                                    <ContextMenuSub>
-                                                        <ContextMenuSubTrigger>Punições</ContextMenuSubTrigger>
-                                                        <ContextMenuSubContent>
-                                                            <ContextMenuItem>Aviso Formal</ContextMenuItem>
-                                                            <ContextMenuItem>Expulsão</ContextMenuItem>
-                                                        </ContextMenuSubContent>
-                                                    </ContextMenuSub>
-                                                </ContextMenuGroup>
-                                            </ContextMenuContent>
-                                        </ContextMenu>
+                                                    </ContextMenuGroup>
+                                                    <ContextMenuSeparator />
+                                                    <ContextMenuGroup>
+                                                        <ContextMenuSub>
+                                                            <ContextMenuSubTrigger>Punições</ContextMenuSubTrigger>
+                                                            <ContextMenuSubContent>
+                                                                <ContextMenuItem>Aviso Formal</ContextMenuItem>
+                                                                <ContextMenuItem>Expulsão</ContextMenuItem>
+                                                            </ContextMenuSubContent>
+                                                        </ContextMenuSub>
+                                                    </ContextMenuGroup>
+                                                </ContextMenuContent>
+                                            </ContextMenu>)}
+                                        {!isChair && (
+                                            <span
+                                             
+                                                className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
+                                            >
+                                                <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+                                                    <CircleFlag
+                                                        countryCode={delegation.code}
+                                                        className="scale-110 object-contain"
+                                                    />
+                                                </span>
+                                            </span>
+
+                                        )}
 
                                         <span className="text-[10px] font-medium leading-none text-neutral-600">
                                             {delegation.name}

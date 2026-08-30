@@ -25,10 +25,19 @@ export default function BottomBar() {
                 {isChair && <VoteButton />}
                 <MotionsButton />
                 {isChair && <SpeechesButton />}
-                <HistoryButton />
+                {/* 
+                TODO: Add history button when the history feature is implemented
+                <HistoryButton /> 
+                */}
                 {isChair && <SessionButton />}
-                {!isChair && <BRBButton />}
-                {isChair && <IncidentHelp />}
+                {/*
+                TODO: Add BRB button when the BRB feature is implemented
+                !isChair && <BRBButton />
+                */}
+                {/*
+                TODO: Add incident help button when the incident help feature is implemented
+                isChair && <IncidentHelp />
+                */}
             </div>
 
         </>

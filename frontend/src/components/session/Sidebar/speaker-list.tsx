@@ -30,6 +30,7 @@ export default function SpeakerList() {
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
     const delegationsById = useCommitteeStore((state) => state.delegations)
 
+    const timerRemaining = useCommitteeStore((state) => state.timer_remaining_seconds);
     const alreadyInQueue = representation_id ? gslQueue.includes(representation_id) : false
     const queuedDelegations = gslQueue.flatMap((delegationId) => {
         const delegation = delegationsById[String(delegationId)]
@@ -107,7 +108,10 @@ export default function SpeakerList() {
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white">
+                                <Button 
+                                className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white"
+                                disabled={currentSpeaker === null || timerRemaining === null || timerRemaining === undefined || timerRemaining <= 0}
+                                >
                                     <span className="md:hidden">Cessao</span>
                                     <span className="hidden md:inline">Cessao de Tempo</span>
                                 </Button>

@@ -12,6 +12,7 @@ import TopBar from '@/components/session/top-bar';
 import DelegationMap from '@/components/session/delegation-map';
 import VotingPopup from '@/components/session/voting-popup.tsx';
 import VotingResultsPopup from '@/components/session/voting-results-popup.tsx';
+import RollCall from '@/components/session/Sidebar/rollcall.tsx';
 import { Spinner } from "@/components/ui/spinner"
 import { States } from '@/schemas/types.gen';
 import { Clock8 } from 'lucide-react';
@@ -61,6 +62,7 @@ export default function SessionPage() {
                     <div className="flex h-full w-[25%] shrink-0 flex-col bg-white">
                         {currentState === States.SETUP_ROOM && <div className='flex flex-1 items-center justify-center text-muted-foreground'><div className="flex flex-col gap-2 items-center"> <Clock8 className="h-10 w-10" /> <p>Aguarde a Sessão Começar</p></div></div>}
                         {currentState === States.OPEN_GSL && <SpeakerList />}
+                        {currentState === States.ROLL_CALL && <RollCall />}
                         {currentState === States.MODERATED_CAUCUS && <ModeratedDebate />}
                         {currentState === States.UNMODERATED_CAUCUS && <UnmoderatedDebate />}
                         {currentState === States.VOTING_EXECUTION && <VotingMenu />}
