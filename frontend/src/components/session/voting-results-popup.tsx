@@ -9,9 +9,9 @@ import {
 } from "@/components/ui/dialog"
 
 import { useCommitteeStore } from "@/store/useCommitteeStore"
-import { MajorityTypes, VotingChoice, RollCallChoice } from "@/schemas/types.gen"
+import { MajorityTypes, VotingChoice, RollCallChoice, type SessionEffect, type VotingContext } from "@/schemas/types.gen"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 
 
@@ -19,7 +19,7 @@ export default function VotingResultsPopup() {
 
 
 
-    const voting = useCommitteeStore((state) => state.voting ?? null)
+    const [voting, setVoting] = useState<VotingContext | null>(null);
     const voteTitle = voting?.title ?? voting?.motion_in_vote?.type ?? "ERROR:VotingTitle not found"
 
     const expectedVotes = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
@@ -57,8 +57,16 @@ export default function VotingResultsPopup() {
                 && whoCanVeto.some((vetoId) => String(vetoId) === id))
     })
 
-    const [open, setOpen] = useState(true)
+    const [open, setOpen] = useState(false)
 
+    useEffect(()=>{
+
+        const setOp = (e:CustomEvent<SessionEffect>) => {setOpen(true); setVoting(e.detail.data as VotingContext)};
+
+        window.addEventListener("voteclose", setOp as EventListener);
+
+        return () => { window.removeEventListener("voteclose", setOp as EventListener)}
+    }, []);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

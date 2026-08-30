@@ -150,9 +150,12 @@ class SessionLiveState(BaseModel):
     has_veto_power: bool = False
 
 
+#Add more for other effects (Possibly change the Voting context, when doing that change frontend too)
+EffectPayloads = VotingContext
+
 class SessionEffect(BaseModel):
     type: enums.SessionEffectType
-    data: dict[str, Any] = {}
+    data: EffectPayloads = {}
 
 
 class DispatchOutcome(BaseModel):

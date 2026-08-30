@@ -3,7 +3,7 @@ import { createContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useParams } from 'react-router-dom';
 import { UpdateStore } from '@/store/useCommitteeStore';
-import { type SessionEvent, type SessionRepresentation, type AuthenticateMessage, type ServerSessionMessage, type EventMessage } from '@/schemas/types.gen';
+import { type SessionEvent, type SessionRepresentation, type AuthenticateMessage, type ServerSessionMessage, type EventMessage, SessionEffectType, type SessionEffect } from '@/schemas/types.gen';
 
 
 interface SessionContextType {
@@ -17,6 +17,15 @@ const SessionContext = createContext<SessionContextType>({
 });
 
 let socket: WebSocket | null = null
+
+
+
+// 2. Augment the global HTMLElementEventMap (or WindowEventMap)
+declare global {
+  interface HTMLElementEventMap {
+    'voteclose': CustomEvent<SessionEffect>;
+  }
+}
 
 export function SessionProvider({ children }: { children: ReactNode }) {
 	const { token } = useAuth()
@@ -58,6 +67,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 					UpdateStore(data.state);
 					if (data.effect) {
 						console.log("Side effect / event result", data.effect);
+					
+						if(data.effect?.type === SessionEffectType.VOTE_CLOSED){
+							const closeevnt = new CustomEvent("voteclose", {"detail": data.effect});
+							window.dispatchEvent(closeevnt); //possibly inefficient
+						}
 					}
 					break;
 				}
