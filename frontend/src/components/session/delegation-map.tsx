@@ -23,6 +23,8 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 
+import { States, VotingChoice } from '@/schemas/types.gen';
+
 
 type DelegationMapProps = {
     semicircleCount?: number
@@ -60,11 +62,28 @@ export default function DelegationMap({
     const qualifiedMajority = Math.ceil((presentDelegations * 2) / 3)
     const currentState = useCommitteeStore((state) => state.current_state)
 
-    const ringColors : Record<string, string> = {
-        "None" : "ring-sky-300/30",
-        "Absent" : "ring-red-500/50",
-        "Present" : "ring-yellow-500/50",
-        "Present and Voting" : "ring-lime-600/50"
+    const votingRegistry = useCommitteeStore((state) => state.voting?.voting_registry ?? null)
+
+   
+
+    const getDelegationRingColor = (state: string | undefined, presence: string | undefined, vote: VotingChoice | null) => {
+        switch (state) {
+            case States.ROLL_CALL:
+                if (presence === RollCallChoice.PRESENT_AND_VOTING) return "ring-green-700/50"
+                if (presence === RollCallChoice.PRESENT) return "ring-green-500/50"
+                if (presence === RollCallChoice.ABSENT) return "ring-red-500/50"
+                return "ring-sky-300/30"
+            case States.VOTING_EXECUTION:
+                if (vote === VotingChoice.FAVOUR) return "ring-green-500/50"
+                if (vote === VotingChoice.YES_WITH_RIGHTS) return "ring-green-300/50"
+                if (vote === VotingChoice.AGAINST) return "ring-red-500/50"
+                if (vote === VotingChoice.NO_WITH_RIGHTS) return "ring-red-300/50"
+                if (vote === VotingChoice.ABSTAIN) return "ring-gray-400/50"
+                return "ring-neutral-300/30"
+            default:
+                if (presence == RollCallChoice.PRESENT_AND_VOTING || presence === RollCallChoice.PRESENT) return "ring-sky-300/50"
+                return "ring-neutral-400/30"
+        }
     }
 
     return (
@@ -119,7 +138,8 @@ export default function DelegationMap({
                                 const delegation = delegationsBySeat.get(seat)
 
                                 const presence = rcregistry && delegation ? rcregistry[delegation.id] : "None"
-                                const ringcolor = ringColors[presence?? "None"]
+                                const vote = votingRegistry && delegation ? votingRegistry[delegation.id] : null
+                                const ringcolor = getDelegationRingColor(currentState, presence, vote)
 
                                 if (!delegation) {
                                     return <div key={`empty-seat-${seat}`} />
