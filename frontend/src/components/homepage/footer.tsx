@@ -17,7 +17,7 @@ const footerLinkGroups = [
             { label: "Documentação", to: "/dashboard" },
             { label: "Preços", to: "/pricing" },
             { label: "Changelog", to: "/dashboard" },
-            { label: "Repositório GitHub", href: "https://github.com" },
+            { label: "Repositório GitHub", href: "https://github.com/uspcodelab/webmun" },
         ],
     },
     {
@@ -31,7 +31,7 @@ const footerLinkGroups = [
     {
         title: "Redes Sociais",
         items: [
-            { label: "Instagram", href: "https://instagram.com" },
+            { label: "Instagram", href: "https://www.instagram.com/webmun.oficial/" },
             { label: "Twitter", href: "https://x.com" },
             { label: "LinkedIn", href: "https://linkedin.com" },
             { label: "TikTok", href: "https://tiktok.com" },
