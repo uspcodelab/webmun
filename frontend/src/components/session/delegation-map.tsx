@@ -87,6 +87,7 @@ export default function DelegationMap({
                 if (vote === VotingChoice.ABSTAIN) return "ring-gray-400/50"
                 return "ring-neutral-300/30"
             default:
+                if (active) return "ring-yellow-300/50"
                 if (presence == RollCallChoice.PRESENT_AND_VOTING || presence === RollCallChoice.PRESENT) return "ring-sky-300/50"
                 return "ring-neutral-400/30"
         }
@@ -94,14 +95,27 @@ export default function DelegationMap({
 
     const [active, setActive] = useState(false)
 
-    useEffect(()=>{
-    
-        const setAc = (e : CustomEvent) => {if (e.detail.type === "cedetime") setActive(true)};
+    useEffect(() => {
+        const setAc = (e: CustomEvent) => {
+            if (!e.detail || e.detail.type === null) {
+                setActive(false)
+                return
+            }
 
-        window.addEventListener("mapselection", setAc as EventListener);
+            if (e.detail.type === "cedetime") {
+                setActive(true)
+                return
+            }
 
-        return () => { window.removeEventListener("mapselection", setAc as EventListener)}
-    }, []);
+            setActive(false)
+        }
+
+        window.addEventListener("mapselection", setAc as EventListener)
+
+        return () => {
+            window.removeEventListener("mapselection", setAc as EventListener)
+        }
+    }, [])
 
     return (
         <div className="relative h-full w-full overflow-hidden">
@@ -214,7 +228,9 @@ export default function DelegationMap({
                                                     </ContextMenuGroup>
                                                     <ContextMenuSeparator />
                                                     <ContextMenuGroup>
+                                                        {/*
                                                         <ContextMenuItem>Ausência Temporária</ContextMenuItem>
+                                                        */}
                                                         <ContextMenuSub>
                                                             <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
                                                             <ContextMenuSubContent>
@@ -229,8 +245,9 @@ export default function DelegationMap({
                                                                 </ContextMenuItem>
                                                             </ContextMenuSubContent>
                                                         </ContextMenuSub>
-
+                                                    
                                                     </ContextMenuGroup>
+                                                    {/*
                                                     <ContextMenuSeparator />
                                                     <ContextMenuGroup>
                                                         <ContextMenuSub>
@@ -241,6 +258,7 @@ export default function DelegationMap({
                                                             </ContextMenuSubContent>
                                                         </ContextMenuSub>
                                                     </ContextMenuGroup>
+                                                    */}
                                                 </ContextMenuContent>
                                             </ContextMenu>)}
                                         {!isChair && (

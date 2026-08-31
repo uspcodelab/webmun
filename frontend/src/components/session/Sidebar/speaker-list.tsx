@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -27,6 +28,8 @@ export default function SpeakerList() {
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
     const delegationsById = useCommitteeStore((state) => state.delegations)
+
+    const [cedingTime, setCedingTime] = useState(false)
 
     const timerRemaining = useCommitteeStore((state) => state.timer_remaining_seconds);
     const timerIsRunning = useCommitteeStore((state) => state.timer_is_running);
@@ -107,16 +110,28 @@ export default function SpeakerList() {
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button 
-                                className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white"
-                                disabled={currentSpeaker === null || timerRemaining === null || timerRemaining === undefined || timerRemaining <= 0 || timerIsRunning}
-                                onClick={()=>{
-                                const mapSelectionEvent = new CustomEvent("mapselection", {detail: {"type" : "cedetime"}});
-                                window.dispatchEvent(mapSelectionEvent)
-                                }}
+                                <Button
+                                    className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white"
+                                    disabled={currentSpeaker === null || timerRemaining === null || timerRemaining === undefined || timerRemaining <= 0 || timerIsRunning}
+                                    onClick={() => {
+                                        const mapSelectionEvent = new CustomEvent("mapselection", {
+                                            detail: { type: cedingTime ? null : "cedetime" },
+                                        })
+                                        window.dispatchEvent(mapSelectionEvent)
+                                        setCedingTime((value) => !value)
+                                    }}
                                 >
-                                    <span className="md:hidden">Cessao</span>
-                                    <span className="hidden md:inline">Cessao de Tempo</span>
+                                    {cedingTime ? (
+                                        <>
+                                            <span className="md:hidden">Cancelar Cessao</span>
+                                            <span className="hidden md:inline">Cancelar Cessao de Tempo</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="md:hidden">Cessao</span>
+                                            <span className="hidden md:inline">Cessao de Tempo</span>
+                                        </>
+                                    )}
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
