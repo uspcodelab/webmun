@@ -2,6 +2,7 @@
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -149,8 +150,8 @@ class SessionLiveState(BaseModel):
     has_veto_power: bool = False
 
 
-# Add more for other effects (Possibly change the Voting context, when doing that change frontend too)
-EffectPayloads = VotingContext
+# Add more effect payload shapes as they are introduced.
+EffectPayloads = dict[str, Any]
 
 
 class SessionEffect(BaseModel):

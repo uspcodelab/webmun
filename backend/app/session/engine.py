@@ -113,14 +113,19 @@ def validate_motion_payload(
     """Should validate motion payload before submitting"""
 
     # can also raise error if there are missing fields
-    if (
-        payload.type == Motions.CHANGE_DEBATE_TYPE
-        and payload.debate_type == DebateTypes.UNMODERATED_DEBATE
-        and payload.total_duration_minutes is None
+    if payload.type == Motions.CHANGE_DEBATE_TYPE and (
+        (
+            payload.debate_type == DebateTypes.UNMODERATED_DEBATE
+            and payload.total_duration_minutes is None
+        )
+        or (
+            payload.debate_type == DebateTypes.MODERATED_DEBATE
+            and payload.per_speaker_seconds is None
+        )
     ):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_MESSAGE,
-            message="Cannot submit motion this motion without duration",
+            message="Cannot submit debate motion without the required duration",
         )
 
 
@@ -280,7 +285,14 @@ def handle_delegate_submit_motion(
             message="Cannot submit motion at current state",
         )
 
-    if current_state in {States.UNMODERATED_CAUCUS} and not state.can_set_motion:
+    if (
+        current_state
+        in {
+            States.MODERATED_CAUCUS,
+            States.UNMODERATED_CAUCUS,
+        }
+        and not state.can_set_motion
+    ):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
             message="Submitting motions during caucuses is disabled",
@@ -422,10 +434,10 @@ def handle_close_session(
 ) -> DispatchOutcome:
     require_chair(actor)
 
-    if state.current_state in (States.SETUP, States.ROLL_CALL, States.FINISHED):
+    if state.current_state != States.ROLL_CALL:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Session may only be closed outside setup, roll_call or finished",
+            message="Session may only be closed during roll call",
         )
 
     state.current_state = States.FINISHED
@@ -691,7 +703,7 @@ def handle_close_procedural_voting(
     # TODO: Change this
     effect = SessionEffect(
         type=enums.SessionEffectType.VOTE_CLOSED,
-        data=state.voting,
+        data={**state.voting.model_dump(mode="json"), "passed": passed},
     )
 
     if passed:
