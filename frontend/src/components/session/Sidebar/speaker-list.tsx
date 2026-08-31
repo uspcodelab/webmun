@@ -126,7 +126,10 @@ export default function SpeakerList() {
                     </div>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button  variant="destructive" disabled={currentSpeaker === null} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap ">
+                            <Button  
+                            variant="destructive" 
+                            disabled={currentSpeaker === null || timerIsRunning} 
+                            className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap ">
                                 <span>Encerrar Fala</span>
                             </Button>
                         </TooltipTrigger>
