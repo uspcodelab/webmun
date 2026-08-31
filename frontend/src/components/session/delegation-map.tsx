@@ -95,14 +95,27 @@ export default function DelegationMap({
 
     const [active, setActive] = useState(false)
 
-    useEffect(()=>{
-    
-        const setAc = (e : CustomEvent) => {if (e.detail.type === "cedetime") setActive(true)};
+    useEffect(() => {
+        const setAc = (e: CustomEvent) => {
+            if (!e.detail || e.detail.type === null) {
+                setActive(false)
+                return
+            }
 
-        window.addEventListener("mapselection", setAc as EventListener);
+            if (e.detail.type === "cedetime") {
+                setActive(true)
+                return
+            }
 
-        return () => { window.removeEventListener("mapselection", setAc as EventListener)}
-    }, []);
+            setActive(false)
+        }
+
+        window.addEventListener("mapselection", setAc as EventListener)
+
+        return () => {
+            window.removeEventListener("mapselection", setAc as EventListener)
+        }
+    }, [])
 
     return (
         <div className="relative h-full w-full overflow-hidden">
