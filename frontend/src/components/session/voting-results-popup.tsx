@@ -23,12 +23,13 @@ export default function VotingResultsPopup() {
     const voteTitle = voting?.title ?? voting?.motion_in_vote?.type ?? "ERROR:VotingTitle not found"
 
     const expectedVotes = useCommitteeStore((state) => Object.entries(state.roll_call?.registry ?? {}).filter(([, choice]) => choice !== RollCallChoice.ABSENT).length)
-    const yayVotes = useCommitteeStore((state) => Object.entries(state.voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.FAVOUR).length)
-    const nayVotes = useCommitteeStore((state) => Object.entries(state.voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.AGAINST).length)
+    const yayVotes = Object.entries(voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.FAVOUR).length
+    const nayVotes = Object.entries(voting?.voting_registry ?? {}).filter(([, choice]) => choice === VotingChoice.AGAINST).length
+
     const abstentions = expectedVotes - yayVotes - nayVotes
     const yayPercentage = expectedVotes > 0 ? (yayVotes / expectedVotes) * 100 : 0
     const nayPercentage = expectedVotes > 0 ? (nayVotes / expectedVotes) * 100 : 0
-    const majorityType = useCommitteeStore((state) => state.voting?.majority ?? MajorityTypes.MAIORIA_SIMPLES)
+    const majorityType = voting?.majority ?? MajorityTypes.MAIORIA_SIMPLES
     const requiredMajority = majorityType === MajorityTypes.MAIORIA_QUALIFICADA
         ? Math.ceil(expectedVotes * 2 / 3)
         : majorityType === MajorityTypes.CONSENSO
@@ -43,19 +44,19 @@ export default function VotingResultsPopup() {
     const markerEndX = 100 - markerOuterRadius * Math.cos(requiredMajorityAngle)
     const markerEndY = 100 - markerOuterRadius * Math.sin(requiredMajorityAngle)
 
-    const canBeVetoed = useCommitteeStore((state) => state.voting?.allow_veto_power ?? false)
+    const canBeVetoed = voting?.allow_veto_power ?? false
     const delegations = useCommitteeStore((state) => state.delegations)
     const whoCanVeto = Object.values(delegations)
         .filter((delegation) => ["fr", "us", "cn", "ru", "uk"].includes(delegation.code?.toLowerCase() ?? ""))
         .map((delegation) => delegation.id)
-    const isVetoed = useCommitteeStore((state) => {
-        const votingRegistry = state.voting?.voting_registry
+    const isVetoed = () => {
+        const votingRegistry = voting?.voting_registry
         if (!votingRegistry) return false
 
         return Object.entries(votingRegistry)
             .some(([id, choice]) => choice === VotingChoice.AGAINST
                 && whoCanVeto.some((vetoId) => String(vetoId) === id))
-    })
+    }
 
     const [open, setOpen] = useState(false)
 
@@ -137,10 +138,10 @@ export default function VotingResultsPopup() {
                             Abstenções: {Math.max(abstentions, 0)}
                         </span>
                     </div>
-                    {canBeVetoed && isVetoed && (
+                    {canBeVetoed && isVetoed() && (
                         <h2 className="text-red-700 font-bold text-xl">A moção foi vetada.</h2>
                     )}
-                    {!canBeVetoed || !isVetoed ? yayVotes >= requiredMajority ? (
+                    {!canBeVetoed || !isVetoed() ? yayVotes >= requiredMajority ? (
                         <h2 className="text-green-700 font-bold text-xl">A moção passa!</h2>
                     ) : (
                         <h2 className="text-red-700 font-bold text-xl">A moção nao passsa.</h2>
