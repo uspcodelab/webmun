@@ -1,20 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-    Item,
-    ItemContent,
-    ItemMedia,
-    ItemTitle,
-} from "@/components/ui/item"
-import Flags from "@/components/ui/flags"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import {Badge} from "@/components/ui/badge"
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles, RollCallChoice, VotingChoice, MajorityTypes} from "@/schemas/types.gen"
 

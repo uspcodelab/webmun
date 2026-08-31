@@ -9,16 +9,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Cog } from "lucide-react"
-import { Separator } from "@/components/ui/separator"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import ManualQuorum from "@/components/session/manual-quorum"
 import { RollCallChoice, ChairEvents, States, type CloseRollCallEvent, type CloseSessionEvent, type OpenSessionEvent } from "@/schemas/types.gen"
 import { sendMessage } from "@/context/SessionContext"

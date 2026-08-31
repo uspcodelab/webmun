@@ -1,11 +1,8 @@
 import VoteButton from "./bottom-bar-buttons/VoteButton"
 import MotionsButton from "./bottom-bar-buttons/MotionsButton"
 import SpeechesButton from "./bottom-bar-buttons/SpeechesButton"
-import HistoryButton from "./bottom-bar-buttons/HistoryButton"
 import SessionButton from "./bottom-bar-buttons/SessionButton"
 import ExitButton from "./bottom-bar-buttons/ExitButton"
-import BRBButton from "./bottom-bar-buttons/BRB"
-import IncidentHelp from "./bottom-bar-buttons/IncidentHelp"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles} from "@/schemas/types.gen"
 
