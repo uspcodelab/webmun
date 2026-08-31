@@ -31,25 +31,18 @@ def verify_jwt_token(
     token: str,  # self contained token that already has info like id, email, etc
     settings: Settings,
 ) -> AuthUser:
-    """Verify either legacy HS256 or current Supabase ES256 access tokens."""
+    """Verify Supabase ES256 access tokens."""
     try:
-        algorithm = jwt.get_unverified_header(token).get("alg")
-
-        if algorithm == "HS256":
-            key = settings.SUPABASE_JWT_SECRET.get_secret_value()
-        elif algorithm == "ES256":
-            key = (
-                get_jwk_client(str(settings.SUPABASE_URL))
-                .get_signing_key_from_jwt(token)
-                .key
-            )
-        else:
-            raise TokenInvalidError("Unsupported access token algorithm")
+        key = (
+            get_jwk_client(str(settings.SUPABASE_URL))
+            .get_signing_key_from_jwt(token)
+            .key
+        )
 
         payload = jwt.decode(
             token,
             key,
-            algorithms=[algorithm],
+            algorithms=["ES256"],
             audience="authenticated",
         )
 

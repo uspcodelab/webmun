@@ -3,13 +3,17 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     env_file:
       - ./frontend/.env.local
-    network_mode: host
+    environment:
+      OPENAPI_URL: http://backend:8000/openapi.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./frontend:/app
       - packages:/app/node_modules
+    ports:
+      - "5173:5173"
     depends_on:
       backend:
         condition: service_healthy
@@ -34,17 +38,40 @@ services:
         - action: restart
           path: ./backend/app/session/enums.py
 
+  redis:
+    image: redis:latest
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     env_file:
       - ./backend/.env
-    # Supabase CLI binds locally to the host. This local stack targets Linux.
-    network_mode: host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+    environment:
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@host.docker.internal:54322/postgres
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
       - backend_packages:/app/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request, sys;
                       res = urllib.request.urlopen('http://localhost:8000/committees/health', timeout=3);
@@ -58,3 +85,4 @@ services:
 volumes:
   packages:
   backend_packages:
+  redis_data:
