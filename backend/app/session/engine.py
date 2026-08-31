@@ -960,6 +960,44 @@ def handle_grant_floor(
 
     return DispatchOutcome(state=state)
 
+def handle_cede_time(
+    state: SessionLiveState, event: schemas.CedeTimeEvent, actor: SessionActor
+) -> DispatchOutcome:
+
+    representation_id = event.payload.representation_id
+    if representation_id not in state.delegations:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="Representation not found",
+        )
+
+    if state.current_state not in [States.MODERATED_CAUCUS, States.OPEN_GSL, States.CLOSED_GSL]:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Can only cede time during moderated debate or debate by list"
+        )
+
+    if state.timer_is_running:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot cede time while timer is running"
+        ) 
+
+    if not state.current_speaker:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot cede time if there's no speaker"
+        ) 
+
+    if state.timer_remaining_seconds <= 0:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot cede time if there's no time"
+        ) 
+    
+    state.current_speaker = representation_id
+
+    return DispatchOutcome(state=state)
 
 def handle_mark_roll_call(
     state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor
@@ -1052,6 +1090,7 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.NEXT_SPEAKER: handle_next_speaker,
     ChairEvents.ADD_GSL_SPEAKER: handle_add_gsl_speaker,
     ChairEvents.GRANT_FLOOR: handle_grant_floor,
+    ChairEvents.CEDE_TIME: handle_cede_time,
     ChairEvents.MARK_ROLLCALL: handle_mark_roll_call,
     ChairEvents.MARK_ROLLCALL_BULK: handle_mark_roll_call_bulk,
     ChairEvents.CLOSE_ROLLCALL: handle_close_roll_call,

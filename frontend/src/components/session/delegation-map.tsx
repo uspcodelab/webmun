@@ -16,7 +16,7 @@ import {
 import { useCommitteeStore } from "@/store/useCommitteeStore"
 import { CircleFlag } from 'react-circle-flags'
 import { sendMessage } from "@/context/SessionContext"
-import { type AddGslSpeakerEvent, type MarkRollCallEvent, type GrantFloorEvent, ChairEvents, RollCallChoice } from "@/schemas/types.gen"
+import { type AddGslSpeakerEvent, type MarkRollCallEvent, type GrantFloorEvent, ChairEvents, RollCallChoice, type CedeTimeEvent } from "@/schemas/types.gen"
 import {
     Tooltip,
     TooltipContent,
@@ -25,6 +25,7 @@ import {
 import { useSession } from "@/context/SessionContext"
 
 import { States, VotingChoice, SessionRoles } from '@/schemas/types.gen';
+import { useEffect, useState } from "react"
 
 
 type DelegationMapProps = {
@@ -90,6 +91,17 @@ export default function DelegationMap({
                 return "ring-neutral-400/30"
         }
     }
+
+    const [active, setActive] = useState(false)
+
+    useEffect(()=>{
+    
+        const setAc = (e : CustomEvent) => {if (e.detail.type === "cedetime") setActive(true)};
+
+        window.addEventListener("mapselection", setAc as EventListener);
+
+        return () => { window.removeEventListener("mapselection", setAc as EventListener)}
+    }, []);
 
     return (
         <div className="relative h-full w-full overflow-hidden">
@@ -168,6 +180,13 @@ export default function DelegationMap({
                                                                 type="button"
                                                                 variant="outline"
                                                                 className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
+                                                                onClick={()=>{
+                                                                    if(active)
+                                                                    {
+                                                                        sendMessage({type:ChairEvents.CEDE_TIME_EVENT, payload:{representation_id: delegation.id}} satisfies CedeTimeEvent)
+                                                                        setActive(false);
+                                                                    }
+                                                                    }}
                                                             >
                                                                 <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
                                                                     <CircleFlag
