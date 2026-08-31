@@ -195,7 +195,9 @@ export default function DelegationMap({
                                                     </ContextMenuGroup>
                                                     <ContextMenuSeparator />
                                                     <ContextMenuGroup>
+                                                        {/*
                                                         <ContextMenuItem>Ausência Temporária</ContextMenuItem>
+                                                        */}
                                                         <ContextMenuSub>
                                                             <ContextMenuSubTrigger>Mudar Presença</ContextMenuSubTrigger>
                                                             <ContextMenuSubContent>
@@ -210,8 +212,9 @@ export default function DelegationMap({
                                                                 </ContextMenuItem>
                                                             </ContextMenuSubContent>
                                                         </ContextMenuSub>
-
+                                                    
                                                     </ContextMenuGroup>
+                                                    {/*
                                                     <ContextMenuSeparator />
                                                     <ContextMenuGroup>
                                                         <ContextMenuSub>
@@ -222,6 +225,7 @@ export default function DelegationMap({
                                                             </ContextMenuSubContent>
                                                         </ContextMenuSub>
                                                     </ContextMenuGroup>
+                                                    */}
                                                 </ContextMenuContent>
                                             </ContextMenu>)}
                                         {!isChair && (
