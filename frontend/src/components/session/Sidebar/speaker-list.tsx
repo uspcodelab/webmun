@@ -45,7 +45,7 @@ export default function SpeakerList() {
 
     useEffect(() => {
 
-            const setCT = (e: CustomEvent) => {
+        const setCT = (e: CustomEvent) => {
             if (!e.detail || e.detail.type === null) {
                 setCedingTime(false)
                 return
@@ -56,12 +56,12 @@ export default function SpeakerList() {
             }
 
         }
-            
-            window.addEventListener("mapselection", setCT as EventListener)
 
-            return () => {window.removeEventListener("mapselection", setCT as EventListener)}
+        window.addEventListener("mapselection", setCT as EventListener)
 
-        }, [])
+        return () => { window.removeEventListener("mapselection", setCT as EventListener) }
+
+    }, [])
 
 
     return (
@@ -141,7 +141,7 @@ export default function SpeakerList() {
                                             detail: { type: cedingTime ? null : "cedetime" },
                                         })
                                         window.dispatchEvent(mapSelectionEvent)
-                                        
+
                                     }}
                                 >
                                     {cedingTime ? (
@@ -164,8 +164,14 @@ export default function SpeakerList() {
                     </div>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button  variant="destructive" disabled={currentSpeaker === null} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
-                            onClick={()=>sendMessage({ type:ChairEvents.END_SPEECH_EVENT, payload: {}} satisfies EndSpeechEvent)}>
+                            <Button variant="destructive" disabled={currentSpeaker === null || timerIsRunning} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
+                                onClick={() => {
+                                    const mapSelectionEvent = new CustomEvent("mapselection", {
+                                        detail: { type: null },
+                                    })
+                                    window.dispatchEvent(mapSelectionEvent);
+                                    sendMessage({ type: ChairEvents.END_SPEECH_EVENT, payload: {} } satisfies EndSpeechEvent)
+                                }}>
                                 <span>Encerrar Fala</span>
                             </Button>
                         </TooltipTrigger>
