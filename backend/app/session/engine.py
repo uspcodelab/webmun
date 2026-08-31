@@ -425,10 +425,10 @@ def handle_close_session(
 ) -> DispatchOutcome:
     require_chair(actor)
 
-    if state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED):
+    if state.current_state in (States.SETUP, States.ROLL_CALL, States.FINISHED):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Session may only be closed from setup, roll_call or finished",
+            message="Session may only be closed outside setup, roll_call or finished",
         )
 
     state.current_state = States.FINISHED
