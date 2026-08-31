@@ -194,13 +194,17 @@ export default function DelegationMap({
                                                                 type="button"
                                                                 variant="outline"
                                                                 className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
-                                                                onClick={()=>{
-                                                                    if(active)
-                                                                    {
-                                                                        sendMessage({type:ChairEvents.CEDE_TIME_EVENT, payload:{representation_id: delegation.id}} satisfies CedeTimeEvent)
+                                                                onClick={() => {
+                                                                    if (active) {
+                                                                        sendMessage({ type: ChairEvents.CEDE_TIME_EVENT, payload: { representation_id: delegation.id } } satisfies CedeTimeEvent)
                                                                         setActive(false);
+                                                                        const mapSelectionEvent = new CustomEvent("mapselection", {
+                                                                            detail: { type:  null  },
+                                                                        })
+                                                                        window.dispatchEvent(mapSelectionEvent)
+                                                                        
                                                                     }
-                                                                    }}
+                                                                }}
                                                             >
                                                                 <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
                                                                     <CircleFlag
@@ -245,7 +249,7 @@ export default function DelegationMap({
                                                                 </ContextMenuItem>
                                                             </ContextMenuSubContent>
                                                         </ContextMenuSub>
-                                                    
+
                                                     </ContextMenuGroup>
                                                     {/*
                                                     <ContextMenuSeparator />
@@ -263,7 +267,7 @@ export default function DelegationMap({
                                             </ContextMenu>)}
                                         {!isChair && (
                                             <span
-                                             
+
                                                 className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
                                             >
                                                 <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
