@@ -73,6 +73,7 @@ class ChairEvents(StrEnum):
     NEXT_SPEAKER = "NextSpeakerEvent"
     ADD_GSL_SPEAKER = "AddGslSpeakerEvent"
     GRANT_FLOOR = "GrantFloorEvent"
+    CEDE_TIME = "CedeTimeEvent"
     MARK_ROLLCALL = "MarkRollCallEvent"
     MARK_ROLLCALL_BULK = "MarkRollCallBulkEvent"
     CLOSE_ROLLCALL = "CloseRollCallEvent"

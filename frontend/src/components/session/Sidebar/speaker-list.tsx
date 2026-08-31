@@ -20,8 +20,6 @@ import { type JoinQueueEvent, type NextSpeakerEvent, ChairEvents, DelegateEvents
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
 
-//TODO determine if queue is open, if not obscure the button and show a message that the queue is closed
-
 export default function SpeakerList() {
 
     const { role, representation_id } = useSession()
@@ -112,6 +110,10 @@ export default function SpeakerList() {
                                 <Button 
                                 className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white"
                                 disabled={currentSpeaker === null || timerRemaining === null || timerRemaining === undefined || timerRemaining <= 0 || timerIsRunning}
+                                onClick={()=>{
+                                const mapSelectionEvent = new CustomEvent("mapselection", {detail: {"type" : "cedetime"}});
+                                window.dispatchEvent(mapSelectionEvent)
+                                }}
                                 >
                                     <span className="md:hidden">Cessao</span>
                                     <span className="hidden md:inline">Cessao de Tempo</span>
