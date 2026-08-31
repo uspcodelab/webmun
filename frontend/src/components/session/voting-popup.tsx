@@ -40,10 +40,9 @@ export default function VotingPopup() {
     const voting = useCommitteeStore((state) => state.voting ?? null)
     const voted = voting && representation_id ? representation_id in voting.voting_registry! : true
     const voteTitle = voting?.title
-    const [clicked, setClicked] = useState(false)
 
     return (
-        <Dialog  open={!isChair && voting !== null && !clicked && !voted}>
+        <Dialog  open={!isChair && voting !== null && !voted}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Votação</DialogTitle>
@@ -81,11 +80,11 @@ export default function VotingPopup() {
                 <DialogFooter className="flex gap-4 margin-auto">
                     <div className="flex w-full flex-row gap-2">
                         <Button onClick={
-                            () => {setClicked(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
+                            () => { sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                              className="flex-1 bg-green-800 text-white hover:bg-green-700">A Favor</Button>
                         <Button
                             onClick={
-                            () => {setClicked(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
+                            () => { sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                             disabled={isRollCall && !canAbstain}
                             className="flex-1 bg-gray-700 text-white hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -96,7 +95,7 @@ export default function VotingPopup() {
                                 Pular
                             </Button>
                         )}
-                        <Button onClick={() => {setClicked(true); sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
+                        <Button onClick={() => { sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
                         className="flex-1 bg-red-800 text-white hover:bg-red-700">Contra</Button>
 
                     </div>
