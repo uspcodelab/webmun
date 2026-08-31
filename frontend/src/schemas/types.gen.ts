@@ -101,6 +101,8 @@ export const ChairEvents = {
     NEXT_SPEAKER_EVENT: 'NextSpeakerEvent',
     ADD_GSL_SPEAKER_EVENT: 'AddGslSpeakerEvent',
     GRANT_FLOOR_EVENT: 'GrantFloorEvent',
+    CEDE_TIME_EVENT: 'CedeTimeEvent',
+    END_SPEECH_EVENT: 'EndSpeechEvent',
     MARK_ROLL_CALL_EVENT: 'MarkRollCallEvent',
     MARK_ROLL_CALL_BULK_EVENT: 'MarkRollCallBulkEvent',
     CLOSE_ROLL_CALL_EVENT: 'CloseRollCallEvent'
@@ -180,6 +182,27 @@ export type CastVoteEvent = {
      */
     type: 'CastVoteEvent';
     payload: DelegateVotingPayload;
+};
+
+/**
+ * CedeTimeEvent
+ */
+export type CedeTimeEvent = {
+    /**
+     * Type
+     */
+    type: 'CedeTimeEvent';
+    payload: CedeTimePayload;
+};
+
+/**
+ * CedeTimePayload
+ */
+export type CedeTimePayload = {
+    /**
+     * Representation Id
+     */
+    representation_id: number;
 };
 
 /**
@@ -405,6 +428,17 @@ export type DeleteAgendaItemPayload = {
  */
 export type EmptyPayload = {
     [key: string]: unknown;
+};
+
+/**
+ * EndSpeechEvent
+ */
+export type EndSpeechEvent = {
+    /**
+     * Type
+     */
+    type: 'EndSpeechEvent';
+    payload: EmptyPayload;
 };
 
 /**
@@ -857,6 +891,10 @@ export type SessionEvent = ({
 } & AddGslSpeakerEvent) | ({
     type: 'GrantFloorEvent';
 } & GrantFloorEvent) | ({
+    type: 'CedeTimeEvent';
+} & CedeTimeEvent) | ({
+    type: 'EndSpeechEvent';
+} & EndSpeechEvent) | ({
     type: 'SetAgenda';
 } & SetAgendaEvent) | ({
     type: 'SetAgendaItemEvent';
@@ -942,6 +980,10 @@ export type EventMessage = {
     } & AddGslSpeakerEvent) | ({
         type: 'GrantFloorEvent';
     } & GrantFloorEvent) | ({
+        type: 'CedeTimeEvent';
+    } & CedeTimeEvent) | ({
+        type: 'EndSpeechEvent';
+    } & EndSpeechEvent) | ({
         type: 'SetAgenda';
     } & SetAgendaEvent) | ({
         type: 'SetAgendaItemEvent';
@@ -1167,12 +1209,7 @@ export type RollCallContext = {
  */
 export type SessionEffect = {
     type: SessionEffectType;
-    /**
-     * Data
-     */
-    data?: {
-        [key: string]: unknown;
-    };
+    data?: VotingContext;
 };
 
 /**

@@ -50,34 +50,37 @@ MOTIONS_ALLOWED: dict[States, set[Motions]] = {
         Motions.POSTPONE_SESSION,
         Motions.TOUR_DE_TABLE,
         Motions.END_DEBATE,
-        Motions.VOTE_AMENDMENT,
-        Motions.VOTE_BY_ROLL_CALL,
         Motions.CLOSE_SPEAKERS_LIST,
-        Motions.SPLIT_PROPOSAL,
         Motions.INTRODUCE_RESOLUTION_PROPOSAL,
-        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
         Motions.CHANGE_TOPIC,
         Motions.QUORUM,
         Motions.CUSTOM_MOTION,
     },
     States.CLOSED_GSL: {
-        Motions.REOPEN_SPEAKERS_LIST,
+        Motions.CHANGE_DEBATE_TYPE,
+        Motions.POSTPONE_SESSION,
+        Motions.TOUR_DE_TABLE,
         Motions.END_DEBATE,
-        Motions.VOTE_AMENDMENT,
-        Motions.VOTE_BY_ROLL_CALL,
+        Motions.REOPEN_SPEAKERS_LIST,
         Motions.INTRODUCE_RESOLUTION_PROPOSAL,
-        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
+        Motions.CHANGE_TOPIC,
         Motions.QUORUM,
         Motions.CUSTOM_MOTION,
     },
     States.VOTING_PREPARATION: {
         Motions.VOTE_BY_ROLL_CALL,
         Motions.SPLIT_PROPOSAL,
+        Motions.INTRODUCE_AMENDMENT_PROPOSAL,
+        Motions.VOTE_AMENDMENT,
         Motions.CUSTOM_MOTION,
     },
     States.MODERATED_CAUCUS: {
+        Motions.CHANGE_DEBATE_TYPE,
         Motions.POSTPONE_SESSION,
+        Motions.TOUR_DE_TABLE,
         Motions.END_DEBATE,
+        Motions.INTRODUCE_RESOLUTION_PROPOSAL,
+        Motions.CHANGE_TOPIC,
         Motions.QUORUM,
         Motions.CUSTOM_MOTION,
     },
@@ -110,14 +113,19 @@ def validate_motion_payload(
     """Should validate motion payload before submitting"""
 
     # can also raise error if there are missing fields
-    if (
-        payload.type == Motions.CHANGE_DEBATE_TYPE
-        and payload.debate_type == DebateTypes.MODERATED_DEBATE
-        and payload.per_speaker_seconds is None
+    if payload.type == Motions.CHANGE_DEBATE_TYPE and (
+        (
+            payload.debate_type == DebateTypes.UNMODERATED_DEBATE
+            and payload.total_duration_minutes is None
+        )
+        or (
+            payload.debate_type == DebateTypes.MODERATED_DEBATE
+            and payload.per_speaker_seconds is None
+        )
     ):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_MESSAGE,
-            message="Cannot submit motion without speaking time",
+            message="Cannot submit debate motion without the required duration",
         )
 
 
@@ -278,7 +286,11 @@ def handle_delegate_submit_motion(
         )
 
     if (
-        current_state in {States.MODERATED_CAUCUS, States.UNMODERATED_CAUCUS}
+        current_state
+        in {
+            States.MODERATED_CAUCUS,
+            States.UNMODERATED_CAUCUS,
+        }
         and not state.can_set_motion
     ):
         raise EventRejectedError(
@@ -422,10 +434,10 @@ def handle_close_session(
 ) -> DispatchOutcome:
     require_chair(actor)
 
-    if state.current_state not in (States.SETUP, States.ROLL_CALL, States.FINISHED):
+    if state.current_state != States.ROLL_CALL:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Session may only be closed from setup, roll_call or finished",
+            message="Session may only be closed during roll call",
         )
 
     state.current_state = States.FINISHED
@@ -551,50 +563,56 @@ def apply_passed_motion(
     state.timer_is_running = False
     state.timer_expiration = None
 
-    # 1st block: change of debate motions
-    if motion.type == Motions.CHANGE_DEBATE_TYPE and motion.debate_type is not None:
-        state.caucus_list = []
-        state.current_speaker = None
-        duration_seconds = (
-            (motion.total_duration_minutes * 60)
-            if motion.total_duration_minutes is not None
-            else 600
-        )  # defaults to 10 minutes as fallback
-
-        match motion.debate_type:
-            case DebateTypes.MODERATED_DEBATE:
-                next_state = States.MODERATED_CAUCUS
-                state.debate = DebateContext(
-                    debate_type=DebateTypes.MODERATED_DEBATE,
-                    return_state=return_state,
-                    total_duration_seconds=duration_seconds,
-                    per_speaker_seconds=motion.per_speaker_seconds,
-                    expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
-                )
-                reset_timer(
-                    state,
-                    motion.per_speaker_seconds
-                    if motion.per_speaker_seconds is not None
-                    else 60,
-                )
-
-            case DebateTypes.UNMODERATED_DEBATE:
-                next_state = States.UNMODERATED_CAUCUS
-                state.debate = DebateContext(
-                    debate_type=DebateTypes.UNMODERATED_DEBATE,
-                    return_state=return_state,
-                    total_duration_seconds=duration_seconds,
-                    per_speaker_seconds=None,
-                    expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
-                )
-                reset_timer(state)  # should not display per_speaker timer
-
-            case DebateTypes.SPEAKERS_LIST:
-                next_state = States.OPEN_GSL
-                state.debate = None
-                reset_timer(state, state.gsl_default_time_seconds)
-
     match motion.type:
+        case Motions.CHANGE_DEBATE_TYPE:
+            if motion.debate_type is None:
+                raise EventRejectedError(
+                    code=enums.EventErrorCode.INVALID_MESSAGE,
+                    message="No Debate Type Provided",
+                )
+            state.current_speaker = None
+            duration_seconds = (
+                (motion.total_duration_minutes * 60)
+                if motion.total_duration_minutes is not None
+                else 600
+            )  # defaults to 10 minutes as fallback
+
+            match motion.debate_type:
+                case DebateTypes.MODERATED_DEBATE:
+                    next_state = States.MODERATED_CAUCUS
+                    state.debate = DebateContext(
+                        debate_type=DebateTypes.MODERATED_DEBATE,
+                        return_state=return_state,
+                        total_duration_seconds=duration_seconds,
+                        per_speaker_seconds=motion.per_speaker_seconds
+                        if motion.per_speaker_seconds is not None
+                        else state.gsl_default_time_seconds,
+                        expires_at=datetime.now(UTC)
+                        + timedelta(seconds=duration_seconds),
+                    )
+                    reset_timer(
+                        state,
+                        motion.per_speaker_seconds
+                        if motion.per_speaker_seconds is not None
+                        else state.gsl_default_time_seconds,
+                    )
+
+                case DebateTypes.UNMODERATED_DEBATE:
+                    next_state = States.UNMODERATED_CAUCUS
+                    state.debate = DebateContext(
+                        debate_type=DebateTypes.UNMODERATED_DEBATE,
+                        return_state=return_state,
+                        total_duration_seconds=duration_seconds,
+                        per_speaker_seconds=None,
+                        expires_at=datetime.now(UTC)
+                        + timedelta(seconds=duration_seconds),
+                    )
+                    reset_timer(state)  # should not display per_speaker timer
+
+                case DebateTypes.SPEAKERS_LIST:
+                    next_state = States.OPEN_GSL
+                    state.debate = None
+                    reset_timer(state, state.gsl_default_time_seconds)
         case Motions.POSTPONE_SESSION:
             pass
         case Motions.REOPEN_SESSION:
@@ -681,16 +699,11 @@ def handle_close_procedural_voting(
 
     present = count_present_delegations(state)
     passed = tally_votes(state.voting, present)
+
+    # TODO: Change this
     effect = SessionEffect(
         type=enums.SessionEffectType.VOTE_CLOSED,
-        data={
-            "present": present,
-            "favour": sum(
-                vote == enums.VotingChoice.FAVOUR
-                for vote in state.voting.voting_registry.values()
-            ),
-            "passed": passed,
-        },
+        data={**state.voting.model_dump(mode="json"), "passed": passed},
     )
 
     if passed:
@@ -960,6 +973,72 @@ def handle_grant_floor(
     return DispatchOutcome(state=state)
 
 
+def handle_cede_time(
+    state: SessionLiveState, event: schemas.CedeTimeEvent, actor: SessionActor
+) -> DispatchOutcome:
+
+    representation_id = event.payload.representation_id
+    if representation_id not in state.delegations:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.NOT_FOUND,
+            message="Representation not found",
+        )
+
+    if state.current_state not in [
+        States.MODERATED_CAUCUS,
+        States.OPEN_GSL,
+        States.CLOSED_GSL,
+    ]:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Can only cede time during moderated debate or debate by list",
+        )
+
+    if state.timer_is_running:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot cede time while timer is running",
+        )
+
+    if not state.current_speaker:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot cede time if there's no speaker",
+        )
+
+    if state.timer_remaining_seconds <= 0:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot cede time if there's no time",
+        )
+
+    state.current_speaker = representation_id
+
+    return DispatchOutcome(state=state)
+
+
+def handle_end_speech(
+    state: SessionLiveState, event: schemas.EndSpeechEvent, actor: SessionActor
+) -> DispatchOutcome:
+
+    if state.current_speaker is None:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot end speech without speaker",
+        )
+
+    if state.timer_is_running:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot end speech while timer is running",
+        )
+
+    state.current_speaker = None
+    reset_timer(state)
+
+    return DispatchOutcome(state=state)
+
+
 def handle_mark_roll_call(
     state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor
 ) -> DispatchOutcome:
@@ -980,11 +1059,6 @@ def handle_mark_roll_call_bulk(
     state: SessionLiveState, event: schemas.MarkRollCallBulkEvent, actor: SessionActor
 ) -> DispatchOutcome:
     require_chair(actor)
-    if state.current_state != States.ROLL_CALL or state.roll_call is None:
-        raise EventRejectedError(
-            code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot mark roll call right now",
-        )
 
     for delegation_id in event.payload.Rollcalls.keys():
         if delegation_id not in state.delegations:
@@ -1056,6 +1130,8 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.NEXT_SPEAKER: handle_next_speaker,
     ChairEvents.ADD_GSL_SPEAKER: handle_add_gsl_speaker,
     ChairEvents.GRANT_FLOOR: handle_grant_floor,
+    ChairEvents.CEDE_TIME: handle_cede_time,
+    ChairEvents.END_SPEECH: handle_end_speech,
     ChairEvents.MARK_ROLLCALL: handle_mark_roll_call,
     ChairEvents.MARK_ROLLCALL_BULK: handle_mark_roll_call_bulk,
     ChairEvents.CLOSE_ROLLCALL: handle_close_roll_call,

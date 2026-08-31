@@ -11,16 +11,16 @@ import { SessionRoles } from "@/schemas/types.gen"
 
 export default function Timer() {
 
-	const { role } = useSession()
-	const isChair = role === SessionRoles.CHAIR
-	const delegations = useCommitteeStore((state) => state.delegations);
-	const currentSpeaker = useCommitteeStore((state) => state.current_speaker);
-	const speaker = currentSpeaker !== null && currentSpeaker !== undefined ? delegations[currentSpeaker] : {
-		id: -1,
-		seat: "",
-		name: "Mesa",
-		code: "null",
-	};
+    const {role} = useSession()
+    const isChair = role===SessionRoles.CHAIR
+    const delegations = useCommitteeStore((state) => state.delegations);
+    const currentSpeaker = useCommitteeStore((state) => state.current_speaker);
+    const speaker = currentSpeaker !== null && currentSpeaker !== undefined ? delegations[currentSpeaker] : {
+        id: -1,
+        seat: "",
+        name: "Mesa",
+        code: "null",
+    };
 
 	const timerIsRunning = useCommitteeStore((state) => state.timer_is_running) ?? false;
 	const timerExpiration = useCommitteeStore((state) => state.timer_expiration);

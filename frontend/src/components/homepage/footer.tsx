@@ -17,7 +17,7 @@ const footerLinkGroups = [
             { label: "Documentação", to: "/dashboard" },
             { label: "Preços", to: "/pricing" },
             { label: "Changelog", to: "/dashboard" },
-            { label: "Repositório GitHub", href: "https://github.com" },
+            { label: "Repositório GitHub", href: "https://github.com/uspcodelab/webmun" },
         ],
     },
     {
@@ -31,7 +31,7 @@ const footerLinkGroups = [
     {
         title: "Redes Sociais",
         items: [
-            { label: "Instagram", href: "https://instagram.com" },
+            { label: "Instagram", href: "https://www.instagram.com/webmun.oficial/" },
             { label: "Twitter", href: "https://x.com" },
             { label: "LinkedIn", href: "https://linkedin.com" },
             { label: "TikTok", href: "https://tiktok.com" },
@@ -48,7 +48,7 @@ export default function Footer() {
         <div className="flex w-full flex-col items-center justify-center gap-4 rounded-t-4xl bg-primary px-4 pb-8 pt-8 text-white">
             <div className="flex w-full flex-row justify-between gap-8">
                 <div className="flex flex-1 flex-col items-center justify-center gap-2">
-                    <img src="/Images/branding/logo.png" alt="Logotipo do WebMun" className=" h-40 w-auto object-contain" />
+                    <img src="/Images/branding/WebmunLogoWhite.png" alt="Logotipo do WebMun" className=" h-40 w-auto object-contain" />
                     <p className="text-center">O melhor e o mais facil para a sua MUN</p>
                 </div>
                 {footerLinkGroups.map((group) => (

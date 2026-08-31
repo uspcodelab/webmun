@@ -17,7 +17,7 @@ export default function Navbar() {
         <nav className="flex h-[10vh] w-full items-center shadow-lg px-4">
             <div className="flex h-full items-center flex-none">
                 <Link to="/" aria-label="Ir para a página inicial" className="flex h-full items-center">
-                    <img src="/Images/branding/logo.png" alt="Logotipo do WebMun" className="h-full w-auto object-contain" />
+                    <img src="/Images/branding/WebMunLogoHorizontal.png" alt="Logotipo do WebMun" className="h-full w-auto object-contain scale-110" />
                 </Link>
             </div>
 

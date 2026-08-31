@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -8,16 +9,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Cog } from "lucide-react"
-import { Separator } from "@/components/ui/separator"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import ManualQuorum from "@/components/session/manual-quorum"
 import { RollCallChoice, ChairEvents, States, type CloseRollCallEvent, type CloseSessionEvent, type OpenSessionEvent } from "@/schemas/types.gen"
 import { sendMessage } from "@/context/SessionContext"
@@ -51,19 +42,30 @@ export default function TestButton() {
           <ManualQuorum />
           <div className="flex flex-row gap-2 mt-4">
             {currentState === States.SETUP_ROOM &&
-              <Button variant="outline" className="bg-green-800 text-white hover:bg-green-700" onClick={() => sendMessage({ type: ChairEvents.OPEN_SESSION_EVENT, payload: {} } satisfies OpenSessionEvent)}>Abrir Sessao e iniciar Quórum</Button>}
+              <DialogClose asChild>
+                <Button variant="outline" className="bg-green-800 text-white hover:bg-green-700 hover:text-white" onClick={() => sendMessage({ type: ChairEvents.OPEN_SESSION_EVENT, payload: {} } satisfies OpenSessionEvent)}>Abrir Sessao e iniciar Quórum</Button>
+              </DialogClose>
+            }
             {currentState === States.ROLL_CALL &&
-              <Button variant="destructive" onClick={() => sendMessage({ type: ChairEvents.CLOSE_ROLL_CALL_EVENT, payload: {} } satisfies CloseRollCallEvent)}>
-                Fechar Quórum
-              </Button>}
+              <DialogClose asChild>
+                <Button variant="destructive" onClick={() => sendMessage({ type: ChairEvents.CLOSE_ROLL_CALL_EVENT, payload: {} } satisfies CloseRollCallEvent)}>
+                  Fechar Quórum
+                </Button>
+              </DialogClose>}
             {currentState !== States.SETUP_ROOM && currentState !== States.ROLL_CALL &&
-              <Button variant="destructive" className="bg-red-800 text-white hover:bg-red-700" onClick={() => sendMessage({ type: ChairEvents.CLOSE_SESSION_EVENT, payload: {} } satisfies CloseSessionEvent)}>
-                Fechar Sessão
-              </Button>}
+              <DialogClose asChild>
+                <Button variant="destructive" className="bg-red-800 text-white hover:bg-red-700" onClick={() => sendMessage({ type: ChairEvents.CLOSE_SESSION_EVENT, payload: {} } satisfies CloseSessionEvent)}>
+                  Fechar Sessão
+                </Button>
+              </DialogClose>}
           </div>
+          {/*
+          TODO: Implementar suspensão de sessão
           <Separator className="my-4" />
           <p>Suspensão de sessão</p>
           <Button className="mt-2 font-bold">Suspender Sessão</Button>
+          
+          TODO: Implementar override de mudança de estado do comitê
           <Separator className="my-4" />
           <p className="mb-2 font-bold">Estado do Comitê</p>
           <p>Estado atual do comitê: {String(currentState)}</p>
@@ -83,6 +85,7 @@ export default function TestButton() {
             </SelectContent>
           </Select>
           <Button className="mt-2">Mudar Estado do Comitê</Button>
+          */}
         </div>
       </DialogContent>
     </Dialog >

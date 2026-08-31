@@ -150,9 +150,13 @@ class SessionLiveState(BaseModel):
     has_veto_power: bool = False
 
 
+# Add more effect payload shapes as they are introduced.
+EffectPayloads = dict[str, Any]
+
+
 class SessionEffect(BaseModel):
     type: enums.SessionEffectType
-    data: dict[str, Any] = {}
+    data: EffectPayloads = {}
 
 
 class DispatchOutcome(BaseModel):

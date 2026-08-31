@@ -111,6 +111,10 @@ class GrantFloorPayload(BaseModel):
     seconds: int | None = Field(default=None, ge=1)
 
 
+class CedeTimePayload(BaseModel):
+    representation_id: int
+
+
 class ChairSetAgendaPayload(BaseModel):
     agenda: list[str]
 
@@ -201,6 +205,16 @@ class GrantFloorEvent(BaseModel):
     payload: GrantFloorPayload
 
 
+class CedeTimeEvent(BaseModel):
+    type: Literal[enums.ChairEvents.CEDE_TIME]
+    payload: CedeTimePayload
+
+
+class EndSpeechEvent(BaseModel):
+    type: Literal[enums.ChairEvents.END_SPEECH]
+    payload: EmptyPayload
+
+
 class SetAgendaEvent(BaseModel):
     type: Literal[enums.ChairEvents.SET_AGENDA]
     payload: ChairSetAgendaPayload
@@ -277,6 +291,8 @@ SessionEvent = Annotated[
     | NextSpeakerEvent
     | AddGslSpeakerEvent
     | GrantFloorEvent
+    | CedeTimeEvent
+    | EndSpeechEvent
     | SetAgendaEvent
     | SetAgendaItemEvent
     | MarkAgendaItemEvent
