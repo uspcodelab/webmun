@@ -87,6 +87,7 @@ export default function DelegationMap({
                 if (vote === VotingChoice.ABSTAIN) return "ring-gray-400/50"
                 return "ring-neutral-300/30"
             default:
+                if (active) return "ring-yellow-300/50"
                 if (presence == RollCallChoice.PRESENT_AND_VOTING || presence === RollCallChoice.PRESENT) return "ring-sky-300/50"
                 return "ring-neutral-400/30"
         }
