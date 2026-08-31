@@ -280,10 +280,7 @@ def handle_delegate_submit_motion(
             message="Cannot submit motion at current state",
         )
 
-    if (
-        current_state in {States.UNMODERATED_CAUCUS}
-        and not state.can_set_motion
-    ):
+    if current_state in {States.UNMODERATED_CAUCUS} and not state.can_set_motion:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
             message="Submitting motions during caucuses is disabled",
@@ -554,12 +551,12 @@ def apply_passed_motion(
     state.timer_is_running = False
     state.timer_expiration = None
 
-    match motion.type: 
+    match motion.type:
         case Motions.CHANGE_DEBATE_TYPE:
             if motion.debate_type is None:
                 raise EventRejectedError(
-                code=enums.EventErrorCode.INVALID_MESSAGE,
-                message="No Debate Type Provided",
+                    code=enums.EventErrorCode.INVALID_MESSAGE,
+                    message="No Debate Type Provided",
                 )
             state.current_speaker = None
             duration_seconds = (
@@ -575,9 +572,11 @@ def apply_passed_motion(
                         debate_type=DebateTypes.MODERATED_DEBATE,
                         return_state=return_state,
                         total_duration_seconds=duration_seconds,
-                        per_speaker_seconds=motion.per_speaker_seconds if motion.per_speaker_seconds is not None
-                        else state.gsl_default_time_seconds, 
-                        expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
+                        per_speaker_seconds=motion.per_speaker_seconds
+                        if motion.per_speaker_seconds is not None
+                        else state.gsl_default_time_seconds,
+                        expires_at=datetime.now(UTC)
+                        + timedelta(seconds=duration_seconds),
                     )
                     reset_timer(
                         state,
@@ -593,7 +592,8 @@ def apply_passed_motion(
                         return_state=return_state,
                         total_duration_seconds=duration_seconds,
                         per_speaker_seconds=None,
-                        expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
+                        expires_at=datetime.now(UTC)
+                        + timedelta(seconds=duration_seconds),
                     )
                     reset_timer(state)  # should not display per_speaker timer
 
@@ -688,7 +688,7 @@ def handle_close_procedural_voting(
     present = count_present_delegations(state)
     passed = tally_votes(state.voting, present)
 
-    #TODO: Change this
+    # TODO: Change this
     effect = SessionEffect(
         type=enums.SessionEffectType.VOTE_CLOSED,
         data=state.voting,
@@ -960,6 +960,7 @@ def handle_grant_floor(
 
     return DispatchOutcome(state=state)
 
+
 def handle_cede_time(
     state: SessionLiveState, event: schemas.CedeTimeEvent, actor: SessionActor
 ) -> DispatchOutcome:
@@ -971,54 +972,60 @@ def handle_cede_time(
             message="Representation not found",
         )
 
-    if state.current_state not in [States.MODERATED_CAUCUS, States.OPEN_GSL, States.CLOSED_GSL]:
+    if state.current_state not in [
+        States.MODERATED_CAUCUS,
+        States.OPEN_GSL,
+        States.CLOSED_GSL,
+    ]:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Can only cede time during moderated debate or debate by list"
+            message="Can only cede time during moderated debate or debate by list",
         )
 
     if state.timer_is_running:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot cede time while timer is running"
-        ) 
+            message="Cannot cede time while timer is running",
+        )
 
     if not state.current_speaker:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot cede time if there's no speaker"
-        ) 
+            message="Cannot cede time if there's no speaker",
+        )
 
     if state.timer_remaining_seconds <= 0:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot cede time if there's no time"
-        ) 
-    
+            message="Cannot cede time if there's no time",
+        )
+
     state.current_speaker = representation_id
 
     return DispatchOutcome(state=state)
+
 
 def handle_end_speech(
     state: SessionLiveState, event: schemas.EndSpeechEvent, actor: SessionActor
 ) -> DispatchOutcome:
 
-    if state.current_speaker == None:
+    if state.current_speaker is None:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot end speech without speaker"
-        ) 
-    
+            message="Cannot end speech without speaker",
+        )
+
     if state.timer_is_running:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot end speech while timer is running"
-        ) 
-    
+            message="Cannot end speech while timer is running",
+        )
+
     state.current_speaker = None
     reset_timer(state)
 
     return DispatchOutcome(state=state)
+
 
 def handle_mark_roll_call(
     state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor
