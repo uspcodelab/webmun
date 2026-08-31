@@ -206,6 +206,10 @@ class CedeTimeEvent(BaseModel):
     type: Literal[enums.ChairEvents.CEDE_TIME]
     payload: CedeTimePayload
 
+class EndSpeechEvent(BaseModel):
+    type: Literal[enums.ChairEvents.END_SPEECH]
+    payload: EmptyPayload
+
 class SetAgendaEvent(BaseModel):
     type: Literal[enums.ChairEvents.SET_AGENDA]
     payload: ChairSetAgendaPayload
@@ -283,6 +287,7 @@ SessionEvent = Annotated[
     | AddGslSpeakerEvent
     | GrantFloorEvent
     | CedeTimeEvent
+    | EndSpeechEvent
     | SetAgendaEvent
     | SetAgendaItemEvent
     | MarkAgendaItemEvent

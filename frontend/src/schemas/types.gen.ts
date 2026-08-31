@@ -102,6 +102,7 @@ export const ChairEvents = {
     ADD_GSL_SPEAKER_EVENT: 'AddGslSpeakerEvent',
     GRANT_FLOOR_EVENT: 'GrantFloorEvent',
     CEDE_TIME_EVENT: 'CedeTimeEvent',
+    END_SPEECH_EVENT: 'EndSpeechEvent',
     MARK_ROLL_CALL_EVENT: 'MarkRollCallEvent',
     MARK_ROLL_CALL_BULK_EVENT: 'MarkRollCallBulkEvent',
     CLOSE_ROLL_CALL_EVENT: 'CloseRollCallEvent'
@@ -427,6 +428,17 @@ export type DeleteAgendaItemPayload = {
  */
 export type EmptyPayload = {
     [key: string]: unknown;
+};
+
+/**
+ * EndSpeechEvent
+ */
+export type EndSpeechEvent = {
+    /**
+     * Type
+     */
+    type: 'EndSpeechEvent';
+    payload: EmptyPayload;
 };
 
 /**
@@ -881,6 +893,8 @@ export type SessionEvent = ({
 } & GrantFloorEvent) | ({
     type: 'CedeTimeEvent';
 } & CedeTimeEvent) | ({
+    type: 'EndSpeechEvent';
+} & EndSpeechEvent) | ({
     type: 'SetAgenda';
 } & SetAgendaEvent) | ({
     type: 'SetAgendaItemEvent';
@@ -968,6 +982,8 @@ export type EventMessage = {
     } & GrantFloorEvent) | ({
         type: 'CedeTimeEvent';
     } & CedeTimeEvent) | ({
+        type: 'EndSpeechEvent';
+    } & EndSpeechEvent) | ({
         type: 'SetAgenda';
     } & SetAgendaEvent) | ({
         type: 'SetAgendaItemEvent';

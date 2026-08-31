@@ -70,10 +70,13 @@ class ChairEvents(StrEnum):
     MARK_AGENDA_ITEM = "MarkAgendaItemEvent"
     DELETE_AGENDA_ITEM = "DeleteAgendaItemEvent"
     SET_AGENDA = "SetAgenda"
+
     NEXT_SPEAKER = "NextSpeakerEvent"
     ADD_GSL_SPEAKER = "AddGslSpeakerEvent"
     GRANT_FLOOR = "GrantFloorEvent"
     CEDE_TIME = "CedeTimeEvent"
+    END_SPEECH = "EndSpeechEvent"
+
     MARK_ROLLCALL = "MarkRollCallEvent"
     MARK_ROLLCALL_BULK = "MarkRollCallBulkEvent"
     CLOSE_ROLLCALL = "CloseRollCallEvent"

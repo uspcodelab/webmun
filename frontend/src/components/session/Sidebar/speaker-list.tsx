@@ -16,7 +16,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { sendMessage } from "@/context/SessionContext"
-import { type JoinQueueEvent, type NextSpeakerEvent, ChairEvents, DelegateEvents } from "@/schemas/types.gen"
+import { type EndSpeechEvent, type JoinQueueEvent, type NextSpeakerEvent, ChairEvents, DelegateEvents } from "@/schemas/types.gen"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
 
@@ -126,7 +126,8 @@ export default function SpeakerList() {
                     </div>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button  variant="destructive" disabled={currentSpeaker === null} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap ">
+                            <Button  variant="destructive" disabled={currentSpeaker === null} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
+                            onClick={()=>sendMessage({ type:ChairEvents.END_SPEECH_EVENT, payload: {}} satisfies EndSpeechEvent)}>
                                 <span>Encerrar Fala</span>
                             </Button>
                         </TooltipTrigger>

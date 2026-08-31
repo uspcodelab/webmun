@@ -999,6 +999,27 @@ def handle_cede_time(
 
     return DispatchOutcome(state=state)
 
+def handle_end_speech(
+    state: SessionLiveState, event: schemas.EndSpeechEvent, actor: SessionActor
+) -> DispatchOutcome:
+
+    if state.current_speaker == None:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot end speech without speaker"
+        ) 
+    
+    if state.timer_is_running:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="Cannot end speech while timer is running"
+        ) 
+    
+    state.current_speaker = None
+    reset_timer(state)
+
+    return DispatchOutcome(state=state)
+
 def handle_mark_roll_call(
     state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor
 ) -> DispatchOutcome:
@@ -1091,6 +1112,7 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.ADD_GSL_SPEAKER: handle_add_gsl_speaker,
     ChairEvents.GRANT_FLOOR: handle_grant_floor,
     ChairEvents.CEDE_TIME: handle_cede_time,
+    ChairEvents.END_SPEECH: handle_end_speech,
     ChairEvents.MARK_ROLLCALL: handle_mark_roll_call,
     ChairEvents.MARK_ROLLCALL_BULK: handle_mark_roll_call_bulk,
     ChairEvents.CLOSE_ROLLCALL: handle_close_roll_call,
