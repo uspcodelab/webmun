@@ -305,6 +305,7 @@ def handle_delegate_submit_motion(
         debate_type=payload.debate_type,
         total_duration_minutes=payload.total_duration_minutes,
         per_speaker_seconds=payload.per_speaker_seconds,
+        speech_count=payload.speech_count,
         target_topic=payload.target_topic,
         details=payload.details,
     )
