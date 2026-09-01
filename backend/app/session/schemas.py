@@ -22,6 +22,7 @@ class MotionPayload(BaseModel):
     debate_type: enums.DebateTypes | None = None
     total_duration_minutes: int | None = None
     per_speaker_seconds: int | None = None
+    speech_count: int | None = None
     target_topic: str | None = None
     details: str | None = None
 

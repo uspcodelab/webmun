@@ -232,6 +232,10 @@ export type ChairMotionPayload = {
      */
     per_speaker_seconds?: number | null;
     /**
+     * Speech Count
+     */
+    speech_count?: number | null;
+    /**
      * Target Topic
      */
     target_topic?: string | null;
@@ -374,6 +378,10 @@ export type DelegateMotionPayload = {
      * Per Speaker Seconds
      */
     per_speaker_seconds?: number | null;
+    /**
+     * Speech Count
+     */
+    speech_count?: number | null;
     /**
      * Target Topic
      */
@@ -1209,7 +1217,12 @@ export type RollCallContext = {
  */
 export type SessionEffect = {
     type: SessionEffectType;
-    data?: VotingContext;
+    /**
+     * Data
+     */
+    data?: {
+        [key: string]: unknown;
+    };
 };
 
 /**

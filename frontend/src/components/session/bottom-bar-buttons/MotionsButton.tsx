@@ -109,6 +109,7 @@ export default function TestButton() {
     ...(secondsPerSpeech !== "" && { per_speaker_seconds: Number(secondsPerSpeech) }), //TODO: Fix inconsitency in minutes / seconds
     ...(debateKindChange !== "" && { debate_type: debateKindChange }),
     ...(secondsPerSpeech !== "" && { per_speaker_seconds: Number(secondsPerSpeech) }),
+    ...(speechCount !== "" && { speech_count: Number(speechCount)})
     //TODO: add change topic
   }
 

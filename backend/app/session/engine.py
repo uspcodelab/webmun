@@ -118,10 +118,6 @@ def validate_motion_payload(
             payload.debate_type == DebateTypes.UNMODERATED_DEBATE
             and payload.total_duration_minutes is None
         )
-        or (
-            payload.debate_type == DebateTypes.MODERATED_DEBATE
-            and payload.per_speaker_seconds is None
-        )
     ):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_MESSAGE,
