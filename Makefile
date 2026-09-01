@@ -1,4 +1,4 @@
-.PHONY: dev stop docs-serve docs-build
+.PHONY: dev stop clean-dev docs-serve docs-build
 
 MKDOCS ?= mkdocs
 
@@ -11,6 +11,10 @@ stop:
 		echo "Stopping dev environment"
 		docker compose down 
 		supabase stop || npx supabase stop 
+
+clean-dev:
+	docker compose down -v --rmi all --remove-orphans
+	supabase stop --no-backup
 
 docs-serve:
 	$(MKDOCS) serve --config-file mkdocs.yml
