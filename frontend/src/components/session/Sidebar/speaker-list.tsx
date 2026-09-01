@@ -20,6 +20,7 @@ import { sendMessage } from "@/context/SessionContext"
 import { type EndSpeechEvent, type JoinQueueEvent, type NextSpeakerEvent, ChairEvents, DelegateEvents } from "@/schemas/types.gen"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
+import { useEffect } from "react"
 
 export default function SpeakerList() {
 
@@ -39,6 +40,28 @@ export default function SpeakerList() {
         return delegation ? [delegation] : []
     })
     const waitingCount = queuedDelegations.length
+
+
+
+    useEffect(() => {
+
+        const setCT = (e: CustomEvent) => {
+            if (!e.detail || e.detail.type === null) {
+                setCedingTime(false)
+                return
+            }
+            if (!e.detail || e.detail.type === "cedetime") {
+                setCedingTime(true)
+                return
+            }
+
+        }
+
+        window.addEventListener("mapselection", setCT as EventListener)
+
+        return () => { window.removeEventListener("mapselection", setCT as EventListener) }
+
+    }, [])
 
 
     return (
@@ -118,7 +141,7 @@ export default function SpeakerList() {
                                             detail: { type: cedingTime ? null : "cedetime" },
                                         })
                                         window.dispatchEvent(mapSelectionEvent)
-                                        setCedingTime((value) => !value)
+
                                     }}
                                 >
                                     {cedingTime ? (
@@ -141,8 +164,14 @@ export default function SpeakerList() {
                     </div>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button  variant="destructive" disabled={currentSpeaker === null} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
-                            onClick={()=>sendMessage({ type:ChairEvents.END_SPEECH_EVENT, payload: {}} satisfies EndSpeechEvent)}>
+                            <Button variant="destructive" disabled={currentSpeaker === null || timerIsRunning} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
+                                onClick={() => {
+                                    const mapSelectionEvent = new CustomEvent("mapselection", {
+                                        detail: { type: null },
+                                    })
+                                    window.dispatchEvent(mapSelectionEvent);
+                                    sendMessage({ type: ChairEvents.END_SPEECH_EVENT, payload: {} } satisfies EndSpeechEvent)
+                                }}>
                                 <span>Encerrar Fala</span>
                             </Button>
                         </TooltipTrigger>

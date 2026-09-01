@@ -20,16 +20,18 @@ Further improvements are planned to make this a cloud-native application.
 
 # Local development
 
+For automated recipes, this project uses `Just`. Ensure you have it installed.
+
 To start the backend, frontend and supabase, issue:
 
 ```
-make dev
+just dev
 ```
 
 To stop these services, do:
 
 ```
-make stop
+just stop
 ```
 
 # Docs
@@ -51,11 +53,11 @@ $ uv pip install mkdocs
 Lastly, build the documentation:
 
 ```bash
-$ make docs-build
+$ just docs-build
 ```
 
 This will output a `site/` directory containing the static site. To serve the website in localhost:
 
 ```bash
-$ make docs-serve
+$ just docs-serve
 ```

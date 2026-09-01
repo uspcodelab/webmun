@@ -91,7 +91,7 @@ export default function TestButton() {
   const [debateKindChange, setDebateKind] = useState<DebateTypes | "">("")
   const [unmoderatedMinutes, setUnmoderatedMinutes] = useState("")
   const [speechCount, setSpeechCount] = useState("")
-  const [minutesPerSpeech, setMinutesPerSpeech] = useState("")
+  const [secondsPerSpeech, setSecondsPerSpeech] = useState("")
   const [unlimitedDiscourses, setUnlimitedDiscourses] = useState(false)
   const [questionText, setQuestionText] = useState("")
   const [answerText, setAnswerText] = useState("")
@@ -106,9 +106,9 @@ export default function TestButton() {
   const motionBody: DelegateMotionPayload = {
     type: selectedMotion,
     ...(unmoderatedMinutes !== "" && { total_duration_minutes: Number(unmoderatedMinutes) }),
-    ...(minutesPerSpeech !== "" && { per_speaker_seconds: Number(minutesPerSpeech) }), //TODO: Fix inconsitency in minutes / seconds
+    ...(secondsPerSpeech !== "" && { per_speaker_seconds: Number(secondsPerSpeech) }), //TODO: Fix inconsitency in minutes / seconds
     ...(debateKindChange !== "" && { debate_type: debateKindChange }),
-    ...(minutesPerSpeech !== "" && { per_speaker_seconds: Number(minutesPerSpeech) }),
+    ...(secondsPerSpeech !== "" && { per_speaker_seconds: Number(secondsPerSpeech) }),
     //TODO: add change topic
   }
 
@@ -127,7 +127,7 @@ export default function TestButton() {
     setDebateKind("")
     setUnmoderatedMinutes("")
     setSpeechCount("")
-    setMinutesPerSpeech("")
+    setSecondsPerSpeech("")
     setUnlimitedDiscourses(false)
   }
 
@@ -225,7 +225,7 @@ export default function TestButton() {
                     setDebateKind("")
                     setUnmoderatedMinutes("")
                     setSpeechCount("")
-                    setMinutesPerSpeech("")
+                    setSecondsPerSpeech("")
                     setQuestionText("")
                     setAnswerText("")
                     setUnlimitedDiscourses(false)
@@ -274,7 +274,20 @@ export default function TestButton() {
                     min={1}
                     placeholder="Minutos do debate"
                     value={unmoderatedMinutes}
-                    onChange={(event) => setUnmoderatedMinutes(event.target.value)}
+                    onChange={(event) => {
+                        const value = event.target.value
+                        if (value === "") {
+                          setUnmoderatedMinutes("")
+                          return
+                        }
+
+                        const numericValue = Number(value)
+                        if (Number.isNaN(numericValue)) {
+                          return
+                        }
+
+                        setUnmoderatedMinutes(String(Math.min(numericValue, 10000)))
+                      }}
                   />
                 </Field>
               )}
@@ -286,21 +299,49 @@ export default function TestButton() {
                     <Input
                       type="number"
                       min={1}
+                      max={10000}
                       placeholder="Número de discursos"
                       value={speechCount}
                       disabled={unlimitedDiscourses}
-                      onChange={(event) => setSpeechCount(event.target.value)}
+                      onChange={(event) => {
+                        const value = event.target.value
+                        if (value === "") {
+                          setSpeechCount("")
+                          return
+                        }
+
+                        const numericValue = Number(value)
+                        if (Number.isNaN(numericValue)) {
+                          return
+                        }
+
+                        setSpeechCount(String(Math.min(numericValue, 10000)))
+                      }}
                     />
                     <FieldDescription>Deixe em branco para permitir um debate moderado sem limite de discursos.</FieldDescription>
                   </Field>
                   <Field>
-                    <FieldLabel>Quantos minutos por discurso?</FieldLabel>
+                    <FieldLabel>Quantos segundos por discurso?</FieldLabel>
                     <Input
                       type="number"
                       min={1}
-                      placeholder="Minutos por discurso"
-                      value={minutesPerSpeech}
-                      onChange={(event) => setMinutesPerSpeech(event.target.value)}
+                      max={10000}
+                      placeholder="Segundos por discurso"
+                      value={secondsPerSpeech}
+                      onChange={(event) => {
+                        const value = event.target.value
+                        if (value === "") {
+                          setSecondsPerSpeech("")
+                          return
+                        }
+
+                        const numericValue = Number(value)
+                        if (Number.isNaN(numericValue)) {
+                          return
+                        }
+
+                        setSecondsPerSpeech(String(Math.min(numericValue, 10000)))
+                      }}
                     />
                     <FieldDescription>Deixe em branco para manter o tempo de discurso atual.</FieldDescription>
                   </Field>

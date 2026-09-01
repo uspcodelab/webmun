@@ -1,25 +1,26 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+import redis.asyncio as redis
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 
 from app.access.views import router as access_router
 from app.core.config import get_settings
 from app.core.database import create_db
+from app.core.exceptions import AppException
 from app.core.openapi import add_websocket_message_schemas
 from app.session.engine import SessionEngine
 from app.session.manager import ConnectionManager
 from app.session.views import router as session_router
 
+settings = get_settings()
 
-# Startup and shutdown logic for shared variables, such as
-# (db session, settings, connection manager, etc)
-# You can view more of this on "FastAPI Lifespan"
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup phase
-    settings = get_settings()
     engine, session_factory = create_db(settings)
     app.state.db_engine = engine
     app.state.db_session_factory = session_factory
@@ -27,8 +28,13 @@ async def lifespan(app: FastAPI):
     app.state.session_engine = SessionEngine()
     app.state.connection_manager = ConnectionManager()
 
+    app.state.redis = redis.from_url(
+        settings.REDIS_URL.get_secret_value(),
+    )
+
     yield
 
+    await app.state.redis.close()
     await engine.dispose()
 
 
@@ -37,12 +43,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
+
+
 # CORS config for Vite
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.list_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    if settings.ENVIRONMENT == "production"
+    else ["*"],
+    allow_headers=["Authorization", "Content-Type", "Accept"]
+    if settings.ENVIRONMENT == "production"
+    else ["*"],
 )
 
 # include commitees here?

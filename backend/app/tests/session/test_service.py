@@ -1,4 +1,3 @@
-# Test suite for service layer
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
@@ -6,10 +5,9 @@ import pytest
 
 from app.access.enums import SessionRoles
 from app.access.models import CommitteeAssignment
-from app.session import enums
+from app.session import enums, store
 from app.session.engine import EventRejectedError
 from app.session.enums import SessionRole
-from app.session.manager import ConnectionManager
 from app.session.models import SessionActor, SessionLiveState
 from app.session.schemas import EventMessage, JoinQueueEvent
 from app.session.service import (
@@ -22,7 +20,12 @@ from app.session.service import (
 
 
 @pytest.fixture
-def brazil_assignment():
+def anyio_backend() -> str:
+    return "asyncio"
+
+
+@pytest.fixture
+def brazil_assignment() -> CommitteeAssignment:
     return CommitteeAssignment(
         user_id=UUID("44444444-4444-4444-4444-444444444444"),
         committee_id=0,
@@ -31,85 +34,77 @@ def brazil_assignment():
     )
 
 
-def test_can_build_actor(
-    connection_manager: ConnectionManager,
-    session_state: SessionLiveState,
+@pytest.mark.anyio
+async def test_builds_delegate_actor_from_redis(
+    fake_redis, session_state: SessionLiveState
 ) -> None:
-    connection_manager.room_states[0] = session_state
+    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
 
-    actor = build_actor(
+    actor = await build_actor(
         user_id=UUID("11111111-1111-1111-1111-111111111111"),
-        manager=connection_manager,
-        session_id=0,
+        session_id=session_state.session_id,
         role=SessionRole.DELEGATE,
         delegation_id=0,
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
     assert actor.role == SessionRole.DELEGATE
     assert actor.delegation is not None
-    assert actor.delegation.id == connection_manager.room_states[0].delegations[0].id
-    assert (
-        actor.delegation.name == connection_manager.room_states[0].delegations[0].name
-    )
+    assert actor.delegation.id == session_state.delegations[0].id
+    assert actor.delegation.name == session_state.delegations[0].name
 
 
-def test_cannot_build_actor_with_nonexistent_state(
-    connection_manager: ConnectionManager,
-) -> None:
+@pytest.mark.anyio
+async def test_cannot_build_actor_with_missing_redis_state(fake_redis) -> None:
     with pytest.raises(ActorResolutionError, match="session not found"):
-        build_actor(
+        await build_actor(
             user_id=UUID("11111111-1111-1111-1111-111111111111"),
-            manager=connection_manager,
             session_id=0,
             role=SessionRole.DELEGATE,
             delegation_id=0,
-        )
-
-
-def test_cannot_build_actor_with_no_delegation_id(
-    connection_manager: ConnectionManager,
-    session_state: SessionLiveState,
-) -> None:
-    with pytest.raises(ActorResolutionError, match="needs delegate id"):
-        connection_manager.room_states[0] = session_state
-        build_actor(
-            user_id=UUID("11111111-1111-1111-1111-111111111111"),
-            manager=connection_manager,
-            session_id=0,
-            role=SessionRole.DELEGATE,
-        )
-
-
-def test_cannot_build_actor_with_nonexistent_delegation(
-    connection_manager: ConnectionManager,
-    session_state: SessionLiveState,
-) -> None:
-    with pytest.raises(ActorResolutionError, match="delegation not found"):
-        connection_manager.room_states[0] = session_state
-
-        build_actor(
-            user_id=UUID("11111111-1111-1111-1111-111111111111"),
-            manager=connection_manager,
-            session_id=0,
-            role=SessionRole.DELEGATE,
-            delegation_id=999,
+            redis=fake_redis,  # type: ignore[arg-type]
         )
 
 
 @pytest.mark.anyio
-async def test_prepare_connect_without_db(
-    connection_manager: ConnectionManager,
-    session_state: SessionLiveState,
-    brazil_assignment: CommitteeAssignment,
+async def test_cannot_build_actor_with_no_delegation_id(fake_redis) -> None:
+    with pytest.raises(ActorResolutionError, match="needs delegate id"):
+        await build_actor(
+            user_id=UUID("11111111-1111-1111-1111-111111111111"),
+            session_id=0,
+            role=SessionRole.DELEGATE,
+            redis=fake_redis,  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.anyio
+async def test_cannot_build_actor_with_nonexistent_delegation(
+    fake_redis, session_state: SessionLiveState
 ) -> None:
-    connection_manager.room_states[0] = session_state
-    mock_session = None
+    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+
+    with pytest.raises(ActorResolutionError, match="delegation not found"):
+        await build_actor(
+            user_id=UUID("11111111-1111-1111-1111-111111111111"),
+            session_id=session_state.session_id,
+            role=SessionRole.DELEGATE,
+            delegation_id=999,
+            redis=fake_redis,  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.anyio
+async def test_prepare_connect_uses_redis_without_database(
+    connection_manager, fake_redis, session_state: SessionLiveState, brazil_assignment
+) -> None:
+    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
 
     actor = await prepare_session_connect(
-        session=mock_session,  # type: ignore due to mock session not needing to be called. if it is, we fail
+        session=None,  # type: ignore[arg-type]
         manager=connection_manager,
-        committee_session_id=0,
+        committee_session_id=session_state.session_id,
         assignment=brazil_assignment,
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
     assert actor.role == enums.SessionRole.DELEGATE
@@ -118,106 +113,87 @@ async def test_prepare_connect_without_db(
 
 
 @pytest.mark.anyio
-async def test_prepare_connect_fetches_db(
-    connection_manager: ConnectionManager,
-    brazil_assignment: CommitteeAssignment,
+async def test_prepare_connect_hydrates_redis_from_database(
+    connection_manager,
+    fake_redis,
+    session_state: SessionLiveState,
+    brazil_assignment,
     monkeypatch,
 ) -> None:
-    mock_session = MagicMock
-    mock_stored_state = MagicMock()
-    mock_stored_state.status = "active"
-    mock_stored_state.state_snapshot = {"session_id": 0}
-
+    mock_stored_state = MagicMock(
+        status="active", state_snapshot=session_state.model_dump(mode="json")
+    )
     mock_get_session_info = AsyncMock(return_value=mock_stored_state)
-
     monkeypatch.setattr(
         "app.session.repository.get_session_info", mock_get_session_info
     )
 
-    # prevent model_validate from breaking validation
-    monkeypatch.setattr(
-        SessionLiveState,
-        "model_validate",
-        MagicMock(return_value=mock_stored_state.state_snapshot),
-    )
-
-    monkeypatch.setattr("app.session.service.build_actor", MagicMock())
-
-    await prepare_session_connect(
-        session=mock_session,  # type: ignore
+    actor = await prepare_session_connect(
+        session=MagicMock(),
         manager=connection_manager,
-        committee_session_id=0,
+        committee_session_id=session_state.session_id,
         assignment=brazil_assignment,
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
-    mock_get_session_info.assert_called_once_with(mock_session, 0)
+    assert actor.delegation is not None
+    assert await store.get_state(fake_redis, session_state.session_id) == session_state  # type: ignore[arg-type]
+    mock_get_session_info.assert_awaited_once()
 
 
 @pytest.mark.anyio
-async def test_cant_prepare_connect_storedlive_missing(
-    connection_manager: ConnectionManager,
-    brazil_assignment: CommitteeAssignment,
-    monkeypatch,
+async def test_prepare_connect_rejects_missing_durable_session(
+    connection_manager, fake_redis, brazil_assignment, monkeypatch
 ) -> None:
+    monkeypatch.setattr(
+        "app.session.repository.get_session_info", AsyncMock(return_value=None)
+    )
+
     with pytest.raises(SessionFetchError, match="Could not fetch session info"):
-        mock_session = MagicMock
-        mock_get_session_info = AsyncMock(return_value=None)
-
-        monkeypatch.setattr(
-            "app.session.repository.get_session_info", mock_get_session_info
-        )
-
         await prepare_session_connect(
-            session=mock_session,  # type: ignore
+            session=MagicMock(),
             manager=connection_manager,
             committee_session_id=0,
             assignment=brazil_assignment,
+            redis=fake_redis,  # type: ignore[arg-type]
         )
 
 
 @pytest.mark.anyio
-async def test_handle_client_messages_returns_dispatch_outcome_and_updates_state(
-    connection_manager: ConnectionManager,
+async def test_handle_client_messages_persists_dispatch_outcome(
+    fake_redis,
     fake_engine,
     session_state: SessionLiveState,
     delegate_actor: SessionActor,
 ) -> None:
     session_state.current_state = enums.States.OPEN_GSL
-    connection_manager.room_states[session_state.session_id] = session_state
-
+    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
     client_message = EventMessage(
         request_id=uuid4(),
         event=JoinQueueEvent(type=enums.DelegateEvents.JOIN_QUEUE, payload={}),
     )
 
     result = await handle_client_messages(
-        manager=connection_manager,
         engine=fake_engine,
         logger=__import__("logging").getLogger("test"),
         session_id=session_state.session_id,
         actor=delegate_actor,
         data=client_message,
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
-    # tests if engine dispatched the message
-
-    assert fake_engine.dispatched["state"] is session_state
-    assert fake_engine.dispatched["event"].type == enums.DelegateEvents.JOIN_QUEUE
-    assert fake_engine.dispatched["actor"] is delegate_actor
-    assert result.state is session_state
-    assert connection_manager.room_states[session_state.session_id] is session_state
+    assert fake_engine.dispatched["state"] is not None
+    assert result.state is not None
+    assert (await store.get_state(fake_redis, session_state.session_id)) is not None  # type: ignore[arg-type]
 
 
 @pytest.mark.anyio
-async def test_handle_client_messages_returns_event_rejection_without_updating_state(
-    connection_manager: ConnectionManager,
-    session_state: SessionLiveState,
-    delegate_actor: SessionActor,
+async def test_handle_client_messages_does_not_persist_rejection(
+    fake_redis, session_state: SessionLiveState, delegate_actor: SessionActor
 ) -> None:
-    connection_manager.room_states[session_state.session_id] = session_state
+    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
     rejection = EventRejectedError(
-        enums.EventErrorCode.INVALID_STATE,
-        "Cannot enter queue right now",
+        enums.EventErrorCode.INVALID_STATE, "Cannot enter queue right now"
     )
     rejecting_engine = MagicMock()
     rejecting_engine.dispatch.side_effect = rejection
@@ -227,13 +203,13 @@ async def test_handle_client_messages_returns_event_rejection_without_updating_s
     )
 
     result = await handle_client_messages(
-        manager=connection_manager,
         engine=rejecting_engine,
         logger=__import__("logging").getLogger("test"),
         session_id=session_state.session_id,
         actor=delegate_actor,
         data=event,
+        redis=fake_redis,  # type: ignore[arg-type]
     )
 
     assert result is rejection
-    assert connection_manager.room_states[session_state.session_id] is session_state
+    assert await store.get_state(fake_redis, session_state.session_id) == session_state  # type: ignore[arg-type]

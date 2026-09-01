@@ -9,10 +9,11 @@ dependencies = [
     "pytest>=9.1.0",
     "pytest-cov>=7.0.0",
     "ruff>=0.15.17",
-	"supabase",
-	"pyjwt", 
-	"sqlalchemy",
-	"asyncpg"
+    "supabase",
+    "pyjwt",
+    "sqlalchemy",
+    "asyncpg",
+    "redis>=8.1.0",
 ]
 
 [tool.ruff]

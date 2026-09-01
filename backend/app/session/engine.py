@@ -113,14 +113,19 @@ def validate_motion_payload(
     """Should validate motion payload before submitting"""
 
     # can also raise error if there are missing fields
-    if (
-        payload.type == Motions.CHANGE_DEBATE_TYPE
-        and payload.debate_type == DebateTypes.UNMODERATED_DEBATE
-        and payload.total_duration_minutes is None
+    if payload.type == Motions.CHANGE_DEBATE_TYPE and (
+        (
+            payload.debate_type == DebateTypes.UNMODERATED_DEBATE
+            and payload.total_duration_minutes is None
+        )
+        or (
+            payload.debate_type == DebateTypes.MODERATED_DEBATE
+            and payload.per_speaker_seconds is None
+        )
     ):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_MESSAGE,
-            message="Cannot submit motion this motion without duration",
+            message="Cannot submit debate motion without the required duration",
         )
 
 
@@ -281,7 +286,11 @@ def handle_delegate_submit_motion(
         )
 
     if (
-        current_state in {States.UNMODERATED_CAUCUS}
+        current_state
+        in {
+            States.MODERATED_CAUCUS,
+            States.UNMODERATED_CAUCUS,
+        }
         and not state.can_set_motion
     ):
         raise EventRejectedError(
@@ -425,10 +434,10 @@ def handle_close_session(
 ) -> DispatchOutcome:
     require_chair(actor)
 
-    if state.current_state in (States.SETUP, States.ROLL_CALL, States.FINISHED):
+    if state.current_state != States.ROLL_CALL:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Session may only be closed outside setup, roll_call or finished",
+            message="Session may only be closed during roll call",
         )
 
     state.current_state = States.FINISHED
@@ -554,12 +563,12 @@ def apply_passed_motion(
     state.timer_is_running = False
     state.timer_expiration = None
 
-    match motion.type: 
+    match motion.type:
         case Motions.CHANGE_DEBATE_TYPE:
             if motion.debate_type is None:
                 raise EventRejectedError(
-                code=enums.EventErrorCode.INVALID_MESSAGE,
-                message="No Debate Type Provided",
+                    code=enums.EventErrorCode.INVALID_MESSAGE,
+                    message="No Debate Type Provided",
                 )
             state.current_speaker = None
 
@@ -675,10 +684,10 @@ def handle_close_procedural_voting(
     present = count_present_delegations(state)
     passed = tally_votes(state.voting, present)
 
-    #TODO: Change this
+    # TODO: Change this
     effect = SessionEffect(
         type=enums.SessionEffectType.VOTE_CLOSED,
-        data=state.voting,
+        data={**state.voting.model_dump(mode="json"), "passed": passed},
     )
 
     if passed:
@@ -947,6 +956,7 @@ def handle_grant_floor(
 
     return DispatchOutcome(state=state)
 
+
 def handle_cede_time(
     state: SessionLiveState, event: schemas.CedeTimeEvent, actor: SessionActor
 ) -> DispatchOutcome:
@@ -958,23 +968,27 @@ def handle_cede_time(
             message="Representation not found",
         )
 
-    if state.current_state not in [States.MODERATED_CAUCUS, States.OPEN_GSL, States.CLOSED_GSL]:
+    if state.current_state not in [
+        States.MODERATED_CAUCUS,
+        States.OPEN_GSL,
+        States.CLOSED_GSL,
+    ]:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Can only cede time during moderated debate or debate by list"
+            message="Can only cede time during moderated debate or debate by list",
         )
 
     if state.timer_is_running:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot cede time while timer is running"
-        ) 
+            message="Cannot cede time while timer is running",
+        )
 
     if not state.current_speaker:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot cede time if there's no speaker"
-        ) 
+            message="Cannot cede time if there's no speaker",
+        )
 
     if state.timer_remaining_seconds <= 0:
         raise EventRejectedError(
@@ -987,16 +1001,17 @@ def handle_cede_time(
 
     return DispatchOutcome(state=state)
 
+
 def handle_end_speech(
     state: SessionLiveState, event: schemas.EndSpeechEvent, actor: SessionActor
 ) -> DispatchOutcome:
 
-    if state.current_speaker == None:
+    if state.current_speaker is None:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot end speech without speaker"
-        ) 
-    
+            message="Cannot end speech without speaker",
+        )
+
     if state.timer_is_running:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
@@ -1011,6 +1026,7 @@ def handle_end_speech(
     reset_timer(state)
 
     return DispatchOutcome(state=state)
+
 
 def handle_mark_roll_call(
     state: SessionLiveState, event: schemas.MarkRollCallEvent, actor: SessionActor
