@@ -1217,12 +1217,7 @@ export type RollCallContext = {
  */
 export type SessionEffect = {
     type: SessionEffectType;
-    /**
-     * Data
-     */
-    data?: {
-        [key: string]: unknown;
-    };
+    data?: VotingContext;
 };
 
 /**
@@ -1307,6 +1302,10 @@ export type SessionLiveState = {
     active_topic_index?: string | null;
     voting?: VotingContext | null;
     roll_call: RollCallContext;
+    /**
+     * Previous Speakers
+     */
+    previous_speakers?: Array<number>;
     /**
      * Has Veto Power
      */

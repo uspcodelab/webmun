@@ -146,13 +146,15 @@ class SessionLiveState(BaseModel):
     # present delegations with voting choice
     roll_call: RollCallContext  # Not None, even if registry is empty
 
+    #Temporary Speaker History
+    previous_speakers: list[int] = [] #temporary list for now
+
     # Additional config
     has_veto_power: bool = False
 
 
-# Add more effect payload shapes as they are introduced.
-EffectPayloads = dict[str, Any]
-
+#Add more for other effects (Possibly change the Voting context, when doing that change frontend too)
+EffectPayloads = VotingContext
 
 class SessionEffect(BaseModel):
     type: enums.SessionEffectType
