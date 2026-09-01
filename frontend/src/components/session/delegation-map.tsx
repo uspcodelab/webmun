@@ -240,9 +240,11 @@ export default function DelegationMap({
                                                 <ContextMenuContent className="w-60">
                                                     <ContextMenuGroup>
                                                         <ContextMenuLabel>Ações sobre a Delegação</ContextMenuLabel>
-                                                        <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.ADD_GSL_SPEAKER_EVENT, payload: { representation_id: delegation.id } } satisfies AddGslSpeakerEvent)}>
-                                                            Colocar na Lista de Discursos
-                                                        </ContextMenuItem>
+                                                        {currentState === States.OPEN_GSL && (
+                                                            <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.ADD_GSL_SPEAKER_EVENT, payload: { representation_id: delegation.id } } satisfies AddGslSpeakerEvent)}>
+                                                                Colocar na Lista de Discursos
+                                                            </ContextMenuItem>
+                                                        )}
                                                         <ContextMenuItem onClick={() => sendMessage({ type: ChairEvents.GRANT_FLOOR_EVENT, payload: { representation_id: delegation.id } } satisfies GrantFloorEvent)}>
                                                             Dar a palavra
                                                         </ContextMenuItem>

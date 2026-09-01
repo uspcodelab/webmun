@@ -6,6 +6,7 @@ import {
     ItemContent,
     ItemMedia,
     ItemTitle,
+    ItemDescription,
 } from "@/components/ui/item"
 import Flags from "@/components/ui/flags"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
@@ -26,18 +27,22 @@ export default function ModeratedDebate() {
     const { role } = useSession()
     const remainingDiscouses = useCommitteeStore((state) => state.debate?.total_speeches ?? null)
     const isChair = role === SessionRoles.CHAIR
-    const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
+    const previusSpeakers = useCommitteeStore((state) => state.previous_speakers ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
     const delegationsById = useCommitteeStore((state) => state.delegations)
-    const queuedDelegations = gslQueue.flatMap((delegationId) => {
+    const previousSpeakerCounts = previusSpeakers.reduce<Record<string, number>>((counts, delegationId) => {
+        const key = String(delegationId)
+        counts[key] = (counts[key] ?? 0) + 1
+        return counts
+    }, {})
+
+    const queuedDelegations = [...previusSpeakers].reverse().flatMap((delegationId) => {
         const delegation = delegationsById[String(delegationId)]
         return delegation ? [delegation] : []
     })
 
-
     const timerIsRunning = useCommitteeStore((state) => state.timer_is_running);
-    const timerRemaining = useCommitteeStore((state) => state.timer_remaining_seconds);
-
+    const timerRemaining = useCommitteeStore((state) => state.timer_remaining_seconds)
 
     const [cedingTime, setCedingTime] = useState(false)
     const [chosingNextSpk, setChosingNextSpk] = useState(false)
@@ -81,18 +86,19 @@ export default function ModeratedDebate() {
             </div>
             <ScrollArea className="mr-4 mb-2 ml-4 mt-0 min-h-0 flex-1 rounded-md border ">
                 {queuedDelegations.map((delegate, index) => {
-                    const isSpeaking = currentSpeaker === delegate.id
+
                     const position = index + 1
+                    const speakerCount = previousSpeakerCounts[String(delegate.id)] ?? 0
 
                     return (
-                        <div key={delegate.id}>
+                        <div key={`${delegate.id}-${index}`}>
                             <Item size="sm" className="mb-0">
                                 <ItemMedia
                                     variant="icon"
-                                    className={`${isSpeaking ? "bg-secondary" : "bg-neutral-100"} h-10 w-10 rounded-full`}
+                                    className="bg-neutral-100 h-10 w-10 rounded-full"
                                 >
                                     <div className="h-10 mb-0 items-center justify-center flex">
-                                        <h2 className={`font-bold text-lg ${isSpeaking ? "text-white" : "text-secondary"}`}>
+                                        <h2 className="font-bold text-lg text-secondary">
                                             {String(position).padStart(2, "0")}
                                         </h2>
                                     </div>
@@ -102,6 +108,10 @@ export default function ModeratedDebate() {
                                         {delegate.name}
                                         <Flags code={delegate.code} className="h-5" />
                                     </ItemTitle>
+                                    <ItemDescription>
+                                        {speakerCount} {speakerCount === 1 ? "vez" : "vezes"}
+                                    </ItemDescription>
+
                                 </ItemContent>
                             </Item>
                             {index < queuedDelegations.length - 1 && (
@@ -127,6 +137,7 @@ export default function ModeratedDebate() {
                                 <Button
                                     variant="outline"
                                     className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                                    disabled={ timerIsRunning}
                                     onClick={() => {
                                         const mapSelectionEvent = new CustomEvent("mapselection", {
                                             detail: { type: chosingNextSpk ? null : "choseNspeaker" },
@@ -146,7 +157,7 @@ export default function ModeratedDebate() {
                                             <span className="hidden md:inline">Escolher Próximo Orador</span>
                                         </>
                                     )}
-                                
+
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -204,21 +215,21 @@ export default function ModeratedDebate() {
                         </Tooltip>
                         {remainingDiscouses && (
                             <div className="flex flex-1 items-center justify-center px-2">
-                            <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="destructive" disabled={currentSpeaker === null || timerIsRunning} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
-                                    >
-                                    <span>Encerrar Debate Moderado</span>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Encerrar o debate moderado e voltar para lista de discursos</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        </div>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="destructive" disabled={currentSpeaker === null || timerIsRunning} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
+                                        >
+                                            <span>Encerrar Debate Moderado</span>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Encerrar o debate moderado e voltar para lista de discursos</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
 
                         )}
-                        
+
                     </div>
 
                 </div>
