@@ -47,6 +47,7 @@ class MotionContext(BaseModel):
     total_duration_minutes: int | None = None
     per_speaker_seconds: int | None = None
     target_topic: str | None = None
+    speech_count: int | None = None
 
     details: str | None = None
 
@@ -85,7 +86,6 @@ class DebateContext(BaseModel):
     total_speeches: int | None = None
     per_speaker_seconds: int | None = None
     expires_at: datetime | None = None
-    topic: str | None = None
 
 
 class RollCallContext(BaseModel):

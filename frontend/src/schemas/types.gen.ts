@@ -1048,10 +1048,6 @@ export type DebateContext = {
      * Expires At
      */
     expires_at?: string | null;
-    /**
-     * Topic
-     */
-    topic?: string | null;
 };
 
 /**
@@ -1162,6 +1158,10 @@ export type MotionContext = {
      * Target Topic
      */
     target_topic?: string | null;
+    /**
+     * Speech Count
+     */
+    speech_count?: number | null;
     /**
      * Details
      */

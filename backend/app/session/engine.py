@@ -562,11 +562,6 @@ def apply_passed_motion(
                 message="No Debate Type Provided",
                 )
             state.current_speaker = None
-            duration_seconds = (
-                (motion.total_duration_minutes * 60)
-                if motion.total_duration_minutes is not None
-                else 600
-            )  # defaults to 10 minutes as fallback
 
             match motion.debate_type:
                 case DebateTypes.MODERATED_DEBATE:
@@ -574,16 +569,9 @@ def apply_passed_motion(
                     state.debate = DebateContext(
                         debate_type=DebateTypes.MODERATED_DEBATE,
                         return_state=return_state,
-                        total_duration_seconds=duration_seconds,
                         per_speaker_seconds=motion.per_speaker_seconds if motion.per_speaker_seconds is not None
                         else state.gsl_default_time_seconds, 
-                        expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
-                    )
-                    reset_timer(
-                        state,
-                        motion.per_speaker_seconds
-                        if motion.per_speaker_seconds is not None
-                        else state.gsl_default_time_seconds,
+                        total_speeches= motion.speech_count,
                     )
 
                 case DebateTypes.UNMODERATED_DEBATE:
@@ -591,16 +579,15 @@ def apply_passed_motion(
                     state.debate = DebateContext(
                         debate_type=DebateTypes.UNMODERATED_DEBATE,
                         return_state=return_state,
-                        total_duration_seconds=duration_seconds,
-                        per_speaker_seconds=None,
-                        expires_at=datetime.now(UTC) + timedelta(seconds=duration_seconds),
+                        total_duration_seconds=motion.total_duration_minutes,
+                        expires_at=datetime.now(UTC) + timedelta(seconds=motion.total_duration_minutes),
                     )
-                    reset_timer(state)  # should not display per_speaker timer
+                    reset_timer(state, motion.total_duration_minutes)  # Use this as timer
 
                 case DebateTypes.SPEAKERS_LIST:
                     next_state = States.OPEN_GSL
                     state.debate = None
-                    reset_timer(state, state.gsl_default_time_seconds)
+
         case Motions.POSTPONE_SESSION:
             pass
         case Motions.REOPEN_SESSION:
@@ -995,6 +982,7 @@ def handle_cede_time(
             message="Cannot cede time if there's no time"
         ) 
     
+    state.previous_speakers.append(state.current_speaker)
     state.current_speaker = representation_id
 
     return DispatchOutcome(state=state)
@@ -1014,7 +1002,11 @@ def handle_end_speech(
             code=enums.EventErrorCode.INVALID_STATE,
             message="Cannot end speech while timer is running"
         ) 
-    
+
+    if state.current_state == States.MODERATED_CAUCUS and state.debate.speech_count:
+        state.debate.speech_count -= 1
+
+    state.previous_speakers.append(state.current_speaker)
     state.current_speaker = None
     reset_timer(state)
 

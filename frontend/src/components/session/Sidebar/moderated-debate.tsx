@@ -22,7 +22,7 @@ import { SessionRoles } from "@/schemas/types.gen"
 export default function ModeratedDebate() {
 
     const { role } = useSession()
-    const remainingDiscouses = 1
+    const remainingDiscouses = useCommitteeStore((state) => state.debate?.total_speeches ?? null)
     const isChair = role === SessionRoles.CHAIR
     const gslQueue = useCommitteeStore((state) => state.gsl_queue ?? [])
     const currentSpeaker = useCommitteeStore((state) => state.current_speaker)
@@ -122,7 +122,7 @@ export default function ModeratedDebate() {
                             </TooltipContent>
                         </Tooltip>
                         <div className="flex flex-1 items-center justify-center px-2">
-                            {remainingDiscouses > 0 && (
+                            {remainingDiscouses && (
                                 <p className="text-sm font-bold">
                                     {remainingDiscouses} discursos restantes
                                 </p>
