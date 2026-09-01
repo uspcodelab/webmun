@@ -87,27 +87,36 @@ export default function DelegationMap({
                 if (vote === VotingChoice.ABSTAIN) return "ring-gray-400/50"
                 return "ring-neutral-300/30"
             default:
-                if (active) return "ring-yellow-300/50"
+                if (CedeActive) return "ring-yellow-300/50"
+                if (ChoseNSActive) return "ring-yellow-300/50"
                 if (presence == RollCallChoice.PRESENT_AND_VOTING || presence === RollCallChoice.PRESENT) return "ring-sky-300/50"
                 return "ring-neutral-400/30"
         }
     }
 
-    const [active, setActive] = useState(false)
+    const [CedeActive, setCedeActive] = useState(false)
+    const [ChoseNSActive, setChoseNSActive] = useState(false)
 
     useEffect(() => {
         const setAc = (e: CustomEvent) => {
             if (!e.detail || e.detail.type === null) {
-                setActive(false)
+                setCedeActive(false)
+                setChoseNSActive(false)
                 return
             }
 
             if (e.detail.type === "cedetime") {
-                setActive(true)
+                setCedeActive(true)
                 return
             }
 
-            setActive(false)
+            if (e.detail.type === "choseNspeaker") {
+                setChoseNSActive(true)
+                return
+            }
+
+            setCedeActive(false)
+            setChoseNSActive(false)
         }
 
         window.addEventListener("mapselection", setAc as EventListener)
@@ -195,14 +204,22 @@ export default function DelegationMap({
                                                                 variant="outline"
                                                                 className={`h-[6vh] w-[6vh] overflow-hidden rounded-full p-0 text-[10px] ring-4 ${ringcolor} ring-offset-white shadow-[0_0_18px_rgba(56,189,248,0.18)]`}
                                                                 onClick={() => {
-                                                                    if (active) {
+                                                                    if (CedeActive) {
                                                                         sendMessage({ type: ChairEvents.CEDE_TIME_EVENT, payload: { representation_id: delegation.id } } satisfies CedeTimeEvent)
-                                                                        setActive(false);
+                                                                        setCedeActive(false);
                                                                         const mapSelectionEvent = new CustomEvent("mapselection", {
                                                                             detail: { type:  null  },
                                                                         })
                                                                         window.dispatchEvent(mapSelectionEvent)
                                                                         
+                                                                    }
+                                                                    if (ChoseNSActive) {
+                                                                        sendMessage({ type: ChairEvents.GRANT_FLOOR_EVENT, payload: { representation_id: delegation.id } } satisfies GrantFloorEvent)
+                                                                        setChoseNSActive(false);
+                                                                        const mapSelectionEvent = new CustomEvent("mapselection", {
+                                                                            detail: { type:  null  },
+                                                                        })
+                                                                        window.dispatchEvent(mapSelectionEvent)
                                                                     }
                                                                 }}
                                                             >

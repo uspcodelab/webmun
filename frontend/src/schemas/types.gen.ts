@@ -1209,7 +1209,12 @@ export type RollCallContext = {
  */
 export type SessionEffect = {
     type: SessionEffectType;
-    data?: VotingContext;
+    /**
+     * Data
+     */
+    data?: {
+        [key: string]: unknown;
+    };
 };
 
 /**

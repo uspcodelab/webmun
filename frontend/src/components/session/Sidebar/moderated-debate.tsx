@@ -40,16 +40,22 @@ export default function ModeratedDebate() {
 
 
     const [cedingTime, setCedingTime] = useState(false)
+    const [chosingNextSpk, setChosingNextSpk] = useState(false)
 
     useEffect(() => {
 
         const setCT = (e: CustomEvent) => {
             if (!e.detail || e.detail.type === null) {
                 setCedingTime(false)
+                setChosingNextSpk(false)
                 return
             }
             if (!e.detail || e.detail.type === "cedetime") {
                 setCedingTime(true)
+                return
+            }
+            if (!e.detail || e.detail.type === "choseNspeaker") {
+                setChosingNextSpk(true)
                 return
             }
 
@@ -121,9 +127,26 @@ export default function ModeratedDebate() {
                                 <Button
                                     variant="outline"
                                     className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                                    onClick={() => {
+                                        const mapSelectionEvent = new CustomEvent("mapselection", {
+                                            detail: { type: chosingNextSpk ? null : "choseNspeaker" },
+                                        })
+                                        window.dispatchEvent(mapSelectionEvent)
+
+                                    }}
                                 >
-                                    <span className="md:hidden">Escolhar Proximo</span>
-                                    <span className="hidden md:inline">Proximo Orador</span>
+                                    {chosingNextSpk ? (
+                                        <>
+                                            <span className="md:hidden">Cancelar Escolha</span>
+                                            <span className="hidden md:inline">Cancelar Escolha do Próximo Orador</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="md:hidden">Proximo Orador</span>
+                                            <span className="hidden md:inline">Escolher Próximo Orador</span>
+                                        </>
+                                    )}
+                                
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
