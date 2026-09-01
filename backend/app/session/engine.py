@@ -1014,7 +1014,7 @@ def handle_end_speech(
             message="Cannot end speech while timer is running"
         ) 
 
-    if state.current_state == States.MODERATED_CAUCUS and state.debate.speech_count:
+    if state.current_state == States.MODERATED_CAUCUS and state.debate.total_speeches:
         state.debate.speech_count -= 1
 
     state.previous_speakers.append(state.current_speaker)
