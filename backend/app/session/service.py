@@ -7,12 +7,20 @@ from dataclasses import replace
 from datetime import datetime
 from uuid import UUID
 
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.session.enums as enums
 import app.session.repository as repository
 import app.session.schemas as schemas
+import app.session.store as store
 from app.access.models import CommitteeAssignment
+from app.core.exceptions import (
+    BadRequest,
+    ConflictError,
+    InternalServerError,
+    NotFoundError,
+)
 from app.session.engine import EventRejectedError, SessionEngine
 
 from .manager import ConnectionManager
@@ -28,23 +36,15 @@ class ActorResolutionError(Exception):
     pass
 
 
-class SessionCreationError(Exception):
-    pass
-
-
 class SessionFetchError(Exception):
     pass
 
 
-class SessionUpdateError(Exception):
-    pass
-
-
-def build_actor(
+async def build_actor(
     user_id: UUID,
-    manager: ConnectionManager,
     session_id: int,
     role: enums.SessionRole,
+    redis: Redis,
     delegation_id: int | None = None,
 ) -> SessionActor:
 
@@ -58,7 +58,7 @@ def build_actor(
     if role == enums.SessionRole.DELEGATE:
         if delegation_id is None:
             raise ActorResolutionError("needs delegate id")
-        state = manager.room_states.get(session_id)
+        state = await store.get_state(session=redis, session_id=session_id)
         if state is None:
             raise ActorResolutionError("session not found")
 
@@ -91,34 +91,39 @@ async def create_session_service(
     )
 
     if session_id is None:
-        raise SessionCreationError("Could not create session with given schema")
+        raise BadRequest("Could not create session with given schema")
 
     await session.commit()
 
     return session_id
 
 
+async def get_session_for_activation(session: AsyncSession, committee_session_id: int):
+    stored = await repository.get_session_info(
+        session=session, committee_session_id=committee_session_id
+    )
+    if stored is None:
+        raise NotFoundError("Session not found")
+    return stored
+
+
 async def activate_session(
     session: AsyncSession,
     manager: ConnectionManager,
     committee_session_id: int,
+    redis: Redis,
 ):
     """Activate a planned session"""
-    stored = await repository.get_session_info(
-        session=session, committee_session_id=committee_session_id
-    )
-
-    if stored is None:
-        raise SessionFetchError("Could not fetch session info")
+    stored = await get_session_for_activation(session, committee_session_id)
     if stored.status != "planned":
-        raise SessionFetchError("Session already started")
+        raise ConflictError("Session already started")
 
     delegations = await repository.bulk_get_delegation_context(
         session=session, committee_id=stored.committee_id
     )
 
     if delegations is None:
-        raise SessionFetchError("Could not fetch session delegations info")
+        raise ConflictError("Session delegations are unavailable")
 
     live_state = SessionLiveState(
         session_id=stored.id,
@@ -139,11 +144,12 @@ async def activate_session(
     try:
         await repository.update_session_info(session=session, session_info=updated)
     except repository.RepositoryError:
-        raise SessionUpdateError("Could not update session info") from None
+        raise InternalServerError("Could not update session info") from None
 
     await session.commit()
 
-    manager.room_states[committee_session_id] = live_state
+    await store.save_state(session=redis, state=live_state)
+
     manager.active_connections.setdefault(committee_session_id, {})
 
 
@@ -168,11 +174,12 @@ async def prepare_session_connect(
     manager: ConnectionManager,
     committee_session_id: int,
     assignment: CommitteeAssignment,
+    redis: Redis,
 ) -> SessionActor:
     """Service that prepares for session connect.
     Primarily used as a fallback in case the SessionLiveState is not in manager
     """
-    live_state = manager.room_states.get(committee_session_id)
+    live_state = await store.get_state(session=redis, session_id=committee_session_id)
 
     if live_state is None:
         stored_state = await repository.get_session_info(session, committee_session_id)
@@ -186,37 +193,37 @@ async def prepare_session_connect(
         # fetch state_snapshot and validate to be a SessionLiveState
         live_state = SessionLiveState.model_validate(stored_state.state_snapshot)
 
-        # put SessionLiveState on ConnectionManager
-        manager.room_states[committee_session_id] = live_state
+        # put SessionLiveState on Cache
+        live_state = await store.save_state(session=redis, state=live_state)
         manager.active_connections.setdefault(committee_session_id, {})
 
-    actor = build_actor(
+    actor = await build_actor(
         user_id=assignment.user_id,
-        manager=manager,
         session_id=committee_session_id,
         role=enums.SessionRole(assignment.role.upper()),
         delegation_id=assignment.representation_id,
+        redis=redis,
     )
 
     return actor
 
 
 async def handle_client_messages(
-    manager: ConnectionManager,
     engine: SessionEngine,
     logger: logging.Logger,
     session_id: int,
     actor: SessionActor,
     data: schemas.EventMessage,
+    redis: Redis,
 ):
     event = data.event
-    state = manager.room_states[session_id]
+    state = await store.get_state(session=redis, session_id=session_id)
 
     logger.info(event)  # Debugging
 
     try:
         result = engine.dispatch(state, event, actor)
-        manager.room_states[session_id] = result.state
+        await store.save_state(session=redis, state=state)
         return result
     except EventRejectedError as exc:
         return exc
