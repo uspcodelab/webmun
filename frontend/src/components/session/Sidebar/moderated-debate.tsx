@@ -9,13 +9,15 @@ import {
 } from "@/components/ui/item"
 import Flags from "@/components/ui/flags"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
+import { sendMessage } from "@/context/SessionContext"
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useSession } from "@/context/SessionContext"
-import { SessionRoles } from "@/schemas/types.gen"
+import { useEffect, useState } from "react"
+import { SessionRoles, ChairEvents, type EndSpeechEvent } from "@/schemas/types.gen"
 
 //TODO determine if queue is open, if not obscure the button and show a message that the queue is closed
 
@@ -31,13 +33,44 @@ export default function ModeratedDebate() {
         const delegation = delegationsById[String(delegationId)]
         return delegation ? [delegation] : []
     })
-    const waitingCount = queuedDelegations.length
+
+
+    const timerIsRunning = useCommitteeStore((state) => state.timer_is_running);
+    const timerRemaining = useCommitteeStore((state) => state.timer_remaining_seconds);
+
+
+    const [cedingTime, setCedingTime] = useState(false)
+
+    useEffect(() => {
+
+        const setCT = (e: CustomEvent) => {
+            if (!e.detail || e.detail.type === null) {
+                setCedingTime(false)
+                return
+            }
+            if (!e.detail || e.detail.type === "cedetime") {
+                setCedingTime(true)
+                return
+            }
+
+        }
+
+        window.addEventListener("mapselection", setCT as EventListener)
+
+        return () => { window.removeEventListener("mapselection", setCT as EventListener) }
+
+    }, [])
 
     //TODO: Actually implement speaker history
     return (
         <div className="flex min-h-0 flex-1 flex-col">
             <div className="mr-4 mb-2 ml-4 mt-4 ">
                 <h2 className="text-xl font-bold">Debate Moderado</h2>
+                {remainingDiscouses > 0 && (
+                    <p className="text-sm font-bold">
+                        {remainingDiscouses} discursos restantes
+                    </p>
+                )}
                 <p className="ml-auto text-muted-foreground">Historico de Oradores:</p>
             </div>
             <ScrollArea className="mr-4 mb-2 ml-4 mt-0 min-h-0 flex-1 rounded-md border ">
@@ -72,14 +105,14 @@ export default function ModeratedDebate() {
                     )
                 })}
             </ScrollArea>
-            {!isChair && (
+            {/*!isChair && (
                 <Button
                     variant="outline"
                     className="mr-4 mb-2 ml-4 w-auto min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
                 >
                     Quero me proniunciar
                 </Button>
-            )}
+            )*/}
             {isChair && (
                 <div className="ml-4 mr-4 mb-2   flex w-auto min-w-0 flex-col gap-2 overflow-hidden">
                     <div className="flex flex-row w-full gap-2">
@@ -88,9 +121,8 @@ export default function ModeratedDebate() {
                                 <Button
                                     variant="outline"
                                     className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-                                    disabled={waitingCount === 0}
                                 >
-                                    <span className="md:hidden">Proximo</span>
+                                    <span className="md:hidden">Escolhar Proximo</span>
                                     <span className="hidden md:inline">Proximo Orador</span>
                                 </Button>
                             </TooltipTrigger>
@@ -100,9 +132,28 @@ export default function ModeratedDebate() {
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white">
-                                    <span className="md:hidden">Cessao</span>
-                                    <span className="hidden md:inline">Cessao de Tempo</span>
+                                <Button
+                                    className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap bg-primary hover:bg-primary/90 text-white"
+                                    disabled={currentSpeaker === null || timerRemaining === null || timerRemaining === undefined || timerRemaining <= 0 || timerIsRunning}
+                                    onClick={() => {
+                                        const mapSelectionEvent = new CustomEvent("mapselection", {
+                                            detail: { type: cedingTime ? null : "cedetime" },
+                                        })
+                                        window.dispatchEvent(mapSelectionEvent)
+
+                                    }}
+                                >
+                                    {cedingTime ? (
+                                        <>
+                                            <span className="md:hidden">Cancelar Cessao</span>
+                                            <span className="hidden md:inline">Cancelar Cessao de Tempo</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="md:hidden">Cessao</span>
+                                            <span className="hidden md:inline">Cessao de Tempo</span>
+                                        </>
+                                    )}
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -113,7 +164,14 @@ export default function ModeratedDebate() {
                     <div className="flex flex-row w-full gap-2">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="destructive" disabled={currentSpeaker === null} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap ">
+                                <Button variant="destructive" disabled={currentSpeaker === null || timerIsRunning} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
+                                    onClick={() => {
+                                        const mapSelectionEvent = new CustomEvent("mapselection", {
+                                            detail: { type: null },
+                                        })
+                                        window.dispatchEvent(mapSelectionEvent);
+                                        sendMessage({ type: ChairEvents.END_SPEECH_EVENT, payload: {} } satisfies EndSpeechEvent)
+                                    }}>
                                     <span>Encerrar Fala</span>
                                 </Button>
                             </TooltipTrigger>
@@ -121,13 +179,23 @@ export default function ModeratedDebate() {
                                 <p>Finalizar a fala atual e ceder o tempo a mesa</p>
                             </TooltipContent>
                         </Tooltip>
-                        <div className="flex flex-1 items-center justify-center px-2">
-                            {remainingDiscouses > 0 && (
-                                <p className="text-sm font-bold">
-                                    {remainingDiscouses} discursos restantes
-                                </p>
-                            )}
+                        {remainingDiscouses > 0 && (
+                            <div className="flex flex-1 items-center justify-center px-2">
+                            <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="destructive" disabled={currentSpeaker === null || timerIsRunning} className="flex-1 min-w-0 min-h-8 overflow-hidden text-ellipsis whitespace-nowrap "
+                                    >
+                                    <span>Encerrar Debate Moderado</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Encerrar o debate moderado e voltar para lista de discursos</p>
+                            </TooltipContent>
+                        </Tooltip>
                         </div>
+
+                        )}
+                        
                     </div>
 
                 </div>
