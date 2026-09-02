@@ -10,6 +10,16 @@ insert into public.committees
 values 
 	((select id from conferences where name = 'I WebMUN'), 'CSNU', 'planned');
 
+insert into public.conference_assignments
+	(conference_id, user_id, role, committee_id)
+values
+	(
+		(select id from conferences where name = 'I WebMUN'),
+		'11111111-1111-1111-1111-111111111111',
+		'owner',
+		null
+	);
+
 insert into public.representations (name, code, identifier) values 
     ('Albânia', 'al', 'al'),
     ('Alemanha', 'de', 'de'),
@@ -100,4 +110,3 @@ insert into public.sessions
 	(committee_id)
 values
 	(1);
-
