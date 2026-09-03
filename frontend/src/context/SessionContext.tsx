@@ -40,7 +40,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 		}
 
 		const ws = new WebSocket(
-			`${import.meta.env.VITE_WS_URL}/ws/${parsedSessionId}`,
+			`${import.meta.env.VITE_WS_URL}/${parsedSessionId}/ws`,
 		);
 		socket = ws
 

@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 
 import redis.asyncio as redis
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from app.access.views import router as access_router
+from app.conference.views import router as conference_router
 from app.core.config import get_settings
 from app.core.database import create_db
 from app.core.exceptions import AppException
@@ -49,6 +50,12 @@ async def app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 
+@app.get("/health", status_code=status.HTTP_200_OK)
+async def health():
+    """Healthcheck route for containers and load balancers."""
+    return Response(status_code=status.HTTP_200_OK)
+
+
 # CORS config for Vite
 app.add_middleware(
     CORSMiddleware,
@@ -62,9 +69,9 @@ app.add_middleware(
     else ["*"],
 )
 
-# include commitees here?
-app.include_router(session_router, prefix="/committees", tags=["committees"])
+app.include_router(session_router, prefix="/sessions", tags=["sessions"])
 app.include_router(access_router, prefix="/access", tags=["access"])
+app.include_router(conference_router, tags=["conferences"])
 
 
 def custom_openapi():

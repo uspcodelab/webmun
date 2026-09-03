@@ -54,7 +54,7 @@ function App() {
 				<Route path="/contact-us" element={<ContactUs />} />
 				<Route path="/login" element={<LoginPage />} />
 				<Route path="/signup" element={<SignupPage />} />
-				<Route path="/dashboard" element={<UserDash />}>
+				<Route path="/dashboard" element={<RequireAuth><UserDash /></RequireAuth>}>
 					<Route index element={<DashHome />} />
 					<Route path="conference/overview" element={<ConferenceOverview />} />
 					<Route path="conference/about/basic-info" element={<BasicInfo />} />

@@ -7,7 +7,6 @@ from typing import Annotated
 from fastapi import (
     APIRouter,
     Depends,
-    Response,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -49,12 +48,6 @@ from app.session.schemas import (
 )
 
 router = APIRouter()
-
-
-@router.get("/health", status_code=status.HTTP_200_OK)
-async def health():
-    """Healthcheck route"""
-    return Response(status_code=status.HTTP_200_OK)
 
 
 @router.post("/", status_code=status.HTTP_200_OK)
@@ -103,7 +96,7 @@ async def activate_session_endpoint(
     )
 
 
-@router.websocket("/ws/{session_id}")
+@router.websocket("/{session_id}/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
     session_id: int,
