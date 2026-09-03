@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import Committee, CommitteeAssignment, Conference
+from .models import Committee, CommitteeAssignment, Conference, ConferenceAssignment
 from .schemas import CommitteeCreate, ConferenceCreate
 
 
@@ -40,6 +40,15 @@ def _committee_assignment_from_row(row) -> CommitteeAssignment:
         committee_id=row["committee_id"],
         role=row["role"],
         representation_id=row["representation_id"],
+    )
+
+
+def _conference_assignment_from_row(row) -> ConferenceAssignment:
+    return ConferenceAssignment(
+        conference_id=row["conference_id"],
+        user_id=row["user_id"],
+        role=row["role"],
+        committee_id=row["committee_id"],
     )
 
 
@@ -150,6 +159,26 @@ async def get_user_conference(
     )
     row = result.mappings().one_or_none()
     return _conference_from_row(row) if row is not None else None
+
+
+async def list_user_conference_assignments(
+    session: AsyncSession,
+    *,
+    conference_id: int,
+    user_id: UUID,
+) -> list[ConferenceAssignment]:
+    query = text("""
+        SELECT conference_id, user_id, role, committee_id
+        FROM public.conference_assignments
+        WHERE conference_id = :conference_id
+            AND user_id = :user_id
+        ORDER BY committee_id NULLS FIRST, role
+    """)
+
+    result = await session.execute(
+        query, {"conference_id": conference_id, "user_id": user_id}
+    )
+    return [_conference_assignment_from_row(row) for row in result.mappings().all()]
 
 
 async def create_committee(

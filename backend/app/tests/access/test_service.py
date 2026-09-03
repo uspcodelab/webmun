@@ -1,15 +1,29 @@
+from dataclasses import dataclass
 from uuid import uuid4
 
 import pytest
 
 from app.access.models import CommitteeAssignment
 from app.access.service import (
+    get_my_conference_access,
     resolve_committee_assignment,
     verify_can_manage_conference,
     verify_conference_assignment_can_grant_session_access,
     verify_user_role,
 )
 from app.core.exceptions import AccessDeniedError
+
+
+@dataclass(frozen=True)
+class Conference:
+    id: int
+    owner_id: object
+
+
+@dataclass(frozen=True)
+class ConferenceAssignment:
+    role: str
+    committee_id: int | None
 
 
 @pytest.mark.anyio
@@ -155,3 +169,61 @@ async def test_session_access_projection_check_allows_privileged_assignment(
     await verify_conference_assignment_can_grant_session_access(
         object(), uuid4(), 1, 10
     )
+
+
+@pytest.mark.anyio
+async def test_get_my_conference_access_includes_owner_fallback(monkeypatch):
+    owner_id = uuid4()
+
+    async def repo_get_conference(*_args, **_kwargs):
+        return Conference(id=1, owner_id=owner_id)
+
+    async def no_assignments(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(
+        "app.access.service.conference_repository.get_user_conference",
+        repo_get_conference,
+    )
+    monkeypatch.setattr(
+        "app.access.service.conference_repository.list_user_conference_assignments",
+        no_assignments,
+    )
+
+    result = await get_my_conference_access(object(), owner_id, 1)
+
+    assert result.roles == ["owner"]
+    assert result.committee_roles == []
+    assert result.can_manage_conference is True
+
+
+@pytest.mark.anyio
+async def test_get_my_conference_access_splits_conference_and_committee_roles(
+    monkeypatch,
+):
+    user_id = uuid4()
+
+    async def repo_get_conference(*_args, **_kwargs):
+        return Conference(id=1, owner_id=uuid4())
+
+    async def assignments(*_args, **_kwargs):
+        return [
+            ConferenceAssignment(role="press", committee_id=None),
+            ConferenceAssignment(role="moderator", committee_id=10),
+        ]
+
+    monkeypatch.setattr(
+        "app.access.service.conference_repository.get_user_conference",
+        repo_get_conference,
+    )
+    monkeypatch.setattr(
+        "app.access.service.conference_repository.list_user_conference_assignments",
+        assignments,
+    )
+
+    result = await get_my_conference_access(object(), user_id, 1)
+
+    assert result.roles == ["press"]
+    assert result.committee_roles[0].committee_id == 10
+    assert result.committee_roles[0].role == "moderator"
+    assert result.can_manage_conference is False

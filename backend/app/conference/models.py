@@ -34,3 +34,11 @@ class CommitteeAssignment:
     committee_id: int
     role: str
     representation_id: int | None
+
+
+@dataclass(frozen=True)
+class ConferenceAssignment:
+    conference_id: int
+    user_id: UUID
+    role: str
+    committee_id: int | None

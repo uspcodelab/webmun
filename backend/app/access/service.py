@@ -4,6 +4,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.models import CommitteeAssignment
+from app.access.schemas import CommitteeScopedConferenceRole, ConferenceAccess
+from app.conference import repository as conference_repository
+from app.conference.enums import ConferenceRole
 from app.core.exceptions import AccessDeniedError
 
 from .repository import (
@@ -95,6 +98,54 @@ async def verify_can_manage_conference(
     )
     if not can_manage:
         raise AccessDeniedError("User cannot manage this conference")
+
+
+async def get_my_conference_access(
+    session: AsyncSession,
+    user_id: UUID,
+    conference_id: int,
+) -> ConferenceAccess:
+    conference = await conference_repository.get_user_conference(
+        session=session,
+        conference_id=conference_id,
+        user_id=user_id,
+    )
+    if conference is None:
+        raise AccessDeniedError("User has no access to this conference")
+
+    assignments = await conference_repository.list_user_conference_assignments(
+        session=session,
+        conference_id=conference_id,
+        user_id=user_id,
+    )
+
+    roles = sorted(
+        {
+            assignment.role
+            for assignment in assignments
+            if assignment.committee_id is None
+        }
+    )
+    if conference.owner_id == user_id and ConferenceRole.OWNER.value not in roles:
+        roles.append(ConferenceRole.OWNER.value)
+
+    committee_roles = [
+        CommitteeScopedConferenceRole(
+            committee_id=assignment.committee_id,
+            role=assignment.role,
+        )
+        for assignment in assignments
+        if assignment.committee_id is not None
+    ]
+
+    return ConferenceAccess(
+        conference_id=conference_id,
+        roles=roles,
+        committee_roles=committee_roles,
+        can_manage_conference=any(
+            role in CONFERENCE_MANAGEMENT_ROLES for role in roles
+        ),
+    )
 
 
 async def verify_conference_assignment_can_grant_session_access(

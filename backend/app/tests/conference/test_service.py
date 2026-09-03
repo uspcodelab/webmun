@@ -3,7 +3,11 @@ from uuid import uuid4
 
 import pytest
 
-from app.conference.models import Committee, CommitteeAssignment, Conference
+from app.conference.models import (
+    Committee,
+    CommitteeAssignment,
+    Conference,
+)
 from app.conference.schemas import CommitteeCreate, ConferenceCreate
 from app.conference.service import (
     create_committee,
