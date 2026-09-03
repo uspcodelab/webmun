@@ -2,6 +2,16 @@
 
 import * as React from "react"
 
+import { useConference } from "@/context/ConferenceContext"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,37 +27,53 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { AudioLinesIcon, ChevronsUpDownIcon, GalleryVerticalEndIcon, PlusIcon, TerminalIcon } from "lucide-react"
-
-
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ChevronsUpDownIcon, GalleryVerticalEndIcon, PlusIcon } from "lucide-react"
 
 export function MUNSwitcher() {
-  
-  const Conferences = [
-  {
-    name: "Acme Inc",
-    logo: <GalleryVerticalEndIcon />,
-    plan: "Enterprise",
-  },
-  {
-    name: "Acme Corp.",
-    logo: <AudioLinesIcon />,
-    plan: "Startup",
-  },
-  {
-    name: "Evil Corp.",
-    logo: <TerminalIcon />,
-    plan: "Free",
-  },
-]
-  
   const { isMobile } = useSidebar()
-  const [activeConference, setActiveTeam] = React.useState(Conferences[0])
+  const {
+    conferences,
+    activeConference,
+    setActiveConferenceId,
+    createConference,
+    loading,
+    error,
+  } = useConference()
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
+  const [conferenceName, setConferenceName] = React.useState("")
+  const [conferenceLocation, setConferenceLocation] = React.useState("")
+  const [submitting, setSubmitting] = React.useState(false)
+  const [submitError, setSubmitError] = React.useState<string | null>(null)
 
-  if (!activeConference) {
-    return null
+  async function handleCreateConference(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const trimmedName = conferenceName.trim()
+    if (!trimmedName) {
+      return
+    }
+
+    setSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      await createConference({
+        name: trimmedName,
+        location: conferenceLocation.trim() || null,
+      })
+      setConferenceName("")
+      setConferenceLocation("")
+      setCreateDialogOpen(false)
+    } catch (createError) {
+      setSubmitError(
+        createError instanceof Error ? createError.message : "Failed to create conference"
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
-  
 
   return (
     <SidebarMenu>
@@ -59,11 +85,15 @@ export function MUNSwitcher() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                {activeConference.logo}
+                {activeConference?.name.slice(0, 2).toUpperCase() ?? <GalleryVerticalEndIcon />}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{activeConference.name}</span>
-                <span className="truncate text-xs">{activeConference.plan}</span>
+                <span className="truncate font-medium">
+                  {activeConference?.name ?? "No conference"}
+                </span>
+                <span className="truncate text-xs">
+                  {activeConference?.status ?? (loading ? "Loading" : "Select or create")}
+                </span>
               </div>
               <ChevronsUpDownIcon className="ml-auto" />
             </SidebarMenuButton>
@@ -77,21 +107,32 @@ export function MUNSwitcher() {
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Conferences
             </DropdownMenuLabel>
-            {Conferences.map((team, index) => (
+            {conferences.map((conference, index) => (
               <DropdownMenuItem
-                key={team.name}
-                onClick={() => setActiveTeam(team)}
+                key={conference.id}
+                onClick={() => setActiveConferenceId(conference.id)}
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-md border">
-                  {team.logo}
+                  {conference.name.slice(0, 2).toUpperCase()}
                 </div>
-                {team.name}
+                {conference.name}
                 <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
               </DropdownMenuItem>
             ))}
+            {conferences.length === 0 ? (
+              <DropdownMenuItem disabled className="p-2 text-muted-foreground">
+                {error ?? "No conferences found"}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 p-2">
+            <DropdownMenuItem
+              className="gap-2 p-2"
+              onSelect={(event) => {
+                event.preventDefault()
+                setCreateDialogOpen(true)
+              }}
+            >
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <PlusIcon className="size-4" />
               </div>
@@ -100,6 +141,50 @@ export function MUNSwitcher() {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create conference</DialogTitle>
+            <DialogDescription>
+              Add the conference shell first. Committees and sessions can be created after it exists.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="grid gap-4" onSubmit={handleCreateConference}>
+            <div className="grid gap-2">
+              <Label htmlFor="conference-name">Name</Label>
+              <Input
+                id="conference-name"
+                value={conferenceName}
+                onChange={(event) => setConferenceName(event.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="conference-location">Location</Label>
+              <Input
+                id="conference-location"
+                value={conferenceLocation}
+                onChange={(event) => setConferenceLocation(event.target.value)}
+              />
+            </div>
+            {submitError ? (
+              <p className="text-sm text-destructive">{submitError}</p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting || !conferenceName.trim()}>
+                {submitting ? "Creating..." : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </SidebarMenu>
   )
 }
