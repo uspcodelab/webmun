@@ -12,3 +12,10 @@ class CommitteeAssignment:
     committee_id: int  # TODO: remove this to map out to committees/conferences
     role: enums.SessionRoles
     representation_id: int | None
+
+
+@dataclass(frozen=True)
+class AccessibleCommittee:
+    committee_id: int
+    role: str
+    representation_id: int | None

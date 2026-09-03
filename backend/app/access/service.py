@@ -4,7 +4,11 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access.models import CommitteeAssignment
-from app.access.schemas import CommitteeScopedConferenceRole, ConferenceAccess
+from app.access.schemas import (
+    AccessibleCommittee,
+    CommitteeScopedConferenceRole,
+    ConferenceAccess,
+)
 from app.conference import repository as conference_repository
 from app.conference.enums import ConferenceRole
 from app.core.exceptions import AccessDeniedError
@@ -14,6 +18,7 @@ from .repository import (
     get_session_assignment,
     has_conference_assignment_for_session_access,
     has_conference_management_role,
+    list_accessible_conference_committees,
 )
 
 CONFERENCE_MANAGEMENT_ROLES = {
@@ -137,11 +142,25 @@ async def get_my_conference_access(
         for assignment in assignments
         if assignment.committee_id is not None
     ]
+    accessible_committees = [
+        AccessibleCommittee(
+            committee_id=committee.committee_id,
+            role=committee.role,
+            representation_id=committee.representation_id,
+        )
+        for committee in await list_accessible_conference_committees(
+            session=session,
+            conference_id=conference_id,
+            user_id=user_id,
+            conference_roles=SESSION_ACCESS_GRANTING_CONFERENCE_ROLES,
+        )
+    ]
 
     return ConferenceAccess(
         conference_id=conference_id,
         roles=roles,
         committee_roles=committee_roles,
+        accessible_committees=accessible_committees,
         can_manage_conference=any(
             role in CONFERENCE_MANAGEMENT_ROLES for role in roles
         ),

@@ -13,8 +13,15 @@ class CommitteeScopedConferenceRole(BaseModel):
     role: str
 
 
+class AccessibleCommittee(BaseModel):
+    committee_id: int
+    role: str
+    representation_id: int | None
+
+
 class ConferenceAccess(BaseModel):
     conference_id: int
     roles: list[str]
     committee_roles: list[CommitteeScopedConferenceRole]
+    accessible_committees: list[AccessibleCommittee]
     can_manage_conference: bool

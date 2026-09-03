@@ -5,6 +5,24 @@ export type ClientOptions = {
 };
 
 /**
+ * AccessibleCommittee
+ */
+export type AccessibleCommittee = {
+    /**
+     * Committee Id
+     */
+    committee_id: number;
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Representation Id
+     */
+    representation_id: number | null;
+};
+
+/**
  * CommitteeCreate
  */
 export type CommitteeCreate = {
@@ -74,6 +92,10 @@ export type ConferenceAccess = {
      * Committee Roles
      */
     committee_roles: Array<CommitteeScopedConferenceRole>;
+    /**
+     * Accessible Committees
+     */
+    accessible_committees: Array<AccessibleCommittee>;
     /**
      * Can Manage Conference
      */

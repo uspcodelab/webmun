@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.access.models import CommitteeAssignment
+from app.access.models import AccessibleCommittee, CommitteeAssignment
 from app.access.service import (
     get_my_conference_access,
     resolve_committee_assignment,
@@ -181,6 +181,9 @@ async def test_get_my_conference_access_includes_owner_fallback(monkeypatch):
     async def no_assignments(*_args, **_kwargs):
         return []
 
+    async def no_accessible_committees(*_args, **_kwargs):
+        return []
+
     monkeypatch.setattr(
         "app.access.service.conference_repository.get_user_conference",
         repo_get_conference,
@@ -189,11 +192,16 @@ async def test_get_my_conference_access_includes_owner_fallback(monkeypatch):
         "app.access.service.conference_repository.list_user_conference_assignments",
         no_assignments,
     )
+    monkeypatch.setattr(
+        "app.access.service.list_accessible_conference_committees",
+        no_accessible_committees,
+    )
 
     result = await get_my_conference_access(object(), owner_id, 1)
 
     assert result.roles == ["owner"]
     assert result.committee_roles == []
+    assert result.accessible_committees == []
     assert result.can_manage_conference is True
 
 
@@ -212,6 +220,15 @@ async def test_get_my_conference_access_splits_conference_and_committee_roles(
             ConferenceAssignment(role="moderator", committee_id=10),
         ]
 
+    async def accessible_committees(*_args, **_kwargs):
+        return [
+            AccessibleCommittee(
+                committee_id=10,
+                role="delegate",
+                representation_id=3,
+            )
+        ]
+
     monkeypatch.setattr(
         "app.access.service.conference_repository.get_user_conference",
         repo_get_conference,
@@ -220,10 +237,17 @@ async def test_get_my_conference_access_splits_conference_and_committee_roles(
         "app.access.service.conference_repository.list_user_conference_assignments",
         assignments,
     )
+    monkeypatch.setattr(
+        "app.access.service.list_accessible_conference_committees",
+        accessible_committees,
+    )
 
     result = await get_my_conference_access(object(), user_id, 1)
 
     assert result.roles == ["press"]
     assert result.committee_roles[0].committee_id == 10
     assert result.committee_roles[0].role == "moderator"
+    assert result.accessible_committees[0].committee_id == 10
+    assert result.accessible_committees[0].role == "delegate"
+    assert result.accessible_committees[0].representation_id == 3
     assert result.can_manage_conference is False
