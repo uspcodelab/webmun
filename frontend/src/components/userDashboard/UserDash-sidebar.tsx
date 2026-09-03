@@ -6,6 +6,7 @@ import { ConferenceMenus } from "@/components/userDashboard/conference-menus-lis
 import { CommitteeMenus } from "@/components/userDashboard/committee-menus-list"
 import { NavUser } from "@/components/userDashboard/nav-user"
 import { MUNSwitcher } from "@/components/userDashboard/mun-switcher"
+import { useAuth } from "@/context/AuthContext"
 import {
   Sidebar,
   SidebarContent,
@@ -16,17 +17,16 @@ import {
 
 
 
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  
-}
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, signOut } = useAuth()
+  const displayName =
+    user?.user_metadata?.name ??
+    user?.user_metadata?.full_name ??
+    user?.email?.split("@")[0] ??
+    "User"
+  const displayEmail = user?.email ?? ""
+  const avatar = user?.user_metadata?.avatar_url ?? ""
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -37,7 +37,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <CommitteeMenus />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{
+            name: displayName,
+            email: displayEmail,
+            avatar,
+          }}
+          onSignOut={() => {
+            void signOut()
+          }}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

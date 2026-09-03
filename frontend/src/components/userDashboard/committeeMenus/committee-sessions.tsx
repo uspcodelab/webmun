@@ -13,6 +13,7 @@ import {
 import { useConference } from "@/context/ConferenceContext"
 import { apiFetch } from "@/lib/api"
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
 
 type CommitteeSession = {
     id: string
@@ -60,6 +61,7 @@ export default function CommitteeSessions({
     onJoin,
 }: CommitteeSessionsProps) {
     const { activeCommittee, activeCommitteeAccess } = useConference()
+    const navigate = useNavigate()
     const [activatedSessionIds, setActivatedSessionIds] = React.useState<Set<string>>(
         () =>
             new Set(
@@ -96,6 +98,15 @@ export default function CommitteeSessions({
         } finally {
             setActivatingSessionId(null)
         }
+    }
+
+    function joinSession(session: CommitteeSession) {
+        if (session.joinHref) {
+            navigate(session.joinHref)
+            return
+        }
+
+        onJoin?.(session)
     }
 
     return (
@@ -141,29 +152,23 @@ export default function CommitteeSessions({
                                 </ItemContent>
 
                                 <ItemActions className="w-full justify-start md:w-auto md:justify-end">
-                                    {canActivateSessions ? (
+                                    {canActivateSessions && !sessionIsActive ? (
                                         <Button
                                             variant="outline"
                                             onClick={() => void activateSession(session)}
-                                            disabled={
-                                                sessionIsActive ||
-                                                activatingSessionId === session.id
-                                            }
+                                            disabled={activatingSessionId === session.id}
                                         >
                                             {activatingSessionId === session.id
                                                 ? "Activating..."
                                                 : "Activate"}
                                         </Button>
                                     ) : null}
-                                    {session.joinHref ? (
-                                        <Button asChild>
-                                            <a href={session.joinHref}>Join</a>
-                                        </Button>
-                                    ) : (
-                                        <Button onClick={() => onJoin?.(session)}>
-                                            Join
-                                        </Button>
-                                    )}
+                                    <Button
+                                        onClick={() => joinSession(session)}
+                                        disabled={!sessionIsActive}
+                                    >
+                                        Join
+                                    </Button>
                                 </ItemActions>
                             </ItemHeader>
                         </Item>
