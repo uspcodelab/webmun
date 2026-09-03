@@ -152,7 +152,6 @@ async def get_my_conference_access(
             session=session,
             conference_id=conference_id,
             user_id=user_id,
-            conference_roles=SESSION_ACCESS_GRANTING_CONFERENCE_ROLES,
         )
     ]
 

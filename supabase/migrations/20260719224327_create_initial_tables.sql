@@ -42,12 +42,19 @@ create table committees (
 	id bigint primary key generated always as identity,
 	conference_id bigint not null references conferences(id) on delete cascade,
 	name varchar(64) not null,
+	acronym varchar(16),
+	committee_type varchar(64),
+	logo_url varchar(1000),
+	theme_color varchar(7),
 	status activity_status not null default 'planned',
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now(),
 
 	-- Enables conference_assignments to verify committee_id belongs to the same conference_id.
-	constraint committees_id_conference_unique unique (id, conference_id)
+	constraint committees_id_conference_unique unique (id, conference_id),
+	constraint committees_theme_color_hex check (
+		theme_color is null or theme_color ~ '^#[0-9A-Fa-f]{6}$'
+	)
 );
 
 -------------------------------

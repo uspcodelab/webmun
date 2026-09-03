@@ -6,9 +6,16 @@ values
 	('I WebMUN', 'active', '11111111-1111-1111-1111-111111111111');
 
 insert into public.committees
-	(conference_id, name, status)
+	(conference_id, name, acronym, committee_type, theme_color, status)
 values 
-	((select id from conferences where name = 'I WebMUN'), 'CSNU', 'planned');
+	(
+		(select id from conferences where name = 'I WebMUN'),
+		'CSNU',
+		'CSNU',
+		'Traditional',
+		'#1d4ed8',
+		'planned'
+	);
 
 insert into public.conference_assignments
 	(conference_id, user_id, role, committee_id)

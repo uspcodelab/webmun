@@ -30,6 +30,22 @@ export type CommitteeCreate = {
      * Name
      */
     name: string;
+    /**
+     * Acronym
+     */
+    acronym?: string | null;
+    /**
+     * Committee Type
+     */
+    committee_type?: string | null;
+    /**
+     * Logo Url
+     */
+    logo_url?: string | null;
+    /**
+     * Theme Color
+     */
+    theme_color?: string | null;
 };
 
 /**
@@ -48,6 +64,22 @@ export type CommitteeRead = {
      * Name
      */
     name: string;
+    /**
+     * Acronym
+     */
+    acronym: string | null;
+    /**
+     * Committee Type
+     */
+    committee_type: string | null;
+    /**
+     * Logo Url
+     */
+    logo_url: string | null;
+    /**
+     * Theme Color
+     */
+    theme_color: string | null;
     /**
      * Status
      */

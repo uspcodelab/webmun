@@ -28,6 +28,10 @@ def _committee_from_row(row) -> Committee:
         id=row["id"],
         conference_id=row["conference_id"],
         name=row["name"],
+        acronym=row["acronym"],
+        committee_type=row["committee_type"],
+        logo_url=row["logo_url"],
+        theme_color=row["theme_color"],
         status=row["status"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
@@ -189,14 +193,31 @@ async def create_committee(
 ) -> Committee | None:
     query = text("""
         INSERT INTO public.committees
-            (conference_id, name)
+            (conference_id, name, acronym, committee_type, logo_url, theme_color)
         VALUES
-            (:conference_id, :name)
-        RETURNING id, conference_id, name, status, created_at, updated_at
+            (
+                :conference_id,
+                :name,
+                :acronym,
+                :committee_type,
+                :logo_url,
+                :theme_color
+            )
+        RETURNING
+            id, conference_id, name, acronym, committee_type, logo_url, theme_color,
+            status, created_at, updated_at
     """)
 
     result = await session.execute(
-        query, {"conference_id": conference_id, "name": data.name}
+        query,
+        {
+            "conference_id": conference_id,
+            "name": data.name,
+            "acronym": data.acronym,
+            "committee_type": data.committee_type,
+            "logo_url": data.logo_url,
+            "theme_color": data.theme_color,
+        },
     )
     row = result.mappings().one_or_none()
     return _committee_from_row(row) if row is not None else None
@@ -208,7 +229,9 @@ async def list_conference_committees(
     conference_id: int,
 ) -> list[Committee]:
     query = text("""
-        SELECT id, conference_id, name, status, created_at, updated_at
+        SELECT
+            id, conference_id, name, acronym, committee_type, logo_url, theme_color,
+            status, created_at, updated_at
         FROM public.committees
         WHERE conference_id = :conference_id
         ORDER BY created_at DESC, id DESC
@@ -225,7 +248,9 @@ async def get_user_committee(
     user_id: UUID,
 ) -> Committee | None:
     query = text("""
-        SELECT cm.id, cm.conference_id, cm.name, cm.status, cm.created_at, cm.updated_at
+        SELECT
+            cm.id, cm.conference_id, cm.name, cm.acronym, cm.committee_type,
+            cm.logo_url, cm.theme_color, cm.status, cm.created_at, cm.updated_at
         FROM public.committees cm
         JOIN public.conferences c
             ON c.id = cm.conference_id

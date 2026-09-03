@@ -35,6 +35,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -48,6 +55,40 @@ function formatDate(value: string) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value))
+}
+
+const committeeTypes = [
+  "Traditional",
+  "WIMUN",
+  "Consensus",
+  "Teatro de Operações",
+  "Crisis",
+  "Specialized",
+]
+
+function fallback(value: string | null | undefined) {
+  return value?.trim() || "N/A"
+}
+
+function CommitteeLogoPreview({ committee }: { committee: CommitteeRead }) {
+  const label = committee.acronym?.trim() || committee.name.slice(0, 2).toUpperCase()
+  const themeColor = committee.theme_color ?? "#64748b"
+
+  return (
+    <div className="flex size-10 items-center justify-center overflow-hidden rounded-full border border-border bg-muted shadow-sm">
+      {committee.logo_url ? (
+        <img src={committee.logo_url} alt={label} className="size-full object-cover" />
+      ) : (
+        <div
+          className="flex size-full items-center justify-center text-xs font-semibold text-white"
+          style={{ backgroundColor: themeColor }}
+          aria-label={`Logo ${label}`}
+        >
+          {label}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function CommitteeManagement() {
@@ -65,6 +106,10 @@ export default function CommitteeManagement() {
   const [rowSelection, setRowSelection] = React.useState({})
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
   const [committeeName, setCommitteeName] = React.useState("")
+  const [committeeAcronym, setCommitteeAcronym] = React.useState("")
+  const [committeeType, setCommitteeType] = React.useState("")
+  const [committeeLogoUrl, setCommitteeLogoUrl] = React.useState("")
+  const [committeeThemeColor, setCommitteeThemeColor] = React.useState("#64748b")
   const [submitError, setSubmitError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
 
@@ -80,8 +125,18 @@ export default function CommitteeManagement() {
     setSubmitError(null)
 
     try {
-      await createCommittee({ name: trimmedName })
+      await createCommittee({
+        name: trimmedName,
+        acronym: committeeAcronym.trim() || null,
+        committee_type: committeeType || null,
+        logo_url: committeeLogoUrl.trim() || null,
+        theme_color: committeeThemeColor,
+      })
       setCommitteeName("")
+      setCommitteeAcronym("")
+      setCommitteeType("")
+      setCommitteeLogoUrl("")
+      setCommitteeThemeColor("#64748b")
       setCreateDialogOpen(false)
     } catch (createError) {
       setSubmitError(
@@ -128,6 +183,72 @@ export default function CommitteeManagement() {
           </Button>
         ),
         cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+      },
+      {
+        accessorKey: "logo_url",
+        header: "Logo",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <CommitteeLogoPreview committee={row.original} />
+            <span className="text-sm text-muted-foreground">
+              {row.original.logo_url ? "Imagem do comitê" : "N/A"}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "acronym",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Acrônimo
+            <ArrowUpDown className="ml-2" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <span className="uppercase">{fallback(row.original.acronym)}</span>
+        ),
+      },
+      {
+        accessorKey: "committee_type",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Tipo
+            <ArrowUpDown className="ml-2" />
+          </Button>
+        ),
+        cell: ({ row }) => <span>{fallback(row.original.committee_type)}</span>,
+      },
+      {
+        accessorKey: "theme_color",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Cor
+            <ArrowUpDown className="ml-2" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            {row.original.theme_color ? (
+              <span
+                className="size-6 rounded-full border border-border"
+                style={{ backgroundColor: row.original.theme_color }}
+                aria-hidden="true"
+              />
+            ) : null}
+            <span className="font-mono text-sm">
+              {fallback(row.original.theme_color)}
+            </span>
+          </div>
+        ),
       },
       {
         accessorKey: "status",
@@ -328,11 +449,11 @@ export default function CommitteeManagement() {
           <DialogHeader>
             <DialogTitle>Criar comitê</DialogTitle>
             <DialogDescription>
-              O backend atual persiste apenas o nome do comitê. Campos visuais ficam para um endpoint posterior.
+              Configure os metadados básicos usados na dashboard da conferência.
             </DialogDescription>
           </DialogHeader>
-          <form className="grid gap-4" onSubmit={handleCreateCommittee}>
-            <div className="grid gap-2">
+          <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleCreateCommittee}>
+            <div className="grid gap-2 sm:col-span-2">
               <Label htmlFor="committee-name">Nome</Label>
               <Input
                 id="committee-name"
@@ -341,10 +462,55 @@ export default function CommitteeManagement() {
                 required
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="committee-acronym">Acrônimo</Label>
+              <Input
+                id="committee-acronym"
+                value={committeeAcronym}
+                onChange={(event) =>
+                  setCommitteeAcronym(event.target.value.toUpperCase())
+                }
+                className="uppercase"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="committee-type">Tipo</Label>
+              <Select value={committeeType} onValueChange={setCommitteeType}>
+                <SelectTrigger id="committee-type">
+                  <SelectValue placeholder="Selecionar tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {committeeTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="committee-theme-color">Cor</Label>
+              <Input
+                id="committee-theme-color"
+                type="color"
+                value={committeeThemeColor}
+                onChange={(event) => setCommitteeThemeColor(event.target.value)}
+                className="h-10 w-full p-1"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="committee-logo-url">Logo URL</Label>
+              <Input
+                id="committee-logo-url"
+                value={committeeLogoUrl}
+                onChange={(event) => setCommitteeLogoUrl(event.target.value)}
+                placeholder="https://..."
+              />
+            </div>
             {submitError ? (
-              <p className="text-sm text-destructive">{submitError}</p>
+              <p className="text-sm text-destructive sm:col-span-2">{submitError}</p>
             ) : null}
-            <DialogFooter>
+            <DialogFooter className="sm:col-span-2">
               <Button
                 type="button"
                 variant="outline"

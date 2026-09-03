@@ -23,6 +23,10 @@ class Committee:
     id: int
     conference_id: int
     name: str
+    acronym: str | None
+    committee_type: str | None
+    logo_url: str | None
+    theme_color: str | None
     status: str
     created_at: datetime
     updated_at: datetime
