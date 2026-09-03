@@ -177,10 +177,12 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data load starts after auth resolves and updates async request state.
     void refreshConferences()
   }, [authLoading, refreshConferences])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Committee/access data is synchronized when the active conference changes.
     void refreshCommittees()
   }, [refreshCommittees])
 
