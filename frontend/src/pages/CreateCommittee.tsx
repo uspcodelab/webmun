@@ -35,7 +35,7 @@ export default function SessionPage() {
 
             <Button
                 onClick={() => {
-                    fetch("http://localhost:8000/committees/", {
+                    fetch("http://localhost:8000/sessions", {
                         method: "POST",
                         body: JSON.stringify(payload),
                         headers: { "Content-Type": "application/json" },

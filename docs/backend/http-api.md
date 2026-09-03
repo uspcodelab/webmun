@@ -14,18 +14,15 @@ resources, and `409` for invalid lifecycle transitions.
 
 ## Current routes
 
-- `GET /committees/health` — health check.
-- `POST /committees/` — creates a planned session from `{ committee_id, name
-  }`; chair only. Despite its path, it does not create a committee.
-- `POST /committees/{session_id}/activate` — activates a planned session;
+- `GET /health` — health check.
+- `POST /sessions` — creates a planned session from `{ committee_id, name }`;
+  chair only.
+- `POST /sessions/{session_id}/activate` — activates a planned session;
   chair only.
 - `GET /access/sessions/{session_id}/me` — returns the caller's role and
   `representation_id`.
-- `WS /committees/ws/{session_id}` — authenticates from its first message and
+- `WS /sessions/{session_id}/ws` — authenticates from its first message and
   exchanges procedure events and `SessionLiveState` snapshots.
-
-The real-time overview currently says `/ws/{session_id}`; that omits the
-implemented `/committees` prefix.
 
 ## Target routes
 

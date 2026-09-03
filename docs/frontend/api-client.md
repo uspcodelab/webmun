@@ -22,8 +22,7 @@ business rules. The target route map is in
   from API models.
 
 The dashboard should use the target conference, committee, assignment, and
-session routes in the backend API document rather than page-local data or the
-legacy `POST /committees/` session-creation route.
+session routes in the backend API document rather than page-local data.
 
 ## Live sessions
 
@@ -32,9 +31,7 @@ legacy `POST /committees/` session-creation route.
 - Replace the Zustand store with every received `SessionLiveState` snapshot.
 - Send live procedure actions—motions, votes, queues, and roll call—only over
   the WebSocket, never HTTP.
-- The current implementation uses `/committees/ws/{session_id}`. The target is
-  `/api/v1/sessions/{session_id}/ws`; update the client and real-time docs in
-  the same change.
+- The current implementation uses `/sessions/{session_id}/ws`.
 
 `representation_id` comes from server access/state data. It may identify a
 target when an event requires one, but it is not frontend-authenticated

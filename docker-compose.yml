@@ -74,7 +74,7 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request, sys;
-                      res = urllib.request.urlopen('http://localhost:8000/committees/health', timeout=3);
+                      res = urllib.request.urlopen('http://localhost:8000/health', timeout=3);
                       sys.exit(0) if res.getcode() == 200 else sys.exit(1); "]
       interval: 30s
       timeout: 5s
