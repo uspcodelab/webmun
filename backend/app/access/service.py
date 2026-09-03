@@ -6,7 +6,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.access.models import CommitteeAssignment
 from app.core.exceptions import AccessDeniedError
 
-from .repository import get_committee_assignment, get_session_assignment
+from .repository import (
+    get_committee_assignment,
+    get_session_assignment,
+    has_conference_assignment_for_session_access,
+    has_conference_management_role,
+)
+
+CONFERENCE_MANAGEMENT_ROLES = {
+    "owner",
+    "secretary_general",
+}
+
+SESSION_ACCESS_GRANTING_CONFERENCE_ROLES = {
+    "owner",
+    "secretary_general",
+    "director",
+    "moderator",
+}
 
 
 async def resolve_committee_assignment(
@@ -62,3 +79,39 @@ async def verify_user_role(
         )
 
     return assignment
+
+
+async def verify_can_manage_conference(
+    session: AsyncSession,
+    user_id: UUID,
+    conference_id: int,
+) -> None:
+    # TODO: split conference/dashboard access from live-session access as this grows.
+    can_manage = await has_conference_management_role(
+        session=session,
+        conference_id=conference_id,
+        user_id=user_id,
+        roles=CONFERENCE_MANAGEMENT_ROLES,
+    )
+    if not can_manage:
+        raise AccessDeniedError("User cannot manage this conference")
+
+
+async def verify_conference_assignment_can_grant_session_access(
+    session: AsyncSession,
+    user_id: UUID,
+    conference_id: int,
+    committee_id: int,
+) -> None:
+    # TODO: keep role policy centralized here as conference/team access grows.
+    can_grant = await has_conference_assignment_for_session_access(
+        session=session,
+        conference_id=conference_id,
+        committee_id=committee_id,
+        user_id=user_id,
+        roles=SESSION_ACCESS_GRANTING_CONFERENCE_ROLES,
+    )
+    if not can_grant:
+        raise AccessDeniedError(
+            "Conference assignment cannot grant committee session access"
+        )

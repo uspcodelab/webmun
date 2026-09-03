@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import CommitteeAssignment
@@ -69,3 +69,72 @@ async def get_session_assignment(
         role=row["role"],
         representation_id=row["representation_id"],
     )
+
+
+async def has_conference_management_role(
+    session: AsyncSession,
+    *,
+    conference_id: int,
+    user_id: UUID,
+    roles: set[str],
+) -> bool:
+    query = text("""
+        SELECT 1
+        FROM public.conferences c
+        LEFT JOIN public.conference_assignments ca
+            ON ca.conference_id = c.id
+            AND ca.user_id = :user_id
+            AND ca.role IN :roles
+        WHERE c.id = :conference_id
+            AND (
+                c.owner_id = :user_id
+                OR ca.user_id IS NOT NULL
+            )
+        LIMIT 1
+    """).bindparams(bindparam("roles", expanding=True))
+
+    result = await session.execute(
+        query,
+        {
+            "conference_id": conference_id,
+            "user_id": user_id,
+            "roles": list(roles),
+        },
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def has_conference_assignment_for_session_access(
+    session: AsyncSession,
+    *,
+    conference_id: int,
+    committee_id: int,
+    user_id: UUID,
+    roles: set[str],
+) -> bool:
+    query = text("""
+        SELECT 1
+        FROM public.committees cm
+        JOIN public.conference_assignments ca
+            ON ca.conference_id = cm.conference_id
+            AND ca.user_id = :user_id
+            AND ca.role IN :roles
+            AND (
+                ca.committee_id IS NULL
+                OR ca.committee_id = cm.id
+            )
+        WHERE cm.id = :committee_id
+            AND cm.conference_id = :conference_id
+        LIMIT 1
+    """).bindparams(bindparam("roles", expanding=True))
+
+    result = await session.execute(
+        query,
+        {
+            "conference_id": conference_id,
+            "committee_id": committee_id,
+            "user_id": user_id,
+            "roles": list(roles),
+        },
+    )
+    return result.scalar_one_or_none() is not None
