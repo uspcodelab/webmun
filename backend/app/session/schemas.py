@@ -160,6 +160,9 @@ class LogMotionEvent(BaseModel):
     type: Literal[enums.ChairEvents.LOG_MOTION]
     payload: ChairMotionPayload
 
+class ClearMotionsEvent(BaseModel):
+    type: Literal[enums.ChairEvents.CLEAR_MOTIONS]
+    payload: EmptyPayload
 
 class OpenSessionEvent(BaseModel):
     type: Literal[enums.ChairEvents.OPEN_SESSION]
@@ -280,6 +283,7 @@ SessionEvent = Annotated[
     | JoinQueueEvent
     | LeaveQueueEvent
     | LogMotionEvent
+    | ClearMotionsEvent
     | OpenSessionEvent
     | CloseSessionEvent
     | IncreaseTimerEvent

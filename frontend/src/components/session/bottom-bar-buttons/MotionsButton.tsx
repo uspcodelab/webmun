@@ -40,7 +40,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useCommitteeStore } from "@/store/useCommitteeStore"
-import { ChairEvents, MajorityTypes, MotionDecision, States, type LogMotionEvent } from "@/schemas/types.gen"
+import { ChairEvents, MajorityTypes, MotionDecision, States, type ClearMotionsEvent, type LogMotionEvent } from "@/schemas/types.gen"
 import { useSession } from "@/context/SessionContext"
 import { SessionRoles } from "@/schemas/types.gen"
 import {
@@ -179,7 +179,8 @@ export default function TestButton() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction variant="destructive">Confirmar</AlertDialogAction>
+                      <AlertDialogAction variant="destructive"
+                      onClick={() => sendMessage({ type:ChairEvents.CLEAR_MOTION_EVENT,payload:{}} satisfies ClearMotionsEvent)}>Confirmar</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

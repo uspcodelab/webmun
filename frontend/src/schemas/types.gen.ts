@@ -89,6 +89,7 @@ export const ChairEvents = {
     OPEN_INFORMAL_VOTING_EVENT: 'OpenInformalVotingEvent',
     RESOLVE_MOTION_EVENT: 'ResolveMotionEvent',
     LOG_MOTION_EVENT: 'LogMotionEvent',
+    CLEAR_MOTION_EVENT: 'ClearMotionEvent',
     CLOSE_PROCEDURAL_VOTING_EVENT: 'CloseProceduralVotingEvent',
     CLOSE_INFORMAL_VOTING_EVENT: 'CloseInformalVotingEvent',
     FINISH_CAUCUS_EVENT: 'FinishCaucusEvent',
@@ -304,6 +305,17 @@ export type ChairToggleTimerPayload = {
      * Toggle
      */
     toggle?: boolean;
+};
+
+/**
+ * ClearMotionsEvent
+ */
+export type ClearMotionsEvent = {
+    /**
+     * Type
+     */
+    type: 'ClearMotionEvent';
+    payload: EmptyPayload;
 };
 
 /**
@@ -875,6 +887,8 @@ export type SessionEvent = ({
 } & LeaveQueueEvent) | ({
     type: 'LogMotionEvent';
 } & LogMotionEvent) | ({
+    type: 'ClearMotionEvent';
+} & ClearMotionsEvent) | ({
     type: 'OpenSessionEvent';
 } & OpenSessionEvent) | ({
     type: 'CloseSessionEvent';
@@ -964,6 +978,8 @@ export type EventMessage = {
     } & LeaveQueueEvent) | ({
         type: 'LogMotionEvent';
     } & LogMotionEvent) | ({
+        type: 'ClearMotionEvent';
+    } & ClearMotionsEvent) | ({
         type: 'OpenSessionEvent';
     } & OpenSessionEvent) | ({
         type: 'CloseSessionEvent';

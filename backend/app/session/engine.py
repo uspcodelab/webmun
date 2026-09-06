@@ -803,6 +803,13 @@ def handle_chair_submit_motion(
     state.current_state = States.VOTING_EXECUTION
     return DispatchOutcome(state=state)
 
+def handle_clear_motions(
+    state: SessionLiveState, event: schemas.ClearMotionsEvent, actor: SessionActor
+) -> DispatchOutcome:
+    require_chair(actor)
+    state.submitted_motions = []
+    
+    return DispatchOutcome(state=state)
 
 def handle_set_agenda(
     state: SessionLiveState, event: schemas.SetAgendaEvent, actor: SessionActor
@@ -1108,6 +1115,7 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.FINISH_CAUCUS: handle_finish_caucus,
     ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
     ChairEvents.LOG_MOTION: handle_chair_submit_motion,
+    ChairEvents.CLEAR_MOTIONS: handle_clear_motions,
     ChairEvents.SET_AGENDA: handle_set_agenda,
     ChairEvents.SET_AGENDA_ITEM: handle_set_agenda_item,
     ChairEvents.MARK_AGENDA_ITEM: handle_mark_agenda_item,
