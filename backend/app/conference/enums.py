@@ -11,6 +11,7 @@ class ConferenceRole(StrEnum):
     PRESS = "press"
     LOGISTICS = "logistics"
     STAFF = "staff"
+    PARTICIPANT = "participant"
 
 
 class CommitteeRole(StrEnum):

@@ -46,3 +46,16 @@ class ConferenceAssignment:
     user_id: UUID
     role: str
     committee_id: int | None
+
+
+@dataclass(frozen=True)
+class Representation:
+    id: int
+    name: str
+    code: str | None
+
+
+@dataclass(frozen=True)
+class Layout:
+    id: int
+    name: str

@@ -42,6 +42,7 @@ from app.session.schemas import (
     EventMessage,
     EventRejectedMessage,
     SessionCreationSchema,
+    SessionRead,
     StateSnapshotMessage,
 )
 
@@ -66,6 +67,19 @@ async def create_session_endpoint(
         session_schema=session_schema,
     )
     return {"id": session_id, "status": "Created"}
+
+
+@router.get("/committee/{committee_id}")
+async def list_committee_sessions_endpoint(
+    committee_id: int,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    current_user: Annotated[AuthUser, Depends(get_current_user)],
+) -> list[SessionRead]:
+    await access.resolve_committee_assignment(
+        session=session, user_id=current_user.user_id, committee_id=committee_id
+    )
+    sessions = await service.list_committee_sessions(session=session, committee_id=committee_id)
+    return [SessionRead(**stored.__dict__) for stored in sessions]
 
 
 @router.post("/{session_id}/activate", status_code=status.HTTP_204_NO_CONTENT)

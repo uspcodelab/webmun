@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -13,6 +14,15 @@ class SessionCreationSchema(BaseModel):
 
     committee_id: int
     name: str | None = None
+
+
+class SessionRead(BaseModel):
+    id: int
+    committee_id: int
+    name: str | None
+    status: str
+    started_at: datetime | None
+    ended_at: datetime | None
 
 
 class MotionPayload(BaseModel):

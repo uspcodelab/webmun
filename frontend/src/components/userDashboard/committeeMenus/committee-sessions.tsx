@@ -1,180 +1,57 @@
+import * as React from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-    Item,
-    ItemActions,
-    ItemContent,
-    ItemDescription,
-    ItemGroup,
-    ItemHeader,
-    ItemTitle,
-} from "@/components/ui/item"
+import { Input } from "@/components/ui/input"
 import { useConference } from "@/context/ConferenceContext"
-import { apiFetch } from "@/lib/api"
-import * as React from "react"
-import { useNavigate } from "react-router-dom"
+import { apiFetch, apiJson } from "@/lib/api"
 
-type CommitteeSession = {
-    id: string
-    sessionNumber: number
-    startTime: string
-    endTime: string
-    status?: "planned" | "active"
-    joinHref?: string
-}
+type CommitteeSession = { id: number; committee_id: number; name: string | null; status: string; started_at: string | null; ended_at: string | null }
 
-type CommitteeSessionsProps = {
-    sessions?: CommitteeSession[]
-    onJoin?: (session: CommitteeSession) => void
-}
+export default function CommitteeSessions() {
+  const { activeCommittee, activeCommitteeAccess } = useConference()
+  const [sessions, setSessions] = React.useState<CommitteeSession[]>([])
+  const [name, setName] = React.useState("")
+  const [error, setError] = React.useState<string | null>(null)
+  const [creating, setCreating] = React.useState(false)
+  const [activating, setActivating] = React.useState<number | null>(null)
+  const canManage = activeCommitteeAccess?.role === "chair"
 
-const defaultSessions: CommitteeSession[] = [
-    {
-        id: "1",
-        sessionNumber: 1,
-        startTime: "09:00",
-        endTime: "10:30",
-        status: "planned",
-        joinHref: "/sessions/1",
-    },
-    {
-        id: "2",
-        sessionNumber: 2,
-        startTime: "11:00",
-        endTime: "12:30",
-        status: "planned",
-        joinHref: "/sessions/2",
-    },
-    {
-        id: "3",
-        sessionNumber: 3,
-        startTime: "14:00",
-        endTime: "15:30",
-        status: "planned",
-        joinHref: "/sessions/3",
-    },
-]
+  const load = React.useCallback(async () => {
+    if (!activeCommittee) return setSessions([])
+    try { setSessions(await apiJson<CommitteeSession[]>(`/sessions/committee/${activeCommittee.id}`)) }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível carregar sessões") }
+  }, [activeCommittee])
 
-export default function CommitteeSessions({
-    sessions = defaultSessions,
-    onJoin,
-}: CommitteeSessionsProps) {
-    const { activeCommittee, activeCommitteeAccess } = useConference()
-    const navigate = useNavigate()
-    const [activatedSessionIds, setActivatedSessionIds] = React.useState<Set<string>>(
-        () =>
-            new Set(
-                sessions
-                    .filter((session) => session.status === "active")
-                    .map((session) => session.id)
-            )
-    )
-    const [activatingSessionId, setActivatingSessionId] = React.useState<
-        string | null
-    >(null)
-    const [activationError, setActivationError] = React.useState<string | null>(null)
-    const canActivateSessions = activeCommitteeAccess?.role === "chair"
+  React.useEffect(() => { void load() }, [load])
 
-    async function activateSession(session: CommitteeSession) {
-        setActivatingSessionId(session.id)
-        setActivationError(null)
+  async function create(event: React.FormEvent) {
+    event.preventDefault()
+    if (!activeCommittee) return
+    setCreating(true); setError(null)
+    try {
+      await apiJson("/sessions/", { method: "POST", body: JSON.stringify({ committee_id: activeCommittee.id, name: name || null }) })
+      setName(""); await load()
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível criar a sessão") }
+    finally { setCreating(false) }
+  }
 
-        try {
-            const response = await apiFetch(`/sessions/${session.id}/activate`, {
-                method: "POST",
-            })
+  async function activate(id: number) {
+    setActivating(id); setError(null)
+    try {
+      const response = await apiFetch(`/sessions/${id}/activate`, { method: "POST" })
+      if (!response.ok) throw new Error((await response.text()) || "Não foi possível ativar a sessão")
+      await load()
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível ativar a sessão") }
+    finally { setActivating(null) }
+  }
 
-            if (!response.ok) {
-                const errorText = await response.text()
-                throw new Error(errorText || "Failed to activate session")
-            }
-
-            setActivatedSessionIds((currentIds) => new Set(currentIds).add(session.id))
-        } catch (error) {
-            setActivationError(
-                error instanceof Error ? error.message : "Failed to activate session"
-            )
-        } finally {
-            setActivatingSessionId(null)
-        }
-    }
-
-    function joinSession(session: CommitteeSession) {
-        if (session.joinHref) {
-            navigate(session.joinHref)
-            return
-        }
-
-        onJoin?.(session)
-    }
-
-    return (
-        <section className="w-full space-y-4">
-            <header className="space-y-1">
-                <h2 className="text-2xl font-semibold tracking-tight">
-                    {activeCommittee?.name ?? "Committee"} Sessions
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                    View session time windows and join active sessions.
-                </p>
-            </header>
-
-            {activationError ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                    {activationError}
-                </div>
-            ) : null}
-
-            <ItemGroup className="gap-2">
-                {sessions.map((session) => {
-                    const sessionIsActive = activatedSessionIds.has(session.id)
-
-                    return (
-                        <Item
-                            key={session.id}
-                            variant="outline"
-                            className="justify-between gap-3 p-3"
-                        >
-                            <ItemHeader className="flex w-full flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
-                                <ItemContent className="min-w-0 gap-0.5">
-                                    <ItemTitle>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <Badge variant="secondary">
-                                                Session {session.sessionNumber}
-                                            </Badge>
-                                            {sessionIsActive ? <Badge>Active</Badge> : null}
-                                        </div>
-                                    </ItemTitle>
-                                    <ItemDescription>
-                                        Start: {session.startTime} | End: {session.endTime}
-                                    </ItemDescription>
-                                </ItemContent>
-
-                                <ItemActions className="w-full justify-start md:w-auto md:justify-end">
-                                    {canActivateSessions && !sessionIsActive ? (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => void activateSession(session)}
-                                            disabled={activatingSessionId === session.id}
-                                        >
-                                            {activatingSessionId === session.id
-                                                ? "Activating..."
-                                                : "Activate"}
-                                        </Button>
-                                    ) : null}
-                                    <Button
-                                        onClick={() => joinSession(session)}
-                                        disabled={!sessionIsActive}
-                                    >
-                                        Join
-                                    </Button>
-                                </ItemActions>
-                            </ItemHeader>
-                        </Item>
-                    )
-                })}
-            </ItemGroup>
-        </section>
-    )
+  return <section className="space-y-5">
+    <div><h1 className="text-2xl font-bold">Sessões {activeCommittee ? `— ${activeCommittee.name}` : ""}</h1><p className="text-muted-foreground">Crie e ative sessões reais deste comitê.</p></div>
+    {!activeCommittee ? <p className="text-muted-foreground">Selecione um comitê.</p> : <>
+      {canManage ? <form onSubmit={create} className="flex gap-2"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nome da sessão (opcional)" /><Button disabled={creating}>{creating ? "Criando..." : "Criar sessão"}</Button></form> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <div className="space-y-2">{sessions.map((session) => <article key={session.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"><div><p className="font-medium">{session.name || `Sessão ${session.id}`}</p><Badge variant={session.status === "active" ? "default" : "secondary"}>{session.status}</Badge></div><div className="flex gap-2">{canManage && session.status === "planned" ? <Button variant="outline" disabled={activating === session.id} onClick={() => void activate(session.id)}>{activating === session.id ? "Ativando..." : "Ativar"}</Button> : null}<Button disabled>Entrar</Button></div></article>)}{sessions.length === 0 ? <p className="rounded-xl border p-6 text-center text-muted-foreground">Nenhuma sessão criada.</p> : null}</div>
+    </>}
+  </section>
 }

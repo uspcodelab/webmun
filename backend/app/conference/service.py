@@ -8,8 +8,8 @@ from app.core.exceptions import BadRequest, ConflictError, NotFoundError
 
 from . import repository
 from .enums import CommitteeRole, ConferenceRole
-from .models import Committee, CommitteeAssignment, Conference
-from .schemas import CommitteeCreate, ConferenceCreate
+from .models import Committee, CommitteeAssignment, Conference, ConferenceAssignment, Layout, Representation
+from .schemas import CommitteeCreate, ConferenceAssignmentCreate, ConferenceCreate, ParticipantAllocationCreate
 
 
 async def create_conference(
@@ -74,14 +74,144 @@ async def create_committee(
         user_id=user_id,
     )
 
+    layouts = await repository.list_available_layouts(
+        session=session, conference_id=conference_id
+    )
+    if data.layout_id not in {layout.id for layout in layouts}:
+        raise BadRequest("Layout is not available for this conference")
+
     committee = await repository.create_committee(
         session=session, conference_id=conference_id, data=data
     )
     if committee is None:
         raise BadRequest("Could not create committee")
 
+    await repository.copy_layout_seats(
+        session=session, layout_id=data.layout_id, committee_id=committee.id
+    )
+
+    await repository.upsert_committee_session_assignment(
+        session=session,
+        committee_id=committee.id,
+        user_id=user_id,
+        role=CommitteeRole.CHAIR,
+    )
+
     await session.commit()
     return committee
+
+
+async def list_available_layouts(
+    session: AsyncSession, *, conference_id: int, user_id: UUID
+) -> list[Layout]:
+    await access.verify_can_manage_conference(
+        session=session, conference_id=conference_id, user_id=user_id
+    )
+    return await repository.list_available_layouts(
+        session=session, conference_id=conference_id
+    )
+
+
+async def create_conference_assignment(
+    session: AsyncSession,
+    *,
+    conference_id: int,
+    created_by: UUID,
+    data: ConferenceAssignmentCreate,
+) -> dict:
+    await access.verify_can_manage_conference(
+        session=session, conference_id=conference_id, user_id=created_by
+    )
+    assignee_id = await repository.get_user_id_by_email(session=session, email=data.email)
+    if assignee_id is None:
+        raise BadRequest("User email was not found")
+    if data.committee_id is not None and not await repository.is_committee_in_conference(
+        session=session, conference_id=conference_id, committee_id=data.committee_id
+    ):
+        raise BadRequest("Committee does not belong to this conference")
+    await repository.create_conference_assignment(
+        session=session,
+        conference_id=conference_id,
+        user_id=assignee_id,
+        role=data.role,
+        committee_id=data.committee_id,
+    )
+    await session.commit()
+    return {
+        "conference_id": conference_id,
+        "email": data.email,
+        "role": data.role,
+        "committee_id": data.committee_id,
+    }
+
+
+async def list_conference_assignments(
+    session: AsyncSession, *, conference_id: int, user_id: UUID
+) -> list[dict]:
+    await access.verify_can_manage_conference(
+        session=session, conference_id=conference_id, user_id=user_id
+    )
+    return await repository.list_conference_assignments(
+        session=session, conference_id=conference_id
+    )
+
+
+async def list_participant_allocations(
+    session: AsyncSession, *, conference_id: int, user_id: UUID
+) -> list[dict]:
+    await access.verify_can_manage_conference(
+        session=session, conference_id=conference_id, user_id=user_id
+    )
+    return await repository.list_participant_allocations(
+        session=session, conference_id=conference_id
+    )
+
+
+async def allocate_participant(
+    session: AsyncSession,
+    *,
+    conference_id: int,
+    allocated_by: UUID,
+    data: ParticipantAllocationCreate,
+) -> CommitteeAssignment:
+    await access.verify_can_manage_conference(
+        session=session, conference_id=conference_id, user_id=allocated_by
+    )
+    participant_id = await repository.get_user_id_by_email(session=session, email=data.email)
+    if participant_id is None:
+        raise BadRequest("User email was not found")
+    if not await repository.is_conference_participant(
+        session=session, conference_id=conference_id, user_id=participant_id
+    ):
+        raise BadRequest("User is not a participant in this conference")
+    if not await repository.is_committee_in_conference(
+        session=session, conference_id=conference_id, committee_id=data.committee_id
+    ):
+        raise BadRequest("Committee does not belong to this conference")
+    representations = await repository.list_committee_representations(
+        session=session, committee_id=data.committee_id
+    )
+    if data.representation_id not in {representation.id for representation in representations}:
+        raise BadRequest("Representation is not a seat in this committee")
+    assignment = await repository.upsert_participant_committee_assignment(
+        session=session,
+        user_id=participant_id,
+        committee_id=data.committee_id,
+        representation_id=data.representation_id,
+    )
+    if assignment is None:
+        raise BadRequest("Could not allocate participant")
+    await session.commit()
+    return assignment
+
+
+async def list_committee_representations(
+    session: AsyncSession, *, committee_id: int, user_id: UUID
+) -> list[Representation]:
+    await get_committee(session=session, committee_id=committee_id, user_id=user_id)
+    return await repository.list_committee_representations(
+        session=session, committee_id=committee_id
+    )
 
 
 async def list_committees(

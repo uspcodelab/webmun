@@ -121,7 +121,7 @@ export function ConferenceMenus() {
                     isActive={pathname === "/dashboard/conference/team/manage-perms-roles"}
                   >
                     <Link to="/dashboard/conference/team/manage-perms-roles">
-                      <span>Papeis e Permissões</span>
+                      <span>Papéis</span>
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>

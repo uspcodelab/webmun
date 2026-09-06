@@ -14,6 +14,7 @@ import {
 import { ArrowUpDown, ChevronDown, PlusIcon } from "lucide-react"
 
 import { useConference } from "@/context/ConferenceContext"
+import { apiJson } from "@/lib/api"
 import type { CommitteeRead } from "@/schemas/types.gen"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -66,6 +67,8 @@ const committeeTypes = [
   "Specialized",
 ]
 
+type Layout = { id: number; name: string }
+
 function fallback(value: string | null | undefined) {
   return value?.trim() || "N/A"
 }
@@ -110,8 +113,29 @@ export default function CommitteeManagement() {
   const [committeeType, setCommitteeType] = React.useState("")
   const [committeeLogoUrl, setCommitteeLogoUrl] = React.useState("")
   const [committeeThemeColor, setCommitteeThemeColor] = React.useState("#64748b")
+  const [layouts, setLayouts] = React.useState<Layout[]>([])
+  const [layoutId, setLayoutId] = React.useState("")
   const [submitError, setSubmitError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!activeConference || !canManageConference) {
+      setLayouts([])
+      setLayoutId("")
+      return
+    }
+
+    void apiJson<Layout[]>(`/conferences/${activeConference.id}/layouts`)
+      .then((availableLayouts) => {
+        setLayouts(availableLayouts)
+        setLayoutId(availableLayouts[0] ? String(availableLayouts[0].id) : "")
+      })
+      .catch((layoutError) =>
+        setSubmitError(
+          layoutError instanceof Error ? layoutError.message : "Failed to load layouts"
+        )
+      )
+  }, [activeConference, canManageConference])
 
   async function handleCreateCommittee(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -131,12 +155,14 @@ export default function CommitteeManagement() {
         committee_type: committeeType || null,
         logo_url: committeeLogoUrl.trim() || null,
         theme_color: committeeThemeColor,
+        layout_id: Number(layoutId),
       })
       setCommitteeName("")
       setCommitteeAcronym("")
       setCommitteeType("")
       setCommitteeLogoUrl("")
       setCommitteeThemeColor("#64748b")
+      setLayoutId(layouts[0] ? String(layouts[0].id) : "")
       setCreateDialogOpen(false)
     } catch (createError) {
       setSubmitError(
@@ -507,6 +533,21 @@ export default function CommitteeManagement() {
                 placeholder="https://..."
               />
             </div>
+            <div className="grid gap-2 sm:col-span-2">
+              <Label htmlFor="committee-layout">Mapa de representações</Label>
+              <Select value={layoutId} onValueChange={setLayoutId}>
+                <SelectTrigger id="committee-layout">
+                  <SelectValue placeholder="Nenhum mapa disponível" />
+                </SelectTrigger>
+                <SelectContent>
+                  {layouts.map((layout) => (
+                    <SelectItem key={layout.id} value={String(layout.id)}>
+                      {layout.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             {submitError ? (
               <p className="text-sm text-destructive sm:col-span-2">{submitError}</p>
             ) : null}
@@ -518,7 +559,7 @@ export default function CommitteeManagement() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={submitting || !committeeName.trim()}>
+              <Button type="submit" disabled={submitting || !committeeName.trim() || !layoutId}>
                 {submitting ? "Criando..." : "Criar"}
               </Button>
             </DialogFooter>

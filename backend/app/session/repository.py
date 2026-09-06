@@ -67,6 +67,27 @@ async def get_session_info(
     )
 
 
+async def list_committee_sessions(
+    session: AsyncSession, committee_id: int
+) -> list[StoredSession]:
+    result = await session.execute(
+        text("""
+            SELECT * FROM public.sessions
+            WHERE committee_id = :committee_id
+            ORDER BY id DESC
+        """),
+        {"committee_id": committee_id},
+    )
+    return [
+        StoredSession(
+            id=row["id"], committee_id=row["committee_id"], name=row["name"],
+            status=row["status"], started_at=row["started_at"],
+            ended_at=row["ended_at"], state_snapshot=row["state_snapshot"],
+        )
+        for row in result.mappings().all()
+    ]
+
+
 async def update_session_info(
     session: AsyncSession,
     session_info: StoredSession,

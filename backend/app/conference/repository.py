@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import Committee, CommitteeAssignment, Conference, ConferenceAssignment
+from .models import Committee, CommitteeAssignment, Conference, ConferenceAssignment, Layout, Representation
 from .schemas import CommitteeCreate, ConferenceCreate
 
 
@@ -54,6 +54,14 @@ def _conference_assignment_from_row(row) -> ConferenceAssignment:
         role=row["role"],
         committee_id=row["committee_id"],
     )
+
+
+def _representation_from_row(row) -> Representation:
+    return Representation(id=row["id"], name=row["name"], code=row["code"])
+
+
+def _layout_from_row(row) -> Layout:
+    return Layout(id=row["id"], name=row["name"])
 
 
 async def create_conference(
@@ -113,6 +121,118 @@ async def create_conference_assignment(
             "committee_id": committee_id,
         },
     )
+
+
+async def list_conference_assignments(
+    session: AsyncSession, *, conference_id: int
+) -> list[dict]:
+    result = await session.execute(
+        text("""
+            SELECT ca.conference_id, u.email, ca.role, ca.committee_id
+            FROM public.conference_assignments ca
+            JOIN auth.users u ON u.id = ca.user_id
+            WHERE ca.conference_id = :conference_id
+            ORDER BY ca.created_at DESC, ca.id DESC
+        """),
+        {"conference_id": conference_id},
+    )
+    return [dict(row) for row in result.mappings().all()]
+
+
+async def get_user_id_by_email(
+    session: AsyncSession, *, email: str
+) -> UUID | None:
+    result = await session.execute(
+        text("SELECT id FROM auth.users WHERE lower(email) = lower(:email) LIMIT 1"),
+        {"email": email.strip()},
+    )
+    return result.scalar_one_or_none()
+
+
+async def is_committee_in_conference(
+    session: AsyncSession, *, conference_id: int, committee_id: int
+) -> bool:
+    result = await session.execute(
+        text("""
+            SELECT 1 FROM public.committees
+            WHERE id = :committee_id AND conference_id = :conference_id
+        """),
+        {"conference_id": conference_id, "committee_id": committee_id},
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def is_conference_participant(
+    session: AsyncSession, *, conference_id: int, user_id: UUID
+) -> bool:
+    result = await session.execute(
+        text("""
+            SELECT 1 FROM public.conference_assignments
+            WHERE conference_id = :conference_id AND user_id = :user_id
+              AND role = 'participant'
+            LIMIT 1
+        """),
+        {"conference_id": conference_id, "user_id": user_id},
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def list_participant_allocations(
+    session: AsyncSession, *, conference_id: int
+) -> list[dict]:
+    result = await session.execute(
+        text("""
+            SELECT u.email, cm.id AS committee_id, cm.name AS committee_name,
+                   r.id AS representation_id, r.name AS representation_name
+            FROM public.conference_assignments ca
+            JOIN auth.users u ON u.id = ca.user_id
+            LEFT JOIN public.committee_assignments cma
+              ON cma.user_id = ca.user_id
+            LEFT JOIN public.committees cm
+              ON cm.id = cma.committee_id AND cm.conference_id = ca.conference_id
+            LEFT JOIN public.representations r ON r.id = cma.representation_id
+            WHERE ca.conference_id = :conference_id AND ca.role = 'participant'
+              AND (cm.id IS NOT NULL OR cma.committee_id IS NULL)
+            ORDER BY u.email, cm.id
+        """),
+        {"conference_id": conference_id},
+    )
+    return [dict(row) for row in result.mappings().all()]
+
+
+async def list_committee_representations(
+    session: AsyncSession, *, committee_id: int
+) -> list[Representation]:
+    result = await session.execute(
+        text("""
+            SELECT r.id, r.name, r.code
+            FROM public.committee_seats cs
+            JOIN public.representations r ON r.id = cs.representation_id
+            WHERE cs.committee_id = :committee_id
+            ORDER BY r.name, r.id
+        """),
+        {"committee_id": committee_id},
+    )
+    return [_representation_from_row(row) for row in result.mappings().all()]
+
+
+async def upsert_participant_committee_assignment(
+    session: AsyncSession, *, user_id: UUID, committee_id: int, representation_id: int
+) -> CommitteeAssignment | None:
+    result = await session.execute(
+        text("""
+            INSERT INTO public.committee_assignments
+                (user_id, committee_id, role, representation_id)
+            VALUES (:user_id, :committee_id, 'delegate', :representation_id)
+            ON CONFLICT (user_id, committee_id) DO UPDATE SET
+                role = EXCLUDED.role, representation_id = EXCLUDED.representation_id
+            WHERE public.committee_assignments.role = 'delegate'
+            RETURNING user_id, committee_id, role, representation_id
+        """),
+        {"user_id": user_id, "committee_id": committee_id, "representation_id": representation_id},
+    )
+    row = result.mappings().one_or_none()
+    return _committee_assignment_from_row(row) if row is not None else None
 
 
 async def list_user_conferences(
@@ -221,6 +341,37 @@ async def create_committee(
     )
     row = result.mappings().one_or_none()
     return _committee_from_row(row) if row is not None else None
+
+
+async def list_available_layouts(
+    session: AsyncSession, *, conference_id: int
+) -> list[Layout]:
+    result = await session.execute(
+        text("""
+            SELECT id, name FROM public.layouts
+            WHERE committee_id IS NULL
+              AND (conference_id IS NULL OR conference_id = :conference_id)
+            ORDER BY conference_id NULLS LAST, name, id
+        """),
+        {"conference_id": conference_id},
+    )
+    return [_layout_from_row(row) for row in result.mappings().all()]
+
+
+async def copy_layout_seats(
+    session: AsyncSession, *, layout_id: int, committee_id: int
+) -> int:
+    result = await session.execute(
+        text("""
+            INSERT INTO public.committee_seats (committee_id, representation_id, seat_label)
+            SELECT :committee_id, representation_id, seat_label
+            FROM public.layout_seats
+            WHERE layout_id = :layout_id
+            ON CONFLICT DO NOTHING
+        """),
+        {"layout_id": layout_id, "committee_id": committee_id},
+    )
+    return result.rowcount
 
 
 async def list_conference_committees(

@@ -30,6 +30,7 @@ from .models import (
     RollCallContext,
     SessionActor,
     SessionLiveState,
+    StoredSession,
 )
 
 
@@ -97,6 +98,12 @@ async def create_session_service(
     await session.commit()
 
     return session_id
+
+
+async def list_committee_sessions(
+    session: AsyncSession, committee_id: int
+) -> list[StoredSession]:
+    return await repository.list_committee_sessions(session=session, committee_id=committee_id)
 
 
 async def get_session_for_activation(session: AsyncSession, committee_session_id: int):

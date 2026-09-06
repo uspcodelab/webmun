@@ -7,6 +7,7 @@ from app.conference.models import (
     Committee,
     CommitteeAssignment,
     Conference,
+    Layout,
 )
 from app.conference.schemas import CommitteeCreate, ConferenceCreate
 from app.conference.service import (
@@ -115,7 +116,7 @@ async def test_create_committee_requires_conference_management_role(monkeypatch)
             FakeSession(),
             conference_id=1,
             user_id=uuid4(),
-            data=CommitteeCreate(name="CSNU"),
+            data=CommitteeCreate(name="CSNU", layout_id=1),
         )
 
 
@@ -129,18 +130,37 @@ async def test_create_committee_commits_when_user_can_manage(monkeypatch):
     async def repo_create_committee(*_args, **_kwargs):
         return committee()
 
+    async def create_chair_assignment(*_args, **_kwargs):
+        return None
+
+    async def available_layouts(*_args, **_kwargs):
+        return [Layout(id=1, name="Standard")]
+
+    async def copy_seats(*_args, **_kwargs):
+        return 21
+
     monkeypatch.setattr(
         "app.conference.service.access.verify_can_manage_conference", can_manage
     )
     monkeypatch.setattr(
         "app.conference.service.repository.create_committee", repo_create_committee
     )
+    monkeypatch.setattr(
+        "app.conference.service.repository.upsert_committee_session_assignment",
+        create_chair_assignment,
+    )
+    monkeypatch.setattr(
+        "app.conference.service.repository.list_available_layouts", available_layouts
+    )
+    monkeypatch.setattr(
+        "app.conference.service.repository.copy_layout_seats", copy_seats
+    )
 
     result = await create_committee(
         fake_session,
         conference_id=1,
         user_id=uuid4(),
-        data=CommitteeCreate(name="CSNU"),
+        data=CommitteeCreate(name="CSNU", layout_id=1),
     )
 
     assert result.id == 10
