@@ -39,3 +39,9 @@ __pycache__
 .ruff_cache
 .coverage
 coverage.xml
+
+# Terraform local state and values
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
