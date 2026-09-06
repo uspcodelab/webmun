@@ -9,7 +9,6 @@ import OurTeam from './pages/Info Pages/OurTeam';
 import ContactUs from './pages/Info Pages/Contact-us';
 import UserDash from './pages/UserDashboard';
 import DashHome from './components/userDashboard/dash-home.tsx';
-import CreateCommittee from './pages/CreateCommittee';
 import BasicInfo from './components/userDashboard/conferenceMenus/about/conference-basic-info.tsx';
 
 
@@ -70,7 +69,6 @@ function App() {
 					<Route path="committees/docs" element={<CommitteeDocs />} />
 					<Route path="committees/info" element={<CommitteeInfo />} />
 				</Route>
-				<Route path="/create-committee" element={<CreateCommittee />} />
 				<Route path="/committees/:committeeId/session" element={<SessionPage />} />
 			</Routes>
 			
