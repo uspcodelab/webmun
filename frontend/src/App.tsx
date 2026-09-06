@@ -7,7 +7,6 @@ import Home from './pages/Home';
 import Pricing from './pages/Info Pages/Pricing';
 import OurTeam from './pages/Info Pages/OurTeam';
 import ContactUs from './pages/Info Pages/Contact-us';
-import SignupPage from './pages/Signup';
 import UserDash from './pages/UserDashboard';
 import DashHome from './components/userDashboard/dash-home.tsx';
 import CreateCommittee from './pages/CreateCommittee';
@@ -53,7 +52,7 @@ function App() {
 				<Route path="/our-team" element={<OurTeam />} />
 				<Route path="/contact-us" element={<ContactUs />} />
 				<Route path="/login" element={<LoginPage />} />
-				<Route path="/signup" element={<SignupPage />} />
+				<Route path="/signup" element={<Navigate to="/login" replace />} />
 				<Route path="/dashboard" element={<RequireAuth><UserDash /></RequireAuth>}>
 					<Route index element={<DashHome />} />
 					<Route path="conference/overview" element={<ConferenceOverview />} />

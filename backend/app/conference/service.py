@@ -124,24 +124,20 @@ async def create_conference_assignment(
     )
     assignee_id = await repository.get_user_id_by_email(session=session, email=data.email)
     if assignee_id is None:
-        raise BadRequest("User email was not found")
-    if data.committee_id is not None and not await repository.is_committee_in_conference(
-        session=session, conference_id=conference_id, committee_id=data.committee_id
-    ):
-        raise BadRequest("Committee does not belong to this conference")
+        raise BadRequest("User cannot be added to this conference")
     await repository.create_conference_assignment(
         session=session,
         conference_id=conference_id,
         user_id=assignee_id,
         role=data.role,
-        committee_id=data.committee_id,
+        committee_id=None,
     )
     await session.commit()
     return {
         "conference_id": conference_id,
         "email": data.email,
         "role": data.role,
-        "committee_id": data.committee_id,
+        "committee_id": None,
     }
 
 
@@ -179,11 +175,11 @@ async def allocate_participant(
     )
     participant_id = await repository.get_user_id_by_email(session=session, email=data.email)
     if participant_id is None:
-        raise BadRequest("User email was not found")
+        raise BadRequest("User cannot be allocated in this conference")
     if not await repository.is_conference_participant(
         session=session, conference_id=conference_id, user_id=participant_id
     ):
-        raise BadRequest("User is not a participant in this conference")
+        raise BadRequest("User cannot be allocated in this conference")
     if not await repository.is_committee_in_conference(
         session=session, conference_id=conference_id, committee_id=data.committee_id
     ):

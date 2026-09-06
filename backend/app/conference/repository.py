@@ -132,6 +132,7 @@ async def list_conference_assignments(
             FROM public.conference_assignments ca
             JOIN auth.users u ON u.id = ca.user_id
             WHERE ca.conference_id = :conference_id
+              AND ca.committee_id IS NULL
             ORDER BY ca.created_at DESC, ca.id DESC
         """),
         {"conference_id": conference_id},
@@ -191,7 +192,9 @@ async def list_participant_allocations(
             LEFT JOIN public.committees cm
               ON cm.id = cma.committee_id AND cm.conference_id = ca.conference_id
             LEFT JOIN public.representations r ON r.id = cma.representation_id
-            WHERE ca.conference_id = :conference_id AND ca.role = 'participant'
+            WHERE ca.conference_id = :conference_id
+              AND ca.role = 'participant'
+              AND ca.committee_id IS NULL
               AND (cm.id IS NOT NULL OR cma.committee_id IS NULL)
             ORDER BY u.email, cm.id
         """),

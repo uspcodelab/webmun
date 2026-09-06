@@ -10,7 +10,8 @@ create type conference_role as enum (
 	'crisis_staff',
 	'press',
 	'logistics',
-	'staff'
+	'staff',
+	'participant'
 );
 
 -------------------------------

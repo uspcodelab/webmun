@@ -10,7 +10,6 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Link } from "react-router-dom"
 import { supabase } from "@/lib/supabaseClient"
 
 export function LoginForm({
@@ -110,14 +109,11 @@ export function LoginForm({
         <FieldSeparator>Or continue with</FieldSeparator>
 
         <Field>
-          <Button variant="outline" type="button" className="w-full">
-            Login with Google
+          <Button variant="outline" type="button" className="w-full" disabled>
+            Login with Google (em breve)
           </Button>
           <FieldDescription className="text-center mt-2">
-            Don&apos;t have an account?{" "}
-            <Link to="/signup" className="underline underline-offset-4">
-              Sign up
-            </Link>
+            Criação de contas temporariamente indisponível.
           </FieldDescription>
         </Field>
       </FieldGroup>

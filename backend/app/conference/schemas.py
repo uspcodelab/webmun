@@ -61,7 +61,6 @@ class CommitteeAssignmentRead(BaseModel):
 class ConferenceAssignmentCreate(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     role: ConferenceRole
-    committee_id: int | None = None
 
 
 class ConferenceAssignmentRead(BaseModel):

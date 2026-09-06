@@ -108,12 +108,7 @@ export default function Navbar() {
             </div>
 
             <div className="flex items-center gap-2 flex-none">
-                <Button asChild variant="outline" >
-                    <Link to="/create-committee">TEST CREATE COMMITTEE</Link>
-                </Button>
-                <Button asChild>
-                    <Link to="/signup">Criar Conta</Link>
-                </Button>
+                <Button disabled>Criar Conta</Button>
                 <Button asChild variant="outline" >
                     <Link to="/login">Login</Link>
                 </Button>

@@ -168,9 +168,10 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
       }
     )
 
-    setCommittees((currentCommittees) => [...currentCommittees, committee])
+    await refreshCommittees()
+    setActiveCommitteeIdState(committee.id)
     return committee
-  }, [activeConferenceId])
+  }, [activeConferenceId, refreshCommittees])
 
   useEffect(() => {
     if (authLoading) {
