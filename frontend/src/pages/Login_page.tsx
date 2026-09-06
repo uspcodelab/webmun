@@ -1,7 +1,12 @@
-import { Link } from "react-router-dom"
+import { Link, Navigate } from "react-router-dom"
 import { LoginForm } from "@/components/auth/login-form"
+import { useAuth } from "@/context/AuthContext"
 
 export default function Auth() {
+  const { loading, token } = useAuth()
+
+  if (loading) return <p>Loading session…</p>
+  if (token) return <Navigate to="/dashboard" replace />
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">

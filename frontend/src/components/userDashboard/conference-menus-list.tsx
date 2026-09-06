@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
 import { ChevronRightIcon, LayoutDashboard, Users, Network, Info, Gavel } from "lucide-react"
+import { useConference } from "@/context/ConferenceContext"
 
 
 
@@ -22,6 +23,11 @@ import { ChevronRightIcon, LayoutDashboard, Users, Network, Info, Gavel } from "
 
 export function ConferenceMenus() {
   const { pathname } = useLocation()
+  const { activeConference } = useConference()
+
+  if (!activeConference) {
+    return null
+  }
 
   return (
     <SidebarGroup>

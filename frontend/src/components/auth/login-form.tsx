@@ -113,7 +113,7 @@ export function LoginForm({
             Login with Google (em breve)
           </Button>
           <FieldDescription className="text-center mt-2">
-            Criação de contas temporariamente indisponível.
+            Não tem uma conta? <Button variant="link" className="h-auto p-0" disabled>Criar conta</Button>
           </FieldDescription>
         </Field>
       </FieldGroup>
