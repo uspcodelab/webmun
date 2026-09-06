@@ -1,0 +1,12 @@
+# Leave null for initial HTTP smoke tests. Set a real ACM certificate ARN later
+# to switch the API load balancer listener to HTTPS.
+api_certificate_arn = null
+api_domain_name     = null
+cors_origins        = "https://d111111abcdef8.cloudfront.net"
+
+# Optional overrides:
+# project_name                 = "webmun"
+# environment                  = "prod"
+# backend_image                = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/webmun-backend:latest"
+# frontend_bucket_name         = "my-globally-unique-webmun-frontend-bucket"
+# frontend_bucket_force_destroy = true
