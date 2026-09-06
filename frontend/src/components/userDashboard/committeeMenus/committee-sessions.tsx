@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useConference } from "@/context/ConferenceContext"
 import { apiFetch, apiJson } from "@/lib/api"
+import { useNavigate } from "react-router-dom"
 
 type CommitteeSession = { id: number; committee_id: number; name: string | null; status: string; started_at: string | null; ended_at: string | null }
 
 export default function CommitteeSessions() {
   const { activeCommittee, activeCommitteeAccess } = useConference()
+  const navigate = useNavigate()
   const [sessions, setSessions] = React.useState<CommitteeSession[]>([])
   const [name, setName] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
@@ -51,7 +53,7 @@ export default function CommitteeSessions() {
     {!activeCommittee ? <p className="text-muted-foreground">Selecione um comitê.</p> : <>
       {canManage ? <form onSubmit={create} className="flex gap-2"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nome da sessão (opcional)" /><Button disabled={creating}>{creating ? "Criando..." : "Criar sessão"}</Button></form> : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <div className="space-y-2">{sessions.map((session) => <article key={session.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"><div><p className="font-medium">{session.name || `Sessão ${session.id}`}</p><Badge variant={session.status === "active" ? "default" : "secondary"}>{session.status}</Badge></div><div className="flex gap-2">{canManage && session.status === "planned" ? <Button variant="outline" disabled={activating === session.id} onClick={() => void activate(session.id)}>{activating === session.id ? "Ativando..." : "Ativar"}</Button> : null}<Button disabled>Entrar</Button></div></article>)}{sessions.length === 0 ? <p className="rounded-xl border p-6 text-center text-muted-foreground">Nenhuma sessão criada.</p> : null}</div>
+      <div className="space-y-2">{sessions.map((session) => <article key={session.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"><div><p className="font-medium">{session.name || `Sessão ${session.id}`}</p><Badge variant={session.status === "active" ? "default" : "secondary"}>{session.status}</Badge></div><div className="flex gap-2">{canManage && session.status === "planned" ? <Button variant="outline" disabled={activating === session.id} onClick={() => void activate(session.id)}>{activating === session.id ? "Ativando..." : "Ativar"}</Button> : null}<Button disabled={session.status !== "active"} onClick={() => navigate(`/sessions/${session.id}`)}>Entrar</Button></div></article>)}{sessions.length === 0 ? <p className="rounded-xl border p-6 text-center text-muted-foreground">Nenhuma sessão criada.</p> : null}</div>
     </>}
   </section>
 }
