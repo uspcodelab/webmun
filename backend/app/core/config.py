@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     # app name
     APP_NAME: str = "WebMUN API"
     ENVIRONMENT: str = "development"
+    LOG_LEVEL: str = "INFO"
 
     # list of origins by separated commas (e.g., "app.com,app.xyz")
     CORS_ORIGINS: str = ""

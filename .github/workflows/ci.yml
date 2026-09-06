@@ -38,6 +38,16 @@ jobs:
   backend:
     name: Backend linting & testing
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run: 
         working-directory: backend
@@ -56,6 +66,8 @@ jobs:
       - name: lint code 
         run: uv run --active ruff check .
       - name: run tests 
+        env:
+          REDIS_TEST_URL: redis://localhost:6379/15
         run: | 
           mkdir -p ../coverage
           uv run pytest --cov=app --cov-report=term-missing --cov-report=xml:../coverage/backend-coverage.xml

@@ -89,7 +89,7 @@ def event_message(request_id: str) -> dict:
 
 
 @pytest.mark.anyio
-async def test_websocket_endpoint_broadcasts_dispatch_outcome(
+async def test_websocket_endpoint_relies_on_pubsub_for_dispatch_outcomes(
     authenticated_websocket_dependencies,
     chair_actor: SessionActor,
     fake_redis,
@@ -105,7 +105,9 @@ async def test_websocket_endpoint_broadcasts_dispatch_outcome(
         return_value=DispatchOutcome(state=session_state)
     )
     monkeypatch.setattr(views.service, "handle_client_messages", handle_client_messages)
-    await views.store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+    await views.store.save_outcome(  # type: ignore[arg-type]
+        fake_redis, DispatchOutcome(state=session_state)
+    )
 
     await views.websocket_endpoint(
         websocket,  # type: ignore[arg-type]
@@ -122,11 +124,6 @@ async def test_websocket_endpoint_broadcasts_dispatch_outcome(
         {
             "type": "state_snapshot",
             "state": session_state.model_dump(mode="json"),
-        },
-        {
-            "type": "dispatch_result",
-            "state": session_state.model_dump(mode="json"),
-            "effect": None,
         },
     ]
     handle_client_messages.assert_awaited_once()
@@ -157,7 +154,9 @@ async def test_websocket_endpoint_sends_rejection_only_to_sender(
         "handle_client_messages",
         AsyncMock(return_value=rejection),
     )
-    await views.store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+    await views.store.save_outcome(  # type: ignore[arg-type]
+        fake_redis, DispatchOutcome(state=session_state)
+    )
 
     await views.websocket_endpoint(
         websocket,  # type: ignore[arg-type]
@@ -200,7 +199,9 @@ async def test_websocket_endpoint_rejects_invalid_event_and_keeps_connection_ope
     )
     handle_client_messages = AsyncMock()
     monkeypatch.setattr(views.service, "handle_client_messages", handle_client_messages)
-    await views.store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+    await views.store.save_outcome(  # type: ignore[arg-type]
+        fake_redis, DispatchOutcome(state=session_state)
+    )
 
     await views.websocket_endpoint(
         websocket,  # type: ignore[arg-type]

@@ -8,7 +8,7 @@ from app.access.models import CommitteeAssignment
 from app.session import enums, store
 from app.session.engine import EventRejectedError
 from app.session.enums import SessionRole
-from app.session.models import SessionActor, SessionLiveState
+from app.session.models import DispatchOutcome, SessionActor, SessionLiveState
 from app.session.schemas import EventMessage, JoinQueueEvent
 from app.session.service import (
     ActorResolutionError,
@@ -38,7 +38,7 @@ def brazil_assignment() -> CommitteeAssignment:
 async def test_builds_delegate_actor_from_redis(
     fake_redis, session_state: SessionLiveState
 ) -> None:
-    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+    await store.save_outcome(fake_redis, DispatchOutcome(state=session_state))  # type: ignore[arg-type]
 
     actor = await build_actor(
         user_id=UUID("11111111-1111-1111-1111-111111111111"),
@@ -81,7 +81,7 @@ async def test_cannot_build_actor_with_no_delegation_id(fake_redis) -> None:
 async def test_cannot_build_actor_with_nonexistent_delegation(
     fake_redis, session_state: SessionLiveState
 ) -> None:
-    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+    await store.save_outcome(fake_redis, DispatchOutcome(state=session_state))  # type: ignore[arg-type]
 
     with pytest.raises(ActorResolutionError, match="delegation not found"):
         await build_actor(
@@ -97,7 +97,7 @@ async def test_cannot_build_actor_with_nonexistent_delegation(
 async def test_prepare_connect_uses_redis_without_database(
     connection_manager, fake_redis, session_state: SessionLiveState, brazil_assignment
 ) -> None:
-    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+    await store.save_outcome(fake_redis, DispatchOutcome(state=session_state))  # type: ignore[arg-type]
 
     actor = await prepare_session_connect(
         session=None,  # type: ignore[arg-type]
@@ -137,7 +137,9 @@ async def test_prepare_connect_hydrates_redis_from_database(
     )
 
     assert actor.delegation is not None
-    assert await store.get_state(fake_redis, session_state.session_id) == session_state  # type: ignore[arg-type]
+    assert (
+        await store.get_outcome(fake_redis, session_state.session_id)
+    ).state == session_state  # type: ignore[union-attr,arg-type]
     mock_get_session_info.assert_awaited_once()
 
 
@@ -167,7 +169,7 @@ async def test_handle_client_messages_persists_dispatch_outcome(
     delegate_actor: SessionActor,
 ) -> None:
     session_state.current_state = enums.States.OPEN_GSL
-    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+    await store.save_outcome(fake_redis, DispatchOutcome(state=session_state))  # type: ignore[arg-type]
     client_message = EventMessage(
         request_id=uuid4(),
         event=JoinQueueEvent(type=enums.DelegateEvents.JOIN_QUEUE, payload={}),
@@ -184,14 +186,14 @@ async def test_handle_client_messages_persists_dispatch_outcome(
 
     assert fake_engine.dispatched["state"] is not None
     assert result.state is not None
-    assert (await store.get_state(fake_redis, session_state.session_id)) is not None  # type: ignore[arg-type]
+    assert (await store.get_outcome(fake_redis, session_state.session_id)) is not None  # type: ignore[arg-type]
 
 
 @pytest.mark.anyio
 async def test_handle_client_messages_does_not_persist_rejection(
     fake_redis, session_state: SessionLiveState, delegate_actor: SessionActor
 ) -> None:
-    await store.save_state(fake_redis, session_state)  # type: ignore[arg-type]
+    await store.save_outcome(fake_redis, DispatchOutcome(state=session_state))  # type: ignore[arg-type]
     rejection = EventRejectedError(
         enums.EventErrorCode.INVALID_STATE, "Cannot enter queue right now"
     )
@@ -212,4 +214,6 @@ async def test_handle_client_messages_does_not_persist_rejection(
     )
 
     assert result is rejection
-    assert await store.get_state(fake_redis, session_state.session_id) == session_state  # type: ignore[arg-type]
+    assert (
+        await store.get_outcome(fake_redis, session_state.session_id)
+    ).state == session_state  # type: ignore[union-attr,arg-type]

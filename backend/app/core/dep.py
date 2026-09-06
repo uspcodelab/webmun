@@ -17,8 +17,8 @@ def get_session_engine(connection: HTTPConnection) -> SessionEngine:
     return connection.app.state.session_engine
 
 
-def get_logger() -> logging.Logger:
-    return logging.getLogger("uvicorn.error")
+def get_logger(connection: HTTPConnection) -> logging.Logger:
+    return connection.app.state.logger
 
 
 def get_session_store(connection: HTTPConnection) -> Redis:
