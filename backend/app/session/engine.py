@@ -118,10 +118,6 @@ def validate_motion_payload(
             payload.debate_type == DebateTypes.UNMODERATED_DEBATE
             and payload.total_duration_minutes is None
         )
-        or (
-            payload.debate_type == DebateTypes.MODERATED_DEBATE
-            and payload.per_speaker_seconds is None
-        )
     ):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_MESSAGE,
@@ -309,6 +305,7 @@ def handle_delegate_submit_motion(
         debate_type=payload.debate_type,
         total_duration_minutes=payload.total_duration_minutes,
         per_speaker_seconds=payload.per_speaker_seconds,
+        speech_count=payload.speech_count,
         target_topic=payload.target_topic,
         details=payload.details,
     )
@@ -571,11 +568,6 @@ def apply_passed_motion(
                     message="No Debate Type Provided",
                 )
             state.current_speaker = None
-            duration_seconds = (
-                (motion.total_duration_minutes * 60)
-                if motion.total_duration_minutes is not None
-                else 600
-            )  # defaults to 10 minutes as fallback
 
             match motion.debate_type:
                 case DebateTypes.MODERATED_DEBATE:
@@ -583,18 +575,9 @@ def apply_passed_motion(
                     state.debate = DebateContext(
                         debate_type=DebateTypes.MODERATED_DEBATE,
                         return_state=return_state,
-                        total_duration_seconds=duration_seconds,
-                        per_speaker_seconds=motion.per_speaker_seconds
-                        if motion.per_speaker_seconds is not None
-                        else state.gsl_default_time_seconds,
-                        expires_at=datetime.now(UTC)
-                        + timedelta(seconds=duration_seconds),
-                    )
-                    reset_timer(
-                        state,
-                        motion.per_speaker_seconds
-                        if motion.per_speaker_seconds is not None
-                        else state.gsl_default_time_seconds,
+                        per_speaker_seconds=motion.per_speaker_seconds if motion.per_speaker_seconds is not None
+                        else state.gsl_default_time_seconds, 
+                        total_speeches= motion.speech_count,
                     )
 
                 case DebateTypes.UNMODERATED_DEBATE:
@@ -602,17 +585,15 @@ def apply_passed_motion(
                     state.debate = DebateContext(
                         debate_type=DebateTypes.UNMODERATED_DEBATE,
                         return_state=return_state,
-                        total_duration_seconds=duration_seconds,
-                        per_speaker_seconds=None,
-                        expires_at=datetime.now(UTC)
-                        + timedelta(seconds=duration_seconds),
+                        total_duration_seconds=motion.total_duration_minutes,
+                        expires_at=datetime.now(UTC) + timedelta(seconds=motion.total_duration_minutes),
                     )
-                    reset_timer(state)  # should not display per_speaker timer
+                    reset_timer(state, motion.total_duration_minutes)  # Use this as timer
 
                 case DebateTypes.SPEAKERS_LIST:
                     next_state = States.OPEN_GSL
                     state.debate = None
-                    reset_timer(state, state.gsl_default_time_seconds)
+
         case Motions.POSTPONE_SESSION:
             pass
         case Motions.REOPEN_SESSION:
@@ -799,6 +780,7 @@ def handle_chair_submit_motion(
         debate_type=payload.debate_type,
         total_duration_minutes=payload.total_duration_minutes,
         per_speaker_seconds=payload.per_speaker_seconds,
+        speech_count=payload.speech_count,
         target_topic=payload.target_topic,
         details=payload.details,
     )
@@ -821,6 +803,13 @@ def handle_chair_submit_motion(
     state.current_state = States.VOTING_EXECUTION
     return DispatchOutcome(state=state)
 
+def handle_clear_motions(
+    state: SessionLiveState, event: schemas.ClearMotionsEvent, actor: SessionActor
+) -> DispatchOutcome:
+    require_chair(actor)
+    state.submitted_motions = []
+    
+    return DispatchOutcome(state=state)
 
 def handle_set_agenda(
     state: SessionLiveState, event: schemas.SetAgendaEvent, actor: SessionActor
@@ -1009,9 +998,10 @@ def handle_cede_time(
     if state.timer_remaining_seconds <= 0:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot cede time if there's no time",
-        )
-
+            message="Cannot cede time if there's no time"
+        ) 
+    
+    state.previous_speakers.append(state.current_speaker)
     state.current_speaker = representation_id
 
     return DispatchOutcome(state=state)
@@ -1030,9 +1020,13 @@ def handle_end_speech(
     if state.timer_is_running:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot end speech while timer is running",
-        )
+            message="Cannot end speech while timer is running"
+        ) 
 
+    if state.current_state == States.MODERATED_CAUCUS and state.debate.total_speeches:
+        state.debate.total_speeches -= 1
+
+    state.previous_speakers.append(state.current_speaker)
     state.current_speaker = None
     reset_timer(state)
 
@@ -1121,6 +1115,7 @@ EVENT_HANDLERS: dict[DelegateEvents | ChairEvents, EventHandler] = {
     ChairEvents.FINISH_CAUCUS: handle_finish_caucus,
     ChairEvents.RESOLVE_MOTION: handle_resolve_motion,
     ChairEvents.LOG_MOTION: handle_chair_submit_motion,
+    ChairEvents.CLEAR_MOTIONS: handle_clear_motions,
     ChairEvents.SET_AGENDA: handle_set_agenda,
     ChairEvents.SET_AGENDA_ITEM: handle_set_agenda_item,
     ChairEvents.MARK_AGENDA_ITEM: handle_mark_agenda_item,

@@ -22,6 +22,7 @@ class MotionPayload(BaseModel):
     debate_type: enums.DebateTypes | None = None
     total_duration_minutes: int | None = None
     per_speaker_seconds: int | None = None
+    speech_count: int | None = None
     target_topic: str | None = None
     details: str | None = None
 
@@ -159,6 +160,9 @@ class LogMotionEvent(BaseModel):
     type: Literal[enums.ChairEvents.LOG_MOTION]
     payload: ChairMotionPayload
 
+class ClearMotionsEvent(BaseModel):
+    type: Literal[enums.ChairEvents.CLEAR_MOTIONS]
+    payload: EmptyPayload
 
 class OpenSessionEvent(BaseModel):
     type: Literal[enums.ChairEvents.OPEN_SESSION]
@@ -279,6 +283,7 @@ SessionEvent = Annotated[
     | JoinQueueEvent
     | LeaveQueueEvent
     | LogMotionEvent
+    | ClearMotionsEvent
     | OpenSessionEvent
     | CloseSessionEvent
     | IncreaseTimerEvent
