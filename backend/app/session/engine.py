@@ -222,21 +222,6 @@ def get_question_priority(question: Questions) -> int | None:
 
     return priority_map.get(question)
 
-
-def get_default_speaker_seconds(state: SessionLiveState) -> int | None:
-    if state.current_state == States.MODERATED_CAUCUS and state.debate:
-        return state.debate.per_speaker_seconds
-
-    if state.current_state in {
-        States.OPEN_GSL,
-        States.CLOSED_GSL,
-        States.INITIAL_DEBATE,
-    }:
-        return state.gsl_default_time_seconds
-
-    return None
-
-
 def reset_timer(state: SessionLiveState, seconds: int = 0) -> None:
     state.timer_is_running = False
     state.timer_expiration = None
@@ -284,7 +269,6 @@ def handle_delegate_submit_motion(
     if (
         current_state
         in {
-            States.MODERATED_CAUCUS,
             States.UNMODERATED_CAUCUS,
         }
         and not state.can_set_motion
@@ -359,7 +343,7 @@ def handle_leave_queue(
     if state.current_state != States.OPEN_GSL:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Cannot enter queue right now",
+            message="Cannot leave queue right now",
         )
 
     if delegate.id not in state.gsl_queue:
@@ -431,10 +415,10 @@ def handle_close_session(
 ) -> DispatchOutcome:
     require_chair(actor)
 
-    if state.current_state != States.ROLL_CALL:
+    if state.current_state == States.ROLL_CALL:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
-            message="Session may only be closed during roll call",
+            message="Session may not be closed during roll call", #confirm thiss
         )
 
     state.current_state = States.FINISHED
@@ -574,25 +558,28 @@ def apply_passed_motion(
                     next_state = States.MODERATED_CAUCUS
                     state.debate = DebateContext(
                         debate_type=DebateTypes.MODERATED_DEBATE,
-                        return_state=return_state,
-                        per_speaker_seconds=motion.per_speaker_seconds if motion.per_speaker_seconds is not None
-                        else state.gsl_default_time_seconds, 
+                        return_state=state.debate,
+                        per_speaker_seconds=motion.per_speaker_seconds if motion.per_speaker_seconds is not None else state.default_time_seconds, 
                         total_speeches= motion.speech_count,
                     )
 
                 case DebateTypes.UNMODERATED_DEBATE:
+                    duration = motion.total_duration_minutes if motion.total_duration_minutes is not None else 5
                     next_state = States.UNMODERATED_CAUCUS
                     state.debate = DebateContext(
                         debate_type=DebateTypes.UNMODERATED_DEBATE,
-                        return_state=return_state,
+                        return_state=state.debate,
                         total_duration_seconds=motion.total_duration_minutes,
-                        expires_at=datetime.now(UTC) + timedelta(seconds=motion.total_duration_minutes),
                     )
-                    reset_timer(state, motion.total_duration_minutes)  # Use this as timer
+                    reset_timer(state, motion.total_duration_minutes*60)  # Use this as timer
 
                 case DebateTypes.SPEAKERS_LIST:
                     next_state = States.OPEN_GSL
-                    state.debate = None
+                    state.debate = DebateContext(
+                        debate_type=DebateTypes.SPEAKERS_LIST,
+                        return_state=state.debate,
+                        per_speaker_seconds=state.default_time_seconds,
+                    )
 
         case Motions.POSTPONE_SESSION:
             pass
@@ -624,9 +611,19 @@ def apply_passed_motion(
             # will define the VotingContext for resolutions
             pass
         case Motions.CLOSE_SPEAKERS_LIST:
+            if state.current_state != States.OPEN_GSL:
+                raise EventRejectedError(
+                    code=enums.EventErrorCode.INVALID_STATE,
+                    message="Cannot close speakers list if it's not open"
+                )
             next_state = States.CLOSED_GSL
 
         case Motions.REOPEN_SPEAKERS_LIST:
+            if state.current_state != States.CLOSED_GSL:
+                raise EventRejectedError(
+                    code=enums.EventErrorCode.INVALID_STATE,
+                    message="Cannot reopen speakers list if it's not closed"
+                )
             next_state = States.OPEN_GSL
 
         case Motions.SPLIT_PROPOSAL:
@@ -703,19 +700,14 @@ def handle_finish_caucus(
 ) -> DispatchOutcome:
     require_chair(actor)
 
-    if state.debate is None or state.current_state not in {
-        States.MODERATED_CAUCUS,
-        States.UNMODERATED_CAUCUS,
-    }:
+    if state.debate is None:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
             message="No active caucus",
         )
 
-    return_state = state.debate.return_state
+    state.debate = state.debate.return_state
     state.current_speaker = None
-    state.caucus_list = []
-    state.debate = None
     reset_timer(state)
     state.current_state = return_state
     return DispatchOutcome(state=state)
@@ -727,7 +719,6 @@ def handle_resolve_motion(
 ) -> DispatchOutcome:
     # TODO: check how to resolve INTRODUCE_RESOLUTION_PROPOSAL and INTRODUCE_AMENDMENT_PROPOSAL motions separately from procedural motions
     require_chair(actor)
-
     payload = event.payload
     # next() function with generator expression
     motion = next(
@@ -868,7 +859,7 @@ def handle_next_speaker(
             reset_timer(state)
             return DispatchOutcome(state=state)
         state.current_speaker = state.gsl_queue.pop(0)
-        reset_timer(state, state.gsl_default_time_seconds)
+        reset_timer(state, state.default_time_seconds)
         return DispatchOutcome(state=state)
 
     if state.current_state == States.TOUR_DE_TABLE:
@@ -877,7 +868,7 @@ def handle_next_speaker(
             reset_timer(state)
             return DispatchOutcome(state=state)
         state.current_speaker = state.caucus_list.pop(0)
-        reset_timer(state, state.gsl_default_time_seconds)
+        reset_timer(state, state.default_time_seconds)
         return DispatchOutcome(state=state)
 
     if state.current_state == States.MODERATED_CAUCUS:
@@ -932,7 +923,7 @@ def handle_grant_floor(
     if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
         if representation_id in state.gsl_queue:
             state.gsl_queue.remove(representation_id)
-        seconds = event.payload.seconds or state.gsl_default_time_seconds
+        seconds = event.payload.seconds or state.default_time_seconds
     elif state.current_state == States.MODERATED_CAUCUS:
         if state.debate is None:
             raise EventRejectedError(
@@ -944,7 +935,7 @@ def handle_grant_floor(
     elif state.current_state == States.TOUR_DE_TABLE:
         if representation_id in state.caucus_list:
             state.caucus_list.remove(representation_id)
-        seconds = event.payload.seconds or state.gsl_default_time_seconds
+        seconds = event.payload.seconds or state.default_time_seconds
     elif state.current_state == States.UNMODERATED_CAUCUS:
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,

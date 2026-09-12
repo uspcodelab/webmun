@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from __future__ import annotations
 from pydantic import BaseModel
 
 import app.session.enums as enums
@@ -78,14 +79,18 @@ class VotingContext(BaseModel):
 
         return True
 
-
 class DebateContext(BaseModel):
     debate_type: enums.DebateTypes
-    return_state: enums.States
-    total_duration_seconds: int | None = None  # check if its needed
+    return_state: DebateContext | None #None only if default state
+
+    #unmoderated debate
+    total_duration_minutes: int | None = None
+    #moderated debate
     total_speeches: int | None = None
+    #moderated debate and GSL
     per_speaker_seconds: int | None = None
-    expires_at: datetime | None = None
+    #GSL
+    closed: bool | None = None
 
 
 class RollCallContext(BaseModel):
@@ -117,14 +122,11 @@ class SessionLiveState(BaseModel):
 
     # Speakers
     current_speaker: int | None = None
-    gsl_queue: list[int] = []
+    gsl_queue: list[int] = [] #Never resets, so it's in global context
     can_set_motion: bool = False  # Can set motions during speaking time
-    gsl_default_time_seconds: int = 60
+    default_time_seconds: int = 60
 
     # Caucus variables
-    caucus_list: list[
-        int
-    ] = []  # special list that is only used during moderated caucus, has different semantic functionality than gsl queue
     debate: DebateContext | None = (
         None  # used specially for Moderated, unmoderated and possibly tour de table
     )
