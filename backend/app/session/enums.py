@@ -57,6 +57,7 @@ class ChairEvents(StrEnum):
     OPEN_INFORMAL_VOTING = "OpenInformalVotingEvent"
     RESOLVE_MOTION = "ResolveMotionEvent"
     LOG_MOTION = "LogMotionEvent"
+    CLEAR_MOTIONS = "ClearMotionEvent"
     CLOSE_PROCEDURAL_VOTING = "CloseProceduralVotingEvent"
     CLOSE_INFORMAL_VOTING = "CloseInformalVotingEvent"
     FINISH_CAUCUS = "FinishCaucusEvent"

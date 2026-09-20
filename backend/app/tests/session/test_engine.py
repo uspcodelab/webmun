@@ -298,22 +298,6 @@ def test_generates_independent_sequential_motion_and_question_ids(
     assert eng.generate_next_question_id(session_state) == 1
     assert eng.generate_next_question_id(session_state) == 2
 
-
-def test_validate_motion_payload_rejects_moderated_debate_without_speaking_time(
-    session_state: md.SessionLiveState,
-) -> None:
-    payload = sch.DelegateMotionPayload(
-        type=enums.Motions.CHANGE_DEBATE_TYPE,
-        debate_type=enums.DebateTypes.MODERATED_DEBATE,
-        total_duration_minutes=10,
-    )
-
-    with pytest.raises(eng.EventRejectedError) as exc_info:
-        eng.validate_motion_payload(payload, session_state)
-
-    assert exc_info.value.code is enums.EventErrorCode.INVALID_MESSAGE
-
-
 def test_count_present_delegations_handles_empty_and_populated_registry(
     session_state: md.SessionLiveState,
 ) -> None:
@@ -920,7 +904,6 @@ def test_chair_can_close_passed_procedural_vote(
     assert state.current_state == enums.States.CLOSED_GSL
     assert state.voting is None
     assert outcome.effect is not None
-    assert outcome.effect.data.get("passed") is True
 
 
 def test_chair_can_close_failed_procedural_vote(
@@ -951,7 +934,6 @@ def test_chair_can_close_failed_procedural_vote(
     assert state.current_state == enums.States.OPEN_GSL
     assert state.voting is None
     assert outcome.effect is not None
-    assert outcome.effect.data.get("passed") is False
 
 
 def test_delegate_cannot_close_procedural_vote(

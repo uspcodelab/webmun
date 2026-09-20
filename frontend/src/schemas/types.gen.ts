@@ -482,6 +482,7 @@ export const ChairEvents = {
     OPEN_INFORMAL_VOTING_EVENT: 'OpenInformalVotingEvent',
     RESOLVE_MOTION_EVENT: 'ResolveMotionEvent',
     LOG_MOTION_EVENT: 'LogMotionEvent',
+    CLEAR_MOTION_EVENT: 'ClearMotionEvent',
     CLOSE_PROCEDURAL_VOTING_EVENT: 'CloseProceduralVotingEvent',
     CLOSE_INFORMAL_VOTING_EVENT: 'CloseInformalVotingEvent',
     FINISH_CAUCUS_EVENT: 'FinishCaucusEvent',
@@ -625,6 +626,10 @@ export type ChairMotionPayload = {
      */
     per_speaker_seconds?: number | null;
     /**
+     * Speech Count
+     */
+    speech_count?: number | null;
+    /**
      * Target Topic
      */
     target_topic?: string | null;
@@ -693,6 +698,17 @@ export type ChairToggleTimerPayload = {
      * Toggle
      */
     toggle?: boolean;
+};
+
+/**
+ * ClearMotionsEvent
+ */
+export type ClearMotionsEvent = {
+    /**
+     * Type
+     */
+    type: 'ClearMotionEvent';
+    payload: EmptyPayload;
 };
 
 /**
@@ -767,6 +783,10 @@ export type DelegateMotionPayload = {
      * Per Speaker Seconds
      */
     per_speaker_seconds?: number | null;
+    /**
+     * Speech Count
+     */
+    speech_count?: number | null;
     /**
      * Target Topic
      */
@@ -1260,6 +1280,8 @@ export type SessionEvent = ({
 } & LeaveQueueEvent) | ({
     type: 'LogMotionEvent';
 } & LogMotionEvent) | ({
+    type: 'ClearMotionEvent';
+} & ClearMotionsEvent) | ({
     type: 'OpenSessionEvent';
 } & OpenSessionEvent) | ({
     type: 'CloseSessionEvent';
@@ -1349,6 +1371,8 @@ export type EventMessage = {
     } & LeaveQueueEvent) | ({
         type: 'LogMotionEvent';
     } & LogMotionEvent) | ({
+        type: 'ClearMotionEvent';
+    } & ClearMotionsEvent) | ({
         type: 'OpenSessionEvent';
     } & OpenSessionEvent) | ({
         type: 'CloseSessionEvent';
@@ -1441,10 +1465,6 @@ export type DebateContext = {
      * Expires At
      */
     expires_at?: string | null;
-    /**
-     * Topic
-     */
-    topic?: string | null;
 };
 
 /**
@@ -1555,6 +1575,10 @@ export type MotionContext = {
      * Target Topic
      */
     target_topic?: string | null;
+    /**
+     * Speech Count
+     */
+    speech_count?: number | null;
     /**
      * Details
      */
@@ -1692,6 +1716,10 @@ export type SessionLiveState = {
     active_topic_index?: string | null;
     voting?: VotingContext | null;
     roll_call: RollCallContext;
+    /**
+     * Previous Speakers
+     */
+    previous_speakers?: Array<number>;
     /**
      * Has Veto Power
      */

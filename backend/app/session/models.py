@@ -47,6 +47,7 @@ class MotionContext(BaseModel):
     total_duration_minutes: int | None = None
     per_speaker_seconds: int | None = None
     target_topic: str | None = None
+    speech_count: int | None = None
 
     details: str | None = None
 
@@ -85,7 +86,6 @@ class DebateContext(BaseModel):
     total_speeches: int | None = None
     per_speaker_seconds: int | None = None
     expires_at: datetime | None = None
-    topic: str | None = None
 
 
 class RollCallContext(BaseModel):
@@ -146,13 +146,15 @@ class SessionLiveState(BaseModel):
     # present delegations with voting choice
     roll_call: RollCallContext  # Not None, even if registry is empty
 
+    #Temporary Speaker History
+    previous_speakers: list[int] = [] #temporary list for now
+
     # Additional config
     has_veto_power: bool = False
 
 
-# Add more effect payload shapes as they are introduced.
-EffectPayloads = dict[str, Any]
-
+#Add more for other effects (Possibly change the Voting context, when doing that change frontend too)
+EffectPayloads = VotingContext
 
 class SessionEffect(BaseModel):
     type: enums.SessionEffectType
