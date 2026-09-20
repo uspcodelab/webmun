@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import SessionPage from './pages/Session';
 import LoginPage from './pages/Login_page';
 import SignupPage from './pages/Signup_page';
+import SignupConfirmation from './pages/SignupConfrimaiton';
 import Home from './pages/Home';
 import Pricing from './pages/Info Pages/Pricing';
 import OurTeam from './pages/Info Pages/OurTeam';
@@ -53,6 +54,7 @@ function App() {
 				<Route path="/contact-us" element={<ContactUs />} />
 				<Route path="/login" element={<LoginPage />} />
 				<Route path="/signup" element={<SignupPage />} />
+				<Route path="/signup-confirmation" element={<SignupConfirmation />} />
 				<Route path="/dashboard" element={<RequireAuth><UserDash /></RequireAuth>}>
 					<Route index element={<DashHome />} />
 					<Route path="conference/overview" element={<ConferenceOverview />} />

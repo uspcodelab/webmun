@@ -108,9 +108,10 @@ export default function Navbar() {
             </div>
 
             <div className="flex items-center gap-2 flex-none">
-                <Button className="bg-primary hover:bg-primary-700" asChild>Criar Conta
-                    <Link to="/signup" />
+                <Button asChild className="bg-primary hover:bg-primary-600">
+                    <Link to="/signup">Criar Conta</Link>
                 </Button>
+                
                 <Button asChild variant="outline" >
                     <Link to="/login">Login</Link>
                 </Button>
