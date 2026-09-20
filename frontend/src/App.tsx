@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import SessionPage from './pages/Session';
 import LoginPage from './pages/Login_page';
+import SignupPage from './pages/Signup_page';
 import Home from './pages/Home';
 import Pricing from './pages/Info Pages/Pricing';
 import OurTeam from './pages/Info Pages/OurTeam';
@@ -51,7 +52,7 @@ function App() {
 				<Route path="/our-team" element={<OurTeam />} />
 				<Route path="/contact-us" element={<ContactUs />} />
 				<Route path="/login" element={<LoginPage />} />
-				<Route path="/signup" element={<Navigate to="/login" replace />} />
+				<Route path="/signup" element={<SignupPage />} />
 				<Route path="/dashboard" element={<RequireAuth><UserDash /></RequireAuth>}>
 					<Route index element={<DashHome />} />
 					<Route path="conference/overview" element={<ConferenceOverview />} />

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -55,9 +55,9 @@ export function LoginForm({
     >
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
+          <h1 className="text-2xl font-bold">Faça Login em sua conta WebMUN</h1>
           <p className="text-sm text-balance text-muted-foreground">
-            Enter your email below to login to your account
+            Coloque seu email e senha para acessar sua conta.
           </p>
         </div>
 
@@ -106,14 +106,14 @@ export function LoginForm({
           </Button>
         </Field>
 
-        <FieldSeparator>Or continue with</FieldSeparator>
+        <FieldSeparator>Ou faça login com</FieldSeparator>
 
         <Field>
           <Button variant="outline" type="button" className="w-full" disabled>
             Login with Google (em breve)
           </Button>
           <FieldDescription className="text-center mt-2">
-            Não tem uma conta? <Button variant="link" className="h-auto p-0" disabled>Criar conta</Button>
+            Não tem uma conta? <Button variant="link" className="h-auto p-0" asChild><Link to="/signup">Criar conta</Link></Button>
           </FieldDescription>
         </Field>
       </FieldGroup>
