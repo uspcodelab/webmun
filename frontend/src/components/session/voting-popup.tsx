@@ -84,7 +84,7 @@ export default function VotingPopup() {
                              className="flex-1 bg-green-800 text-white hover:bg-green-700">A Favor</Button>
                         <Button
                             onClick={
-                            () => { sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
+                            () => { sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.ABSTAIN}} satisfies CastVoteEvent)}}
                             disabled={isRollCall && !canAbstain}
                             className="flex-1 bg-gray-700 text-white hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -95,7 +95,7 @@ export default function VotingPopup() {
                                 Pular
                             </Button>
                         )}
-                        <Button onClick={() => { sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.FAVOUR}} satisfies CastVoteEvent)}}
+                        <Button onClick={() => { sendMessage({type:DelegateEvents.CAST_VOTE_EVENT, payload: {vote:VotingChoice.AGAINST}} satisfies CastVoteEvent)}}
                         className="flex-1 bg-red-800 text-white hover:bg-red-700">Contra</Button>
 
                     </div>
