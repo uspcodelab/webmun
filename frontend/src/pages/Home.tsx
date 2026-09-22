@@ -1,18 +1,99 @@
+import { useEffect, useState } from "react"
 import Navbar from "@/components/homepage/navbar"
 import Footer from "@/components/homepage/footer"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
-import { LayoutDashboard, Users, Radio, FileText, GraduationCap, PackagePlus, Wallet, FlaskConical } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutDashboard, Users, Radio, FileText, GraduationCap, PackagePlus, Wallet, FlaskConical } from 'lucide-react';
+
+const carouselSlides = [
+    {
+        image: "/Images/Institutions_Vector_Art/EU-Parlament-Inside.jpeg",
+        eyebrow: "Organize com clareza",
+        title: "A sua MUN, em um só lugar.",
+        description: "Do credenciamento à última votação, o WebMun ajuda sua equipe a conduzir cada etapa com mais tranquilidade.",
+    },
+    {
+        image: "/Images/Institutions_Vector_Art/EU-Parlament-Outside.jpeg",
+        eyebrow: "Feito para conferências",
+        title: "Mais tempo para o que acontece na sala.",
+        description: "Centralize participantes, comitês, documentos e informações em uma experiência simples para todos.",
+    },
+    {
+        image: "/Images/Institutions_Vector_Art/Un-Inside.jpeg",
+        eyebrow: "Sessões em tempo real",
+        title: "Sua equipe no controle, ao vivo.",
+        description: "Acompanhe sessões, votações e pedidos de ajuda sem perder o ritmo da sua conferência.",
+    },
+]
 
 export default function Home() {
+    const [activeSlide, setActiveSlide] = useState(0)
+
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            setActiveSlide((currentSlide) => (currentSlide + 1) % carouselSlides.length)
+        }, 6000)
+
+        return () => window.clearInterval(timer)
+    }, [])
+
+    const slide = carouselSlides[activeSlide]
+
     return (
         <div className="flex min-h-screen w-full flex-col">
             <Navbar />
-            <div className="relative flex min-h-[90vh] w-full items-center justify-center overflow-hidden bg-secondary">
-                <div className="absolute inset-0 bg-linear-to-b from-secondary/20 via-secondary/55 to-secondary/85" />
-                <h1 className="relative text-7xl font-bold text-white">Placeholder do Carrosel</h1>
+            <div className="relative min-h-[90vh] w-full overflow-hidden bg-secondary">
+                {carouselSlides.map((carouselSlide, index) => (
+                    <img
+                        key={carouselSlide.image}
+                        src={carouselSlide.image}
+                        alt=""
+                        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${index === activeSlide ? "opacity-100" : "opacity-0"}`}
+                    />
+                ))}
+                <div className="absolute inset-0 bg-linear-to-r from-black/60 via-black/40 to-black/10" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/55 via-transparent to-black/10" />
+
+                <div className="relative mx-auto flex min-h-[90vh] w-full max-w-7xl items-end px-6 pb-24 pt-32 sm:px-10 lg:px-16">
+                    <div className="max-w-2xl text-white">
+                        <p className="mb-5 text-sm font-semibold uppercase tracking-[0.3em] text-white/75">{slide.eyebrow}</p>
+                        <h1 className="max-w-xl text-5xl font-black leading-[0.95] tracking-[-0.04em] sm:text-7xl">{slide.title}</h1>
+                        <p className="mt-6 max-w-lg text-base leading-7 text-white/80 sm:text-lg">{slide.description}</p>
+                    </div>
+
+                    <div className="absolute bottom-8 right-6 flex items-center gap-3 sm:right-10 lg:right-16">
+                        <button
+                            type="button"
+                            aria-label="Imagem anterior"
+                            onClick={() => setActiveSlide((activeSlide - 1 + carouselSlides.length) % carouselSlides.length)}
+                            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white backdrop-blur-sm transition hover:bg-white hover:text-foreground"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <div className="flex items-center gap-2" aria-label="Selecionar imagem">
+                            {carouselSlides.map((carouselSlide, index) => (
+                                <button
+                                    key={carouselSlide.image}
+                                    type="button"
+                                    aria-label={`Ir para imagem ${index + 1}`}
+                                    aria-current={index === activeSlide ? "true" : undefined}
+                                    onClick={() => setActiveSlide(index)}
+                                    className={`h-2 rounded-full transition-all ${index === activeSlide ? "w-8 bg-white" : "w-2 bg-white/50 hover:bg-white/80"}`}
+                                />
+                            ))}
+                        </div>
+                        <button
+                            type="button"
+                            aria-label="Próxima imagem"
+                            onClick={() => setActiveSlide((activeSlide + 1) % carouselSlides.length)}
+                            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white backdrop-blur-sm transition hover:bg-white hover:text-foreground"
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
             </div>
             <main className="mx-auto flex w-full flex-col gap-8  py-16">
                 <section className="rounded-3xl   sm:p-10 mx-8">
@@ -117,7 +198,7 @@ export default function Home() {
                         </p>
                     </div>
 
-                    <ItemGroup className="mt-10 gap-5">
+                    <ItemGroup className="py-10 gap-5">
                         {[
                             {
                                 number: "1",
