@@ -14,7 +14,7 @@ import { Link } from "react-router-dom"
 
 export default function Navbar() {
     return (
-        <nav className="flex h-[10vh] w-full items-center shadow-lg px-4">
+        <nav className="sticky top-0 z-50 flex h-[10vh] w-full items-center bg-background shadow-lg px-4">
             <div className="flex h-full items-center flex-none">
                 <Link to="/" aria-label="Ir para a página inicial" className="flex h-full items-center">
                     <img src="/Images/branding/WebMunLogoHorizontal.png" alt="Logotipo do WebMun" className="h-full w-auto object-contain scale-110" />
