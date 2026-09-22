@@ -13,10 +13,10 @@ export default function SignupConfirmation() {
                 <div className="flex flex-1 items-center justify-center">
                     <div className="w-full max-w-xs">
 
-                        <div className="flex flex-col items-center justify-center gap-4">
-                            <Check className="h-16 w-16 text-green-500" />
+                        <div className="flex flex-col items-center justify-center gap-4 pb-4">
+                            <Check className="h-16 w-16 text-white bg-green-600 rounded-full p-4" />
                             <h2 className="text-2xl font-bold">Conta criada com sucesso!</h2>
-                            <p className="text-muted-foreground">
+                            <p className="text-muted-foreground text-center">
                                 Confirme seu email para ativar sua conta. Apos isso é so fazer login.
                             </p>
                         </div>

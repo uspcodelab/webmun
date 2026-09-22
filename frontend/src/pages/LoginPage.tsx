@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext"
 export default function Auth() {
   const { loading, token } = useAuth()
 
-  if (loading) return <p>Loading session…</p>
+  if (loading) return <p>Loading…</p>
   if (token) return <Navigate to="/dashboard" replace />
 
   return (
@@ -25,7 +25,7 @@ export default function Auth() {
       </div>
       <div className="relative hidden bg-muted lg:block">
         <img
-          src="\Images\auth\LoginSideImage.png"
+          src="\Images\Institutions_Vector_Art\Security-Council.png"
           alt="LoginSideImage"
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
