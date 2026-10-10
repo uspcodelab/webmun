@@ -21,7 +21,7 @@ const carouselSlides = [
         description: "Centralize participantes, comitês, documentos e informações em uma experiência simples para todos.",
     },
     {
-        image: "/Images/Institutions_Vector_Art/Un-Inside.jpeg",
+        image: "/Images/Institutions_Vector_Art/Un-GA-Inside.jpeg",
         eyebrow: "Sessões em tempo real",
         title: "Sua equipe no controle, ao vivo.",
         description: "Acompanhe sessões, votações e pedidos de ajuda sem perder o ritmo da sua conferência.",

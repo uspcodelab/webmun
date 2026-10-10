@@ -42,8 +42,8 @@ create table conferences (
 create table committees (
 	id bigint primary key generated always as identity,
 	conference_id bigint not null references conferences(id) on delete cascade,
-	name varchar(64) not null,
-	acronym varchar(16),
+	name varchar(256) not null,
+	acronym varchar(10),
 	committee_type varchar(64),
 	logo_url varchar(1000),
 	theme_color varchar(7),
@@ -62,16 +62,38 @@ create table committees (
 -- Representations and layouts
 -------------------------------
 
--- Preset/custom separation is represented here, but detailed policy can stay in app logic for now.
+-- Presets are the global default list (committee_id is null); custom representations belong to one committee.
+--   name      -> short name (e.g. 'Alemanha')
+--   long_name -> full name  (e.g. 'República Federal da Alemanha')
+--   code      -> two-letter country code (null for custom representations)
 create table representations (
 	id bigint primary key generated always as identity,
 	name varchar(64) not null,
+	long_name varchar(128) not null,
 	rep_type asset_type not null default 'preset',
 	code varchar(10),
-	identifier varchar(255) not null,
-	conference_id bigint null references conferences(id) on delete cascade,
-	created_at timestamptz not null default now()
+	committee_id bigint null references committees(id) on delete cascade,
+	flag_url text null,
+	countryball_url text null,
+	emblem_url text null,
+	created_at timestamptz not null default now(),
+
+	constraint representations_scope_check check (
+		(rep_type = 'preset' and committee_id is null)
+		or (rep_type = 'custom' and committee_id is not null)
+	)
 );
+
+-- A preset code is unique globally; a custom code only within its committee.
+create unique index representations_preset_code_key
+	on representations (code)
+	where committee_id is null and code is not null;
+
+create unique index representations_committee_code_key
+	on representations (committee_id, code)
+	where committee_id is not null and code is not null;
+
+create index representations_committee_id_idx on representations (committee_id);
 
 create table layouts (
 	id bigint primary key generated always as identity,

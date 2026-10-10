@@ -1,6 +1,6 @@
 import { sendMessage, useSession } from "@/context/SessionContext"
 import type {SetAgendaItemEvent, MarkAgendaItemEvent, DeleteAgendaItemEvent} from "@/schemas/types.gen"
-import {ChairEvents, SessionRoles } from "@/schemas/types.gen"
+import { ChairEvents, SessionRoles } from "@/schemas/types.gen"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"

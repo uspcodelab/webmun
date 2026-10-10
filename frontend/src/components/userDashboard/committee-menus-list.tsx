@@ -6,8 +6,8 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useConference } from "@/context/ConferenceContext"
 import { Link, useLocation } from "react-router-dom"
-import { ChevronsUpDownIcon, ChevronRightIcon, Info } from "lucide-react"
+import { CircleDot, ChevronRightIcon, Info, List } from "lucide-react"
 
 
 
@@ -34,16 +34,17 @@ export function CommitteeMenus() {
   const { isMobile } = useSidebar()
   const {
     accessibleCommittees,
-    activeCommittee,
-    conferenceAccess,
-    setActiveCommitteeId,
+    selectedCommittees,
+    selectedCommitteeIds,
+    committeeAccessById,
+    toggleCommitteeId,
   } = useConference()
-  const accessRoleByCommitteeId = new Map(
-    conferenceAccess?.accessible_committees.map((committee) => [
-      committee.committee_id,
-      committee.role,
-    ]) ?? []
-  )
+  const selectedLabel =
+    selectedCommittees.length === 0
+      ? null
+      : selectedCommittees.length === 1
+        ? selectedCommittees[0].name
+        : `${selectedCommittees.length} comites`
 
   if (accessibleCommittees.length === 0) {
     return null
@@ -58,9 +59,9 @@ export function CommitteeMenus() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton>
-                <Info />
-                <span>{activeCommittee?.name ?? "Selecionar comite"}</span>
-                <ChevronsUpDownIcon className="ml-auto" />
+                <List />
+                <span>Selecionar comites</span>
+                <CircleDot className="ml-auto" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -73,30 +74,34 @@ export function CommitteeMenus() {
                 Comites acessiveis
               </DropdownMenuLabel>
               {accessibleCommittees.map((committee) => (
-                <DropdownMenuItem
+                <DropdownMenuCheckboxItem
                   key={committee.id}
-                  onClick={() => setActiveCommitteeId(committee.id)}
+                  checked={selectedCommitteeIds.includes(committee.id)}
+                  onCheckedChange={() => toggleCommitteeId(committee.id)}
+                  onSelect={(event) => event.preventDefault()}
                   className="gap-2 p-2"
                 >
                   <span className="font-medium">{committee.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {accessRoleByCommitteeId.get(committee.id) ?? ""}
+                    {committeeAccessById.get(committee.id)?.role ?? ""}
                   </span>
-                </DropdownMenuItem>
+                </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>
 
+        {selectedCommittees.map((committee) => (
         <Collapsible
-          defaultOpen={pathname.startsWith("/dashboard/committees")}
+          key={committee.id}
+          defaultOpen={pathname.startsWith(`/dashboard/committees/${committee.id}/`)}
           className="group/collapsible"
         >
           <SidebarMenuItem>
             <CollapsibleTrigger asChild>
               <SidebarMenuButton tooltip="Sobre a MUN">
                 <Info />
-                <span>{activeCommittee?.name ?? "Comite"}</span>
+                <span>{committee.acronym}</span>
                 <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
@@ -106,9 +111,9 @@ export function CommitteeMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/committees/info"}
+                    isActive={pathname === `/dashboard/committees/${committee.id}/info`}
                   >
-                    <Link to="/dashboard/committees/info">
+                    <Link to={`/dashboard/committees/${committee.id}/info`}>
                       <span>Informacoes</span>
                     </Link>
                   </SidebarMenuSubButton>
@@ -117,9 +122,9 @@ export function CommitteeMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/committees/sessions"}
+                    isActive={pathname === `/dashboard/committees/${committee.id}/sessions`}
                   >
-                    <Link to="/dashboard/committees/sessions">
+                    <Link to={`/dashboard/committees/${committee.id}/sessions`}>
                       <span>Sessao</span>
                     </Link>
                   </SidebarMenuSubButton>
@@ -128,10 +133,20 @@ export function CommitteeMenus() {
                 <SidebarMenuSubItem >
                   <SidebarMenuSubButton
                     asChild
-                    isActive={pathname === "/dashboard/committees/docs"}
+                    isActive={pathname === `/dashboard/committees/${committee.id}/docs`}
                   >
-                    <Link to="/dashboard/committees/docs">
+                    <Link to={`/dashboard/committees/${committee.id}/docs`}>
                       <span>Docs</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem >
+                  <SidebarMenuSubButton
+                    asChild
+                    isActive={pathname === `/dashboard/committees/${committee.id}/config`}
+                  >
+                    <Link to={`/dashboard/committees/${committee.id}/config`}>
+                      <span>Configurações</span>
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
@@ -140,6 +155,7 @@ export function CommitteeMenus() {
             </CollapsibleContent>
           </SidebarMenuItem>
         </Collapsible>
+        ))}
 
   
 

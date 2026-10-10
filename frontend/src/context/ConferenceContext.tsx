@@ -18,15 +18,15 @@ type ConferenceContextType = {
   activeConferenceId: number | null
   committees: CommitteeRead[]
   accessibleCommittees: CommitteeRead[]
-  activeCommittee: CommitteeRead | null
-  activeCommitteeId: number | null
-  activeCommitteeAccess: AccessibleCommittee | null
+  selectedCommittees: CommitteeRead[]
+  selectedCommitteeIds: number[]
+  committeeAccessById: Map<number, AccessibleCommittee>
   conferenceAccess: ConferenceAccess | null
   canManageConference: boolean
   loading: boolean
   error: string | null
   setActiveConferenceId: (conferenceId: number) => void
-  setActiveCommitteeId: (committeeId: number) => void
+  toggleCommitteeId: (committeeId: number) => void
   refreshConferences: () => Promise<void>
   refreshCommittees: () => Promise<void>
   createConference: (draft: ConferenceCreate) => Promise<ConferenceRead>
@@ -39,7 +39,7 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
   const { token, loading: authLoading } = useAuth()
   const [conferences, setConferences] = useState<ConferenceRead[]>([])
   const [activeConferenceId, setActiveConferenceIdState] = useState<number | null>(null)
-  const [activeCommitteeId, setActiveCommitteeIdState] = useState<number | null>(null)
+  const [selectedCommitteeIds, setSelectedCommitteeIds] = useState<number[]>([])
   const [committees, setCommittees] = useState<CommitteeRead[]>([])
   const [conferenceAccess, setConferenceAccess] = useState<ConferenceAccess | null>(null)
   const [loading, setLoading] = useState(false)
@@ -50,12 +50,15 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
     [activeConferenceId, conferences]
   )
 
-  const activeCommitteeAccess = useMemo(
+  const committeeAccessById = useMemo(
     () =>
-      conferenceAccess?.accessible_committees.find(
-        (committee) => committee.committee_id === activeCommitteeId
-      ) ?? null,
-    [activeCommitteeId, conferenceAccess]
+      new Map(
+        conferenceAccess?.accessible_committees.map((committee) => [
+          committee.committee_id,
+          committee,
+        ]) ?? []
+      ),
+    [conferenceAccess]
   )
 
   const accessibleCommittees = useMemo(() => {
@@ -66,25 +69,29 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
     return committees.filter((committee) => accessibleIds.has(committee.id))
   }, [committees, conferenceAccess])
 
-  const activeCommittee = useMemo(
-    () => committees.find((committee) => committee.id === activeCommitteeId) ?? null,
-    [activeCommitteeId, committees]
+  const selectedCommittees = useMemo(
+    () => committees.filter((committee) => selectedCommitteeIds.includes(committee.id)),
+    [selectedCommitteeIds, committees]
   )
 
   const setActiveConferenceId = useCallback((conferenceId: number) => {
     setActiveConferenceIdState(conferenceId)
-    setActiveCommitteeIdState(null)
+    setSelectedCommitteeIds([])
   }, [])
 
-  const setActiveCommitteeId = useCallback((committeeId: number) => {
-    setActiveCommitteeIdState(committeeId)
+  const toggleCommitteeId = useCallback((committeeId: number) => {
+    setSelectedCommitteeIds((currentIds) =>
+      currentIds.includes(committeeId)
+        ? currentIds.filter((id) => id !== committeeId)
+        : [...currentIds, committeeId]
+    )
   }, [])
 
   const refreshConferences = useCallback(async () => {
     if (!token) {
       setConferences([])
       setActiveConferenceIdState(null)
-      setActiveCommitteeIdState(null)
+      setSelectedCommitteeIds([])
       return
     }
 
@@ -112,7 +119,7 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
     if (!activeConferenceId) {
       setCommittees([])
       setConferenceAccess(null)
-      setActiveCommitteeIdState(null)
+      setSelectedCommitteeIds([])
       return
     }
 
@@ -126,16 +133,18 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
       ])
       setCommittees(nextCommittees)
       setConferenceAccess(nextAccess)
-      setActiveCommitteeIdState((currentId) => {
+      setSelectedCommitteeIds((currentIds) => {
         const accessibleIds = new Set(
           nextAccess.accessible_committees.map((committee) => committee.committee_id)
         )
+        const stillAccessible = currentIds.filter((id) => accessibleIds.has(id))
 
-        if (currentId && accessibleIds.has(currentId)) {
-          return currentId
+        if (stillAccessible.length > 0) {
+          return stillAccessible
         }
 
-        return nextCommittees.find((committee) => accessibleIds.has(committee.id))?.id ?? null
+        const first = nextCommittees.find((committee) => accessibleIds.has(committee.id))
+        return first ? [first.id] : []
       })
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Failed to load conference data")
@@ -169,7 +178,7 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
     )
 
     await refreshCommittees()
-    setActiveCommitteeIdState(committee.id)
+    setSelectedCommitteeIds((currentIds) => [...currentIds, committee.id])
     return committee
   }, [activeConferenceId, refreshCommittees])
 
@@ -194,15 +203,15 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
       activeConferenceId,
       committees,
       accessibleCommittees,
-      activeCommittee,
-      activeCommitteeId,
-      activeCommitteeAccess,
+      selectedCommittees,
+      selectedCommitteeIds,
+      committeeAccessById,
       conferenceAccess,
       canManageConference: conferenceAccess?.can_manage_conference ?? false,
       loading,
       error,
       setActiveConferenceId,
-      setActiveCommitteeId,
+      toggleCommitteeId,
       refreshConferences,
       refreshCommittees,
       createConference,
@@ -214,14 +223,14 @@ export function ConferenceProvider({ children }: { children: ReactNode }) {
       activeConferenceId,
       committees,
       accessibleCommittees,
-      activeCommittee,
-      activeCommitteeId,
-      activeCommitteeAccess,
+      selectedCommittees,
+      selectedCommitteeIds,
+      committeeAccessById,
       conferenceAccess,
       loading,
       error,
       setActiveConferenceId,
-      setActiveCommitteeId,
+      toggleCommitteeId,
       refreshConferences,
       refreshCommittees,
       createConference,

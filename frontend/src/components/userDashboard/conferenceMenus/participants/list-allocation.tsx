@@ -1,7 +1,10 @@
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useConference } from "@/context/ConferenceContext"
 import { apiJson } from "@/lib/api"
 
@@ -14,8 +17,10 @@ export default function ParticipantListAllocation() {
   const [allocations, setAllocations] = React.useState<Allocation[]>([])
   const [choices, setChoices] = React.useState<Record<string, Choice>>({})
   const [representations, setRepresentations] = React.useState<Record<number, Representation[]>>({})
+  const [email, setEmail] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [saving, setSaving] = React.useState(false)
+  const [adding, setAdding] = React.useState(false)
 
   const load = React.useCallback(async () => {
     if (!activeConferenceId) return setAllocations([])
@@ -30,6 +35,23 @@ export default function ParticipantListAllocation() {
   }, [activeConferenceId])
 
   React.useEffect(() => { void load() }, [load])
+
+  async function addParticipant(event: React.FormEvent) {
+    event.preventDefault()
+    if (!activeConferenceId) return
+    setAdding(true)
+    setError(null)
+    try {
+      await apiJson(`/conferences/${activeConferenceId}/assignments`, {
+        method: "POST",
+        body: JSON.stringify({ email, role: "participant" }),
+      })
+      setEmail("")
+      await load()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível adicionar o delegado")
+    } finally { setAdding(false) }
+  }
 
   async function chooseCommittee(email: string, committeeId: string) {
     setChoices((current) => ({ ...current, [email]: { committeeId, representationId: "" } }))
@@ -62,16 +84,112 @@ export default function ParticipantListAllocation() {
     finally { setSaving(false) }
   }
 
-  return <section className="space-y-5">
-    <div><h1 className="text-2xl font-bold">Listagem e alocação de participantes</h1><p className="text-muted-foreground">Participantes adicionados à conferência aparecem aqui para alocação em comitês.</p></div>
-    {!activeConferenceId ? <p className="text-muted-foreground">Selecione uma conferência.</p> : <>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <div className="flex justify-end"><Button disabled={saving || pendingAllocations.length === 0} onClick={() => void saveAll()}>{saving ? "Salvando..." : `Salvar alocações${pendingAllocations.length ? ` (${pendingAllocations.length})` : ""}`}</Button></div>
-      <div className="overflow-x-auto rounded-xl border"><table className="w-full text-sm"><thead><tr className="border-b text-left"><th className="p-3">E-mail</th><th className="p-3">Comitê</th><th className="p-3">Representação</th></tr></thead><tbody>{allocations.map((allocation) => {
-        const choice = choices[allocation.email] ?? { committeeId: "", representationId: "" }
-        const seats = representations[Number(choice.committeeId)] ?? []
-        return <tr key={`${allocation.email}-${allocation.committee_id ?? "none"}`} className="border-b last:border-0"><td className="p-3">{allocation.email}</td><td className="p-3"><Select value={choice.committeeId} onValueChange={(value) => void chooseCommittee(allocation.email, value)}><SelectTrigger className="w-52"><SelectValue placeholder={allocation.committee_name ?? "Selecionar comitê"} /></SelectTrigger><SelectContent>{committees.map((committee) => <SelectItem key={committee.id} value={String(committee.id)}>{committee.name}</SelectItem>)}</SelectContent></Select></td><td className="p-3"><Select value={choice.representationId} disabled={!choice.committeeId} onValueChange={(value) => setChoices((current) => ({ ...current, [allocation.email]: { ...choice, representationId: value } }))}><SelectTrigger className="w-52"><SelectValue placeholder={allocation.representation_name ?? "Selecionar representação"} /></SelectTrigger><SelectContent>{seats.map((seat) => <SelectItem key={seat.id} value={String(seat.id)}>{seat.name}</SelectItem>)}</SelectContent></Select></td></tr>
-      })}{allocations.length === 0 ? <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">Nenhum participante adicionado.</td></tr> : null}</tbody></table></div>
-    </>}
-  </section>
+  return (
+    <section className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold">Listagem e alocação de delegados</h1>
+        <p className="text-muted-foreground">Adicione delegados e aloque-os em comitês e representações.</p>
+      </div>
+
+      {!activeConferenceId ? (
+        <p className="text-muted-foreground">Selecione uma conferência.</p>
+      ) : (
+        <>
+          <form onSubmit={addParticipant} className="flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-end">
+            <div className="grid flex-1 gap-2">
+              <Label htmlFor="participant-email">E-mail do delegado</Label>
+              <Input
+                id="participant-email"
+                required
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
+            <Button disabled={adding}>{adding ? "Adicionando..." : "Adicionar delegado"}</Button>
+          </form>
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+          <div className="flex justify-end">
+            <Button disabled={saving || pendingAllocations.length === 0} onClick={() => void saveAll()}>
+              {saving ? "Salvando..." : `Salvar alocações${pendingAllocations.length ? ` (${pendingAllocations.length})` : ""}`}
+            </Button>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>E-mail</TableHead>
+                  <TableHead>Comitê</TableHead>
+                  <TableHead>Representação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {allocations.length > 0 ? (
+                  allocations.map((allocation) => {
+                    const choice = choices[allocation.email] ?? { committeeId: "", representationId: "" }
+                    const seats = representations[Number(choice.committeeId)] ?? []
+
+                    return (
+                      <TableRow key={`${allocation.email}-${allocation.committee_id ?? "none"}`}>
+                        <TableCell>{allocation.email}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={choice.committeeId}
+                            onValueChange={(value) => void chooseCommittee(allocation.email, value)}
+                          >
+                            <SelectTrigger className="w-52">
+                              <SelectValue placeholder={allocation.committee_name ?? "Selecionar comitê"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {committees.map((committee) => (
+                                <SelectItem key={committee.id} value={String(committee.id)}>
+                                  {committee.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={choice.representationId}
+                            disabled={!choice.committeeId}
+                            onValueChange={(value) =>
+                              setChoices((current) => ({
+                                ...current,
+                                [allocation.email]: { ...choice, representationId: value },
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="w-52">
+                              <SelectValue placeholder={allocation.representation_name ?? "Selecionar representação"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {seats.map((seat) => (
+                                <SelectItem key={seat.id} value={String(seat.id)}>
+                                  {seat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                      Nenhum participante adicionado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
+    </section>
+  )
 }

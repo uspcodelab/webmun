@@ -8,6 +8,8 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import {Download} from "lucide-react"
+import { useParams } from "react-router-dom"
+import { useConference } from "@/context/ConferenceContext"
 
 
 const documents = [
@@ -43,9 +45,15 @@ const documents = [
     },
 ]
 export default function CommitteeDocs() {
+    const { committeeId } = useParams()
+    const { committees } = useConference()
+    const committee = committees.find((item) => item.id === Number(committeeId))
+
+    if (!committee) return <p className="text-muted-foreground">Comitê não encontrado.</p>
+
     return (
         <div>
-            <h2 className="text-2xl font-bold mb-4">Documentos do Comitê</h2>
+            <h2 className="text-2xl font-bold mb-4">Documentos do Comitê — {committee.name}</h2>
             <p className="text-muted-foreground">
                 Encontre aqui os documentos importantes do seu comitê.
             </p>

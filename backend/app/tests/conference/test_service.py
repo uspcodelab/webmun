@@ -116,7 +116,7 @@ async def test_create_committee_requires_conference_management_role(monkeypatch)
             FakeSession(),
             conference_id=1,
             user_id=uuid4(),
-            data=CommitteeCreate(name="CSNU", layout_id=1),
+            data=CommitteeCreate(name="CSNU", acronym="CSNU", committee_type="Traditional", layout_id=1),
         )
 
 
@@ -160,7 +160,7 @@ async def test_create_committee_commits_when_user_can_manage(monkeypatch):
         fake_session,
         conference_id=1,
         user_id=uuid4(),
-        data=CommitteeCreate(name="CSNU", layout_id=1),
+        data=CommitteeCreate(name="CSNU", acronym="CSNU", committee_type="Traditional", layout_id=1),
     )
 
     assert result.id == 10

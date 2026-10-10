@@ -33,6 +33,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -68,6 +69,26 @@ const committeeTypes = [
 ]
 
 type Layout = { id: number; name: string }
+
+const NAME_MAX_LENGTH = 256
+const ACRONYM_MAX_LENGTH = 10
+
+function validateCommitteeForm(name: string, acronym: string, type: string) {
+  const errors: { name?: string; acronym?: string; type?: string } = {}
+  const trimmedName = name.trim()
+  const trimmedAcronym = acronym.trim()
+
+  if (trimmedName.length < 1 || trimmedName.length > NAME_MAX_LENGTH) {
+    errors.name = `O nome deve ter entre 1 e ${NAME_MAX_LENGTH} caracteres.`
+  }
+  if (trimmedAcronym.length < 1 || trimmedAcronym.length > ACRONYM_MAX_LENGTH) {
+    errors.acronym = `O acrônimo deve ter entre 1 e ${ACRONYM_MAX_LENGTH} caracteres.`
+  }
+  if (!type) {
+    errors.type = "Selecione um tipo de comitê."
+  }
+  return errors
+}
 
 function fallback(value: string | null | undefined) {
   return value?.trim() || "N/A"
@@ -117,6 +138,9 @@ export default function CommitteeManagement() {
   const [layoutId, setLayoutId] = React.useState("")
   const [submitError, setSubmitError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
+  const [showValidation, setShowValidation] = React.useState(false)
+  const formErrors = validateCommitteeForm(committeeName, committeeAcronym, committeeType)
+  const formIsValid = Object.keys(formErrors).length === 0
 
   React.useEffect(() => {
     if (!activeConference || !canManageConference) {
@@ -140,10 +164,11 @@ export default function CommitteeManagement() {
   async function handleCreateCommittee(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const trimmedName = committeeName.trim()
-    if (!trimmedName) {
+    setShowValidation(true)
+    if (!formIsValid) {
       return
     }
+    const trimmedName = committeeName.trim()
 
     setSubmitting(true)
     setSubmitError(null)
@@ -151,8 +176,8 @@ export default function CommitteeManagement() {
     try {
       await createCommittee({
         name: trimmedName,
-        acronym: committeeAcronym.trim() || null,
-        committee_type: committeeType || null,
+        acronym: committeeAcronym.trim(),
+        committee_type: committeeType,
         logo_url: committeeLogoUrl.trim() || null,
         theme_color: committeeThemeColor,
         layout_id: Number(layoutId),
@@ -163,6 +188,7 @@ export default function CommitteeManagement() {
       setCommitteeLogoUrl("")
       setCommitteeThemeColor("#64748b")
       setLayoutId(layouts[0] ? String(layouts[0].id) : "")
+      setShowValidation(false)
       setCreateDialogOpen(false)
     } catch (createError) {
       setSubmitError(
@@ -478,31 +504,45 @@ export default function CommitteeManagement() {
               Configure os metadados básicos usados na dashboard da conferência.
             </DialogDescription>
           </DialogHeader>
-          <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleCreateCommittee}>
-            <div className="grid gap-2 sm:col-span-2">
-              <Label htmlFor="committee-name">Nome</Label>
+          <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleCreateCommittee} noValidate>
+            <Field className="sm:col-span-2" data-invalid={showValidation && !!formErrors.name}>
+              <FieldLabel htmlFor="committee-name">Nome</FieldLabel>
               <Input
                 id="committee-name"
                 value={committeeName}
                 onChange={(event) => setCommitteeName(event.target.value)}
+                maxLength={NAME_MAX_LENGTH}
+                aria-invalid={showValidation && !!formErrors.name}
                 required
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="committee-acronym">Acrônimo</Label>
+              {showValidation && formErrors.name ? (
+                <FieldError>{formErrors.name}</FieldError>
+              ) : null}
+            </Field>
+            <Field data-invalid={showValidation && !!formErrors.acronym}>
+              <FieldLabel htmlFor="committee-acronym">Acrônimo</FieldLabel>
               <Input
                 id="committee-acronym"
                 value={committeeAcronym}
                 onChange={(event) =>
                   setCommitteeAcronym(event.target.value.toUpperCase())
                 }
+                maxLength={ACRONYM_MAX_LENGTH}
+                aria-invalid={showValidation && !!formErrors.acronym}
                 className="uppercase"
+                required
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="committee-type">Tipo</Label>
+              {showValidation && formErrors.acronym ? (
+                <FieldError>{formErrors.acronym}</FieldError>
+              ) : null}
+            </Field>
+            <Field data-invalid={showValidation && !!formErrors.type}>
+              <FieldLabel htmlFor="committee-type">Tipo</FieldLabel>
               <Select value={committeeType} onValueChange={setCommitteeType}>
-                <SelectTrigger id="committee-type">
+                <SelectTrigger
+                  id="committee-type"
+                  aria-invalid={showValidation && !!formErrors.type}
+                >
                   <SelectValue placeholder="Selecionar tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -513,7 +553,10 @@ export default function CommitteeManagement() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+              {showValidation && formErrors.type ? (
+                <FieldError>{formErrors.type}</FieldError>
+              ) : null}
+            </Field>
             <div className="grid gap-2">
               <Label htmlFor="committee-theme-color">Cor</Label>
               <Input
@@ -559,7 +602,7 @@ export default function CommitteeManagement() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={submitting || !committeeName.trim() || !layoutId}>
+              <Button type="submit" disabled={submitting || !layoutId}>
                 {submitting ? "Criando..." : "Criar"}
               </Button>
             </DialogFooter>

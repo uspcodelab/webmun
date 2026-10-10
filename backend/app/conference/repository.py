@@ -133,6 +133,7 @@ async def list_conference_assignments(
             JOIN auth.users u ON u.id = ca.user_id
             WHERE ca.conference_id = :conference_id
               AND ca.committee_id IS NULL
+                            AND ca.role <> 'participant'
             ORDER BY ca.created_at DESC, ca.id DESC
         """),
         {"conference_id": conference_id},

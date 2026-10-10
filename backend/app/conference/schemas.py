@@ -30,9 +30,9 @@ class ConferenceRead(BaseModel):
 
 
 class CommitteeCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=64)
-    acronym: str | None = Field(default=None, max_length=16)
-    committee_type: str | None = Field(default=None, max_length=64)
+    name: str = Field(min_length=1, max_length=256)
+    acronym: str = Field(min_length=1, max_length=10)
+    committee_type: str = Field(min_length=1, max_length=64)
     logo_url: str | None = Field(default=None, max_length=1000)
     theme_color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     layout_id: int = Field(gt=0)

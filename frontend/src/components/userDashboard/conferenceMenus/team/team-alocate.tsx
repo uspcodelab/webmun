@@ -8,13 +8,13 @@ import { apiJson } from "@/lib/api"
 
 type Assignment = { conference_id: number; email: string; role: string; committee_id: number | null }
 
-const roles = ["secretary_general", "director", "moderator", "rapporteur", "crisis_staff", "press", "logistics", "staff", "participant"]
+const roles = ["secretary_general", "director", "moderator", "rapporteur", "crisis_staff", "press", "logistics", "staff"]
 
 export default function TeamAllocate() {
   const { activeConferenceId } = useConference()
   const [assignments, setAssignments] = React.useState<Assignment[]>([])
   const [email, setEmail] = React.useState("")
-  const [role, setRole] = React.useState("participant")
+  const [role, setRole] = React.useState("staff")
   const [error, setError] = React.useState<string | null>(null)
   const [saving, setSaving] = React.useState(false)
 
@@ -47,7 +47,7 @@ export default function TeamAllocate() {
   }
 
   return <section className="space-y-5">
-    <div><h1 className="text-2xl font-bold">Adicionar pessoas à conferência</h1><p className="text-muted-foreground">Adicione por e-mail e atribua um papel na conferência. Participantes são alocados em comitês na tela de participantes.</p></div>
+    <div><h1 className="text-2xl font-bold">Adicionar equipe à conferência</h1><p className="text-muted-foreground">Adicione membros da equipe por e-mail e atribua um papel. Delegados são adicionados na tela de participantes.</p></div>
     {!activeConferenceId ? <p className="text-muted-foreground">Selecione uma conferência.</p> : <>
       <form onSubmit={submit} className="flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-end">
         <label className="grid flex-1 gap-1 text-sm">E-mail<Input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>

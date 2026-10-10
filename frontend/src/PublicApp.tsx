@@ -28,6 +28,7 @@ import ManagePermsRoles from './components/userDashboard/conferenceMenus/team/ma
 import CommitteeSessions from './components/userDashboard/committeeMenus/committee-sessions.tsx';
 import CommitteeDocs from './components/userDashboard/committeeMenus/committee-docs.tsx';
 import CommitteeInfo from './components/userDashboard/committeeMenus/committee-info.tsx';
+import CommitteeConfig from './components/userDashboard/committeeMenus/committee-config.tsx';
 
 
 
@@ -70,9 +71,10 @@ function PublicApp() {
                     <Route path="conference/participants/enrollment" element={<Enrollment />} />
                     <Route path="conference/participants/list-allocation" element={<ParticipantListAllocation />} />
                     <Route path="conference/participants/presence-certificates" element={<PresenceCertificates />} />
-                    <Route path="committees/sessions" element={<CommitteeSessions />} />
-                    <Route path="committees/docs" element={<CommitteeDocs />} />
-                    <Route path="committees/info" element={<CommitteeInfo />} />
+                    <Route path="committees/:committeeId/sessions" element={<CommitteeSessions />} />
+                    <Route path="committees/:committeeId/docs" element={<CommitteeDocs />} />
+                    <Route path="committees/:committeeId/info" element={<CommitteeInfo />} />
+                    <Route path="committees/:committeeId/config" element={<CommitteeConfig />} />
                 </Route>
                 <Route path="/committees/:committeeId/session" element={<SessionPage />} />
             </Routes>
