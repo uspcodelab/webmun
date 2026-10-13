@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 
 export default function SessionPage() {
     const payload = {
-        session_id: 0,
+        session_id: 1,
         name: "CSNU",
         delegations: [
             { seat: "3-4", name: "Albânia", code: "al" },
@@ -40,7 +40,7 @@ export default function SessionPage() {
                         body: JSON.stringify(payload),
                         headers: { "Content-Type": "application/json" },
                     })
-                    .then(() => window.location.href = "/committees/0/session")
+                    .then(() => window.location.href = "/committees/1/session")
                 }
 
                 }
