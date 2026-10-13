@@ -1055,11 +1055,12 @@ export type AgendaItem = {
  */
 export type DebateContext = {
     debate_type: DebateTypes;
-    return_state: States;
+    return_debate?: DebateContext | null;
+    return_state?: States | null;
     /**
-     * Total Duration Seconds
+     * Total Duration Minutes
      */
-    total_duration_seconds?: number | null;
+    total_duration_minutes?: number | null;
     /**
      * Total Speeches
      */
@@ -1069,9 +1070,9 @@ export type DebateContext = {
      */
     per_speaker_seconds?: number | null;
     /**
-     * Expires At
+     * Closed
      */
-    expires_at?: string | null;
+    closed?: boolean | null;
 };
 
 /**
@@ -1290,13 +1291,9 @@ export type SessionLiveState = {
      */
     can_set_motion?: boolean;
     /**
-     * Gsl Default Time Seconds
+     * Default Time Seconds
      */
-    gsl_default_time_seconds?: number;
-    /**
-     * Caucus List
-     */
-    caucus_list?: Array<number>;
+    default_time_seconds?: number;
     debate?: DebateContext | null;
     /**
      * Submitted Motions
@@ -1326,6 +1323,7 @@ export type SessionLiveState = {
      * Has Veto Power
      */
     has_veto_power?: boolean;
+    default_debate?: States;
 };
 
 /**

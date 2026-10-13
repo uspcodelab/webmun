@@ -271,7 +271,7 @@ def handle_delegate_submit_motion(
         in {
             States.UNMODERATED_CAUCUS,
         }
-        and not state.can_set_motion
+        and not state.can_set_motion #?????
     ):
         raise EventRejectedError(
             code=enums.EventErrorCode.INVALID_STATE,
@@ -558,7 +558,8 @@ def apply_passed_motion(
                     next_state = States.MODERATED_CAUCUS
                     state.debate = DebateContext(
                         debate_type=DebateTypes.MODERATED_DEBATE,
-                        return_state=state.debate,
+                        return_debate=state.debate,
+                        return_state=state.current_state,
                         per_speaker_seconds=motion.per_speaker_seconds if motion.per_speaker_seconds is not None else state.default_time_seconds, 
                         total_speeches= motion.speech_count,
                     )
@@ -568,7 +569,8 @@ def apply_passed_motion(
                     next_state = States.UNMODERATED_CAUCUS
                     state.debate = DebateContext(
                         debate_type=DebateTypes.UNMODERATED_DEBATE,
-                        return_state=state.debate,
+                        return_debate=state.debate,
+                        return_state=state.current_state,
                         total_duration_seconds=motion.total_duration_minutes,
                     )
                     reset_timer(state, motion.total_duration_minutes*60)  # Use this as timer
@@ -617,6 +619,7 @@ def apply_passed_motion(
                     message="Cannot close speakers list if it's not open"
                 )
             next_state = States.CLOSED_GSL
+            state.debate.closed = True
 
         case Motions.REOPEN_SPEAKERS_LIST:
             if state.current_state != States.CLOSED_GSL:
@@ -625,6 +628,7 @@ def apply_passed_motion(
                     message="Cannot reopen speakers list if it's not closed"
                 )
             next_state = States.OPEN_GSL
+            state.debate.closed = False
 
         case Motions.SPLIT_PROPOSAL:
             # note: seems more like an informal consultation
@@ -706,10 +710,10 @@ def handle_finish_caucus(
             message="No active caucus",
         )
 
-    state.debate = state.debate.return_state
+    state.debate = state.debate.return_debate
     state.current_speaker = None
     reset_timer(state)
-    state.current_state = return_state
+    state.current_state = state.debate.return_state
     return DispatchOutcome(state=state)
 
 
@@ -1073,7 +1077,9 @@ def handle_close_roll_call(
         state.roll_call.registry.setdefault(delegation_id, RollCallChoice.ABSENT)
 
     # Initial roll call enters Open GSL; quorum roll calls restore their source state.
-    state.current_state = state.roll_call.return_state or States.OPEN_GSL
+    state.current_state = state.roll_call.return_state or state.default_debate
+    if not state.roll_call.return_state:
+        state.debate = DebateContext(debate_type=enums.DebateTypes.SPEAKERS_LIST)
     state.roll_call.registry = {
         delegation_id: RollCallChoice.PRESENT_AND_VOTING
         if choice == RollCallChoice.PRESENT_AND_VOTING

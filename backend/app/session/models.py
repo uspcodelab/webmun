@@ -1,11 +1,12 @@
 # This file defines internal models not used as schemas for the application
 # Even though it's internal, some things may be sent out to public (TODO:like SessionLiveState)
+from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
+from sre_parse import State
 from typing import Any
 from uuid import UUID
 
-from __future__ import annotations
 from pydantic import BaseModel
 
 import app.session.enums as enums
@@ -81,7 +82,8 @@ class VotingContext(BaseModel):
 
 class DebateContext(BaseModel):
     debate_type: enums.DebateTypes
-    return_state: DebateContext | None #None only if default state
+    return_debate: DebateContext | None = None#None only if default state
+    return_state: enums.States | None = None #TEMPORARY
 
     #unmoderated debate
     total_duration_minutes: int | None = None
@@ -154,6 +156,8 @@ class SessionLiveState(BaseModel):
     # Additional config
     has_veto_power: bool = False
 
+    #Temporary Config
+    default_debate: enums.States = enums.States.OPEN_GSL #change this
 
 #Add more for other effects (Possibly change the Voting context, when doing that change frontend too)
 EffectPayloads = VotingContext
