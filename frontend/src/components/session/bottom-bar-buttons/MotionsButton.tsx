@@ -100,6 +100,7 @@ export default function TestButton() {
   const showDebateKindField = selectedMotion === Motions.MUDAR_TIPO_DE_DEBATE
   const showUnmoderatedField = showDebateKindField && debateKindChange === DebateTypes.DEBATE_NÃO_MODERADO
   const showModeratedFields = showDebateKindField && debateKindChange === DebateTypes.DEBATE_MODERADO
+  const missingDebateType = showDebateKindField && debateKindChange === ""
   const showMotionDecision = motionKind === "moção" && selectedMotion.length > 0
   const selectedMotionMajority = motionRequiredMajority[selectedMotion] ?? "Maioria não definida"
 
@@ -252,7 +253,7 @@ export default function TestButton() {
 
               {showDebateKindField && (
                 <Field>
-                  <FieldLabel>Para qual tipo de debate?</FieldLabel>
+                  <FieldLabel>Para qual tipo de debate? *</FieldLabel>
                   <Select value={debateKindChange} onValueChange={(value) => setDebateKind(value as DebateTypes)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o novo tipo" />
@@ -362,12 +363,12 @@ export default function TestButton() {
               {showMotionDecision && isChair && (
                 <div className="flex gap-3 pt-1">
                   <DialogClose asChild>
-                    <Button className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button" onClick={() => { sendMessage({ type: ChairEvents.LOG_MOTION_EVENT, payload: {...motionBody, decision: MotionDecision.DENY, representation_id: 0}  } satisfies LogMotionEvent) }}>
+                    <Button disabled={missingDebateType} className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button" onClick={() => { sendMessage({ type: ChairEvents.LOG_MOTION_EVENT, payload: {...motionBody, decision: MotionDecision.DENY, representation_id: 0}  } satisfies LogMotionEvent) }}>
                       Acatar moção
                     </Button>
                   </DialogClose>
                   <DialogClose asChild>
-                    <Button className="bg-red-800 text-white hover:bg-red-700 flex-1" type="button" onClick={() => { sendMessage({ type: ChairEvents.LOG_MOTION_EVENT, payload: {...motionBody, decision: MotionDecision.DENY, representation_id: 0} } satisfies LogMotionEvent) }}>
+                    <Button disabled={missingDebateType} className="bg-red-800 text-white hover:bg-red-700 flex-1" type="button" onClick={() => { sendMessage({ type: ChairEvents.LOG_MOTION_EVENT, payload: {...motionBody, decision: MotionDecision.DENY, representation_id: 0} } satisfies LogMotionEvent) }}>
                       Rejeitar moção
                     </Button>
                   </DialogClose>
@@ -376,7 +377,7 @@ export default function TestButton() {
               {showMotionDecision && !isChair && (
                 <div className="flex gap-3 pt-1">
                   <DialogClose asChild>
-                    <Button onClick={() => { sendMessage({ type: DelegateEvents.SUBMIT_MOTION_EVENT, payload: motionBody } satisfies SubmitMotionEvent) }} className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
+                    <Button disabled={missingDebateType} onClick={() => { sendMessage({ type: DelegateEvents.SUBMIT_MOTION_EVENT, payload: motionBody } satisfies SubmitMotionEvent) }} className="flex-1 bg-green-800 text-white hover:bg-green-700" type="button">
                       Enviar moção
                     </Button>
                   </DialogClose>
