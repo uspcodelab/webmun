@@ -1051,16 +1051,72 @@ export type AgendaItem = {
 };
 
 /**
+ * ClosedGSLState
+ */
+export type ClosedGslState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Closed GSL';
+    /**
+     * Return State
+     */
+    return_state?: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState) | null;
+    /**
+     * Per Speaker Seconds
+     */
+    per_speaker_seconds?: number | null;
+};
+
+/**
  * DebateContext
  */
 export type DebateContext = {
     debate_type: DebateTypes;
-    return_debate?: DebateContext | null;
-    return_state?: States | null;
     /**
-     * Total Duration Minutes
+     * Return State
      */
-    total_duration_minutes?: number | null;
+    return_state?: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState) | null;
+    /**
+     * Total Duration Seconds
+     */
+    total_duration_seconds?: number | null;
     /**
      * Total Speeches
      */
@@ -1150,6 +1206,56 @@ export type EventRejectedMessage = {
 };
 
 /**
+ * FinishedState
+ */
+export type FinishedState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Finished';
+};
+
+/**
+ * ModeratedCaucusState
+ */
+export type ModeratedCaucusState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Moderated Caucus';
+    /**
+     * Return State
+     */
+    return_state?: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState) | null;
+    /**
+     * Per Speaker Seconds
+     */
+    per_speaker_seconds?: number | null;
+    /**
+     * Total Speeches
+     */
+    total_speeches?: number | null;
+};
+
+/**
  * MotionContext
  */
 export type MotionContext = {
@@ -1194,6 +1300,42 @@ export type MotionContext = {
 };
 
 /**
+ * OpenGSLState
+ */
+export type OpenGslState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Open GSL';
+    /**
+     * Return State
+     */
+    return_state?: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState) | null;
+    /**
+     * Per Speaker Seconds
+     */
+    per_speaker_seconds?: number | null;
+};
+
+/**
  * QuestionContext
  */
 export type QuestionContext = {
@@ -1226,7 +1368,60 @@ export type RollCallContext = {
     registry?: {
         [key: string]: RollCallChoice;
     };
-    return_state?: States | null;
+    /**
+     * Return State
+     */
+    return_state?: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState) | null;
+};
+
+/**
+ * RollCallState
+ */
+export type RollCallState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Roll Call';
+    /**
+     * Return State
+     */
+    return_state?: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState) | null;
 };
 
 /**
@@ -1234,7 +1429,7 @@ export type RollCallContext = {
  */
 export type SessionEffect = {
     type: SessionEffectType;
-    data?: VotingContext;
+    data?: VotingContext | null;
 };
 
 /**
@@ -1265,6 +1460,28 @@ export type SessionLiveState = {
     delegations: {
         [key: string]: DelegationContext;
     };
+    /**
+     * State Obj
+     */
+    state_obj: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState);
     current_state?: States;
     /**
      * Timer Is Running
@@ -1314,7 +1531,7 @@ export type SessionLiveState = {
      */
     active_topic_index?: string | null;
     voting?: VotingContext | null;
-    roll_call: RollCallContext;
+    roll_call?: RollCallContext;
     /**
      * Previous Speakers
      */
@@ -1323,7 +1540,28 @@ export type SessionLiveState = {
      * Has Veto Power
      */
     has_veto_power?: boolean;
-    default_debate?: States;
+    /**
+     * Default Debate
+     */
+    default_debate: ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState);
+};
+
+/**
+ * SetupState
+ *
+ * Dummy starting State, it's properties are defined when activating a session
+ */
+export type SetupState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Setup Room';
 };
 
 /**
@@ -1338,6 +1576,54 @@ export type StateSnapshotMessage = {
 };
 
 /**
+ * TourDeTableState
+ *
+ * To be implemented
+ */
+export type TourDeTableState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Tour de Table';
+};
+
+/**
+ * UnmoderatedCaucusState
+ */
+export type UnmoderatedCaucusState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Unmoderated Caucus';
+    /**
+     * Return State
+     */
+    return_state?: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState) | null;
+    /**
+     * Total Duration Minutes
+     */
+    total_duration_minutes: number | null;
+};
+
+/**
  * VotingContext
  */
 export type VotingContext = {
@@ -1346,7 +1632,28 @@ export type VotingContext = {
      * Title
      */
     title?: string | null;
-    return_state: States;
+    /**
+     * Return State
+     */
+    return_state: ({
+        state_name: 'Setup Room';
+    } & SetupState) | ({
+        state_name: 'Roll Call';
+    } & RollCallState) | ({
+        state_name: 'Open GSL';
+    } & OpenGslState) | ({
+        state_name: 'Closed GSL';
+    } & ClosedGslState) | ({
+        state_name: 'Moderated Caucus';
+    } & ModeratedCaucusState) | ({
+        state_name: 'Unmoderated Caucus';
+    } & UnmoderatedCaucusState) | ({
+        state_name: 'Tour de Table';
+    } & TourDeTableState) | ({
+        state_name: 'Voting Execution';
+    } & VotingExecutionState) | ({
+        state_name: 'Finished';
+    } & FinishedState);
     /**
      * Voting Registry
      */
@@ -1359,6 +1666,17 @@ export type VotingContext = {
      * Allow Veto Power
      */
     allow_veto_power?: boolean;
+};
+
+/**
+ * VotingExecutionState
+ */
+export type VotingExecutionState = {
+    /**
+     * State Name
+     */
+    state_name?: 'Voting Execution';
+    context: VotingContext;
 };
 
 /**
