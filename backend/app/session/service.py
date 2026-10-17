@@ -27,9 +27,10 @@ from .manager import ConnectionManager
 from .models import (
     DelegationContext,
     DispatchOutcome,
-    RollCallContext,
     SessionActor,
     SessionLiveState,
+    SetupState,
+    OpenGSLState
 )
 
 
@@ -126,14 +127,12 @@ async def activate_session(
     if delegations is None:
         raise ConflictError("Session delegations are unavailable")
 
-    live_state = SessionLiveState(
-        session_id=stored.id,
-        start_time=datetime.now(),
-        delegations=delegations,
-        current_state=enums.States.SETUP,
-        gsl_default_time_seconds=60,
-        roll_call=RollCallContext(registry={}),
-    )
+    live_state = SessionLiveState(session_id=stored.id,
+                                  start_time=datetime.now(),
+                                  delegations=delegations,
+                                  default_debate = OpenGSLState(),
+                                  state_obj=SetupState())
+    live_state.transition_to(SetupState())
 
     updated = replace(
         stored,
