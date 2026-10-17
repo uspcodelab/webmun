@@ -18,16 +18,23 @@ from .enums import (
 )
 from .models import (
     AgendaItem,
-    DebateContext,
+    ClosedGSLState,
     DelegationContext,
     DispatchOutcome,
     MotionContext,
+    OpenGSLState,
     QuestionContext,
-    RollCallContext,
     SessionActor,
     SessionEffect,
     SessionLiveState,
+    StateTypes,
+    TourDeTableState,
     VotingContext,
+    ModeratedCaucusState,
+    UnmoderatedCaucusState,
+    RollCallState,
+    VotingExecutionState,
+    FinishedState,
 )
 
 
@@ -398,8 +405,7 @@ def handle_open_session(
             message="Cannot open session out of setup",
         )
 
-    state.current_state = States.ROLL_CALL
-    state.roll_call = RollCallContext(registry={})
+    state.transition_to(RollCallState())
     state.gsl_queue = []
     state.current_speaker = None
     state.debate = None
@@ -421,16 +427,7 @@ def handle_close_session(
             message="Session may not be closed during roll call", #confirm thiss
         )
 
-    state.current_state = States.FINISHED
-    state.current_speaker = None
-    state.gsl_queue = []  # I'm supposing this queue has the first element popped when someone speaks,
-    # so it should be empty when session is closed. In case this list is to be kept,
-    # we can remove this line.
-    state.can_set_motion = False
-    state.debate = None  # Same as queue
-    state.timer_is_running = False
-    state.timer_expiration = None
-    state.timer_remaining_seconds = 0
+    state.transition_to(FinishedState())
 
     return DispatchOutcome(state=state)
 
@@ -493,14 +490,12 @@ def handle_open_informal_voting(
             message="Cannot open voting with voting in course",
         )
 
-    state.voting = VotingContext(
+    state.transition_to(VotingExecutionState(context = VotingContext(
         target_type=enums.VotingType.INFORMAL,
         title=event.payload.title,
-        return_state=state.current_state,
+        return_state=state.state_obj,
         voting_registry={},
-    )
-
-    state.current_state = States.VOTING_EXECUTION
+    )))
 
     return DispatchOutcome(state=state)
 
@@ -527,19 +522,15 @@ def handle_close_informal_voting(
             message="Cannot close voting",
         )
 
-    # extract last state
-    state.current_state = state.voting.return_state
-
-    state.voting = None
+    state.transition_to(state.voting.return_state)
 
     return DispatchOutcome(state=state)
 
 
 def apply_passed_motion(
-    state: SessionLiveState, motion: MotionContext, return_state: States
+    state: SessionLiveState, motion: MotionContext, return_state: StateTypes
 ) -> None:
     """Apply a passed procedural motion to the live session state in place."""
-    next_state = return_state  # as fallback
     state.current_speaker = None
     state.timer_is_running = False
     state.timer_expiration = None
@@ -555,55 +546,32 @@ def apply_passed_motion(
 
             match motion.debate_type:
                 case DebateTypes.MODERATED_DEBATE:
-                    next_state = States.MODERATED_CAUCUS
-                    state.debate = DebateContext(
-                        debate_type=DebateTypes.MODERATED_DEBATE,
-                        return_debate=state.debate,
-                        return_state=state.current_state,
-                        per_speaker_seconds=motion.per_speaker_seconds if motion.per_speaker_seconds is not None else state.default_time_seconds, 
-                        total_speeches= motion.speech_count,
-                    )
+                    state.transition_to(ModeratedCaucusState(
+                        return_state=return_state, 
+                        per_speaker_seconds=motion.per_speaker_seconds,
+                        total_speeches=motion.speech_count))
 
                 case DebateTypes.UNMODERATED_DEBATE:
-                    duration = motion.total_duration_minutes if motion.total_duration_minutes is not None else 5
-                    next_state = States.UNMODERATED_CAUCUS
-                    state.debate = DebateContext(
-                        debate_type=DebateTypes.UNMODERATED_DEBATE,
-                        return_debate=state.debate,
-                        return_state=state.current_state,
-                        total_duration_seconds=motion.total_duration_minutes,
-                    )
-                    reset_timer(state, motion.total_duration_minutes*60)  # Use this as timer
+                    state.transition_to(UnmoderatedCaucusState(
+                        return_state=return_state, 
+                        total_duration_minutes=motion.total_duration_minutes))
 
                 case DebateTypes.SPEAKERS_LIST:
-                    next_state = States.OPEN_GSL
-                    state.debate = DebateContext(
-                        debate_type=DebateTypes.SPEAKERS_LIST,
-                        return_state=state.debate,
-                        per_speaker_seconds=state.default_time_seconds,
-                    )
+                    state.transition_to(OpenGSLState(return_state=return_state, 
+                                                     per_speaker_seconds=state.default_time_seconds))
 
         case Motions.POSTPONE_SESSION:
             pass
         case Motions.REOPEN_SESSION:
             pass
         case Motions.TOUR_DE_TABLE:
-            next_state = States.TOUR_DE_TABLE
-            state.caucus_list = [
-                del_id
-                for del_id, choice in state.roll_call.registry.items()
-                if choice
-                in (
-                    enums.RollCallChoice.PRESENT,
-                    enums.RollCallChoice.PRESENT_AND_VOTING,
-                )
-            ]
+            state.transition_to(TourDeTableState())
 
         case Motions.END_DEBATE:
             # clean gsl list
             state.gsl_queue = []
             state.debate = None
-            reset_timer(state)
+            state.reset_timer()
             next_state = States.VOTING_PROCEDURES  # or VOTING_PREPARATION
 
         case Motions.VOTE_AMENDMENT:
@@ -618,8 +586,8 @@ def apply_passed_motion(
                     code=enums.EventErrorCode.INVALID_STATE,
                     message="Cannot close speakers list if it's not open"
                 )
-            next_state = States.CLOSED_GSL
-            state.debate.closed = True
+            state.transition_to(ClosedGSLState(return_state=return_state,
+                                               per_speaker_seconds=state.state_obj.per_speaker_seconds))
 
         case Motions.REOPEN_SPEAKERS_LIST:
             if state.current_state != States.CLOSED_GSL:
@@ -627,8 +595,8 @@ def apply_passed_motion(
                     code=enums.EventErrorCode.INVALID_STATE,
                     message="Cannot reopen speakers list if it's not closed"
                 )
-            next_state = States.OPEN_GSL
-            state.debate.closed = False
+            state.transition_to(OpenGSLState(return_state=return_state, 
+                                             per_speaker_seconds=state.state_obj.per_speaker_seconds))
 
         case Motions.SPLIT_PROPOSAL:
             # note: seems more like an informal consultation
@@ -637,16 +605,12 @@ def apply_passed_motion(
             # note: seems more like an informal consultation
             pass
         case Motions.QUORUM:
-            state.roll_call = RollCallContext(registry={}, return_state=return_state)
-            next_state = States.ROLL_CALL
+            state.transition_to(RollCallState(return_state=return_state))
         case _:
             raise EventRejectedError(
                 code=enums.EventErrorCode.INVALID_MESSAGE,
                 message="Undefined motion type",
             )
-
-    # additional case: if we went from GSL to something, save gsl structures
-    state.current_state = next_state
 
 
 def handle_close_procedural_voting(
@@ -692,10 +656,8 @@ def handle_close_procedural_voting(
         apply_passed_motion(state, motion, return_state=state.voting.return_state)
     else:
         # motion failed, so return to last state
-        state.current_state = state.voting.return_state
+        state.transition_to(state.voting.return_state)
 
-    # clear state voting
-    state.voting = None
     return DispatchOutcome(state=state, effect=effect)
 
 
@@ -710,10 +672,15 @@ def handle_finish_caucus(
             message="No active caucus",
         )
 
-    state.debate = state.debate.return_debate
+    if state.debate.return_state is None:
+        raise EventRejectedError(
+            code=enums.EventErrorCode.INVALID_STATE,
+            message="No state to return to",
+        )
+
+    state.transition_to(state.debate.return_state)
     state.current_speaker = None
-    reset_timer(state)
-    state.current_state = state.debate.return_state
+    state.reset_timer()
     return DispatchOutcome(state=state)
 
 
@@ -742,15 +709,12 @@ def handle_resolve_motion(
     )
 
     if payload.action:
-        state.voting = VotingContext(
+        state.transition_to(VotingExecutionState(context=VotingContext(
             target_type=enums.VotingType.PROCEDURAL,
             motion_in_vote=motion,
-            return_state=state.current_state,
-            voting_registry={},
+            return_state=state.state_obj,
             majority=majority_type,
-        )
-
-        state.current_state = States.VOTING_EXECUTION
+        )))
 
     state.submitted_motions.remove(motion)
 
@@ -787,15 +751,14 @@ def handle_chair_submit_motion(
     )
 
     # set state to be in voting execution
-    state.voting = VotingContext(
+    state.transition_to(VotingExecutionState(context=VotingContext(
         target_type=enums.VotingType.PROCEDURAL,
         motion_in_vote=context,
-        return_state=state.current_state,
+        return_state=state.state_obj,
         voting_registry={},
         majority=majority_type,
-    )
+    )))
 
-    state.current_state = States.VOTING_EXECUTION
     return DispatchOutcome(state=state)
 
 def handle_clear_motions(
@@ -860,19 +823,19 @@ def handle_next_speaker(
     if state.current_state in {States.OPEN_GSL, States.CLOSED_GSL}:
         if not state.gsl_queue:
             state.current_speaker = None
-            reset_timer(state)
+            state.reset_timer()
             return DispatchOutcome(state=state)
         state.current_speaker = state.gsl_queue.pop(0)
-        reset_timer(state, state.default_time_seconds)
+        state.reset_timer(state.default_time_seconds)
         return DispatchOutcome(state=state)
 
     if state.current_state == States.TOUR_DE_TABLE:
         if not state.caucus_list:
             state.current_speaker = None
-            reset_timer(state)
+            state.reset_timer()
             return DispatchOutcome(state=state)
         state.current_speaker = state.caucus_list.pop(0)
-        reset_timer(state, state.default_time_seconds)
+        state.reset_timer(state.default_time_seconds)
         return DispatchOutcome(state=state)
 
     if state.current_state == States.MODERATED_CAUCUS:
@@ -952,7 +915,7 @@ def handle_grant_floor(
         )
 
     state.current_speaker = representation_id
-    reset_timer(state, seconds)
+    state.reset_timer(seconds)
 
     return DispatchOutcome(state=state)
 
@@ -1023,7 +986,7 @@ def handle_end_speech(
 
     state.previous_speakers.append(state.current_speaker)
     state.current_speaker = None
-    reset_timer(state)
+    state.reset_timer()
 
     return DispatchOutcome(state=state)
 
@@ -1077,9 +1040,7 @@ def handle_close_roll_call(
         state.roll_call.registry.setdefault(delegation_id, RollCallChoice.ABSENT)
 
     # Initial roll call enters Open GSL; quorum roll calls restore their source state.
-    state.current_state = state.roll_call.return_state or state.default_debate
-    if not state.roll_call.return_state:
-        state.debate = DebateContext(debate_type=enums.DebateTypes.SPEAKERS_LIST)
+    state.transition_to(state.roll_call.return_state or state.default_debate)
     state.roll_call.registry = {
         delegation_id: RollCallChoice.PRESENT_AND_VOTING
         if choice == RollCallChoice.PRESENT_AND_VOTING
