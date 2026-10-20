@@ -272,13 +272,15 @@ async def get_user_conference(
             c.id, c.name, c.status, c.owner_id, c.location, c.logo_url,
             c.theme_color, c.start_date, c.end_date, c.created_at, c.updated_at
         FROM public.conferences c
-        LEFT JOIN public.conference_assignments ca
-            ON ca.conference_id = c.id
-            AND ca.user_id = :user_id
         WHERE c.id = :conference_id
             AND (
                 c.owner_id = :user_id
-                OR ca.user_id IS NOT NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM public.conference_assignments ca
+                    WHERE ca.conference_id = c.id
+                        AND ca.user_id = :user_id
+                )
             )
     """)
 

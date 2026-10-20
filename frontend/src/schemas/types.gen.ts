@@ -55,11 +55,11 @@ export type CommitteeCreate = {
     /**
      * Acronym
      */
-    acronym?: string | null;
+    acronym: string;
     /**
      * Committee Type
      */
-    committee_type?: string | null;
+    committee_type: string;
     /**
      * Logo Url
      */
